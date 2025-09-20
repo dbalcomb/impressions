@@ -1,0 +1,9 @@
+[package]
+name = "impressions"
+version = "0.0.0"
+description = "An experimental binary analysis utility inspired by the City Building series from Impressions Games"
+authors = ["Daniel Balcomb <daniel.balcomb@gmail.com>"]
+repository = "https://github.com/dbalcomb/impressions"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+publish = false
