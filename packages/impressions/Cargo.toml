@@ -7,3 +7,7 @@ repository = "https://github.com/dbalcomb/impressions"
 license = "MIT OR Apache-2.0"
 edition = "2024"
 publish = false
+
+[dependencies]
+anyhow = "1.0.100"
+clap = { version = "4.5.48", features = ["derive"] }
