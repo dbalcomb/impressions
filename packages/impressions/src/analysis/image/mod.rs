@@ -38,7 +38,7 @@ impl Image {
 
     /// Gets the image size.
     pub fn size(&self) -> u64 {
-        self.headers.image_size()
+        self.headers.optional().image_size()
     }
 }
 
