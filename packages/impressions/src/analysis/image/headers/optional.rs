@@ -115,6 +115,11 @@ pub struct OptionalHeader {
 }
 
 impl OptionalHeader {
+    /// The base size of the header without data directories, in bytes.
+    pub const BASE_SIZE: usize = 96;
+}
+
+impl OptionalHeader {
     /// Parses the Optional header from the given buffer.
     pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
         let magic = buffer.try_get_u16_le()?;
@@ -197,6 +202,11 @@ pub struct DataDirectory {
 
     /// The size of the table, in bytes.
     size: u32,
+}
+
+impl DataDirectory {
+    /// The size of the data directory entry, in bytes.
+    pub const SIZE: usize = 8;
 }
 
 impl DataDirectory {

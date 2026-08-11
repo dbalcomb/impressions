@@ -38,6 +38,11 @@ pub struct CoffHeader {
 }
 
 impl CoffHeader {
+    /// The size of the header, in bytes.
+    pub const SIZE: usize = 20;
+}
+
+impl CoffHeader {
     /// Parses the COFF header from the given buffer.
     pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
         let machine = buffer.try_get_u16_le()?;
