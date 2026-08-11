@@ -208,3 +208,15 @@ impl DataDirectory {
         })
     }
 }
+
+impl DataDirectory {
+    /// Gets the relative virtual address of the table.
+    pub fn address(&self) -> u32 {
+        self.virtual_address
+    }
+
+    /// Gets the size of the table, in bytes.
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+}
