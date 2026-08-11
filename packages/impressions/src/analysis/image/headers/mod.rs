@@ -6,9 +6,9 @@ mod optional;
 
 use bytes::{Buf, TryGetError};
 
-use self::coff::CoffHeader;
-use self::dos::DosHeader;
-use self::optional::OptionalHeader;
+pub use self::coff::CoffHeader;
+pub use self::dos::DosHeader;
+pub use self::optional::OptionalHeader;
 
 use super::Error;
 
@@ -78,6 +78,23 @@ impl Headers {
 }
 
 impl Headers {
+    /// Gets the DOS header.
+    pub fn dos(&self) -> &DosHeader {
+        &self.dos
+    }
+
+    /// Gets the COFF header.
+    pub fn coff(&self) -> &CoffHeader {
+        &self.coff
+    }
+
+    /// Gets the Optional header.
+    pub fn optional(&self) -> &OptionalHeader {
+        &self.optional
+    }
+}
+
+impl Headers {
     /// Gets the address of the headers.
     pub fn address(&self) -> u32 {
         self.optional.image_address()
@@ -86,11 +103,6 @@ impl Headers {
     /// Gets the size of the headers.
     pub fn size(&self) -> u64 {
         self.optional.headers_size()
-    }
-
-    /// Gets the size of the image.
-    pub fn image_size(&self) -> u64 {
-        self.optional.image_size()
     }
 }
 
@@ -146,7 +158,7 @@ mod tests {
 
         assert_eq!(headers.address(), 0x00400000);
         assert_eq!(headers.size(), 4096);
-        assert_eq!(headers.image_size(), 18944000);
+        assert_eq!(headers.optional().image_size(), 18944000);
     }
 
     #[test]
@@ -155,6 +167,6 @@ mod tests {
 
         assert_eq!(headers.address(), 0x00400000);
         assert_eq!(headers.size(), 4096);
-        assert_eq!(headers.image_size(), 18944000);
+        assert_eq!(headers.optional().image_size(), 18944000);
     }
 }
