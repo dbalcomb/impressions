@@ -8,7 +8,7 @@ use bytes::{Buf, TryGetError};
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
-pub use self::optional::OptionalHeader;
+pub use self::optional::{DataDirectory, OptionalHeader};
 
 use super::Error;
 
