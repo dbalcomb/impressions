@@ -40,16 +40,16 @@ const PE_SIGNATURE: u32 = 0x4550;
 /// in image files so it is required here.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Headers {
-    dos_header: DosHeader,
-    coff_header: CoffHeader,
-    optional_header: OptionalHeader,
+    dos: DosHeader,
+    coff: CoffHeader,
+    optional: OptionalHeader,
 }
 
 impl Headers {
     /// Parses the image file headers up to the section table.
     pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
-        let dos_header = DosHeader::parse(&mut buffer)?;
-        let pe_offset = dos_header.pe_headers_offset() as usize - dos_header.size() as usize;
+        let dos = DosHeader::parse(&mut buffer)?;
+        let pe_offset = dos.pe_headers_offset() as usize - dos.size() as usize;
 
         if pe_offset > buffer.remaining() {
             return Err(Error::Parse(TryGetError {
@@ -66,13 +66,13 @@ impl Headers {
             return Err(Error::InvalidSignature);
         }
 
-        let coff_header = CoffHeader::parse(&mut buffer)?;
-        let optional_header = OptionalHeader::parse(&mut buffer)?;
+        let coff = CoffHeader::parse(&mut buffer)?;
+        let optional = OptionalHeader::parse(&mut buffer)?;
 
         Ok(Self {
-            dos_header,
-            coff_header,
-            optional_header,
+            dos,
+            coff,
+            optional,
         })
     }
 }
@@ -80,17 +80,17 @@ impl Headers {
 impl Headers {
     /// Gets the address of the headers.
     pub fn address(&self) -> u32 {
-        self.optional_header.image_address()
+        self.optional.image_address()
     }
 
     /// Gets the size of the headers.
     pub fn size(&self) -> u64 {
-        self.optional_header.headers_size()
+        self.optional.headers_size()
     }
 
     /// Gets the size of the image.
     pub fn image_size(&self) -> u64 {
-        self.optional_header.image_size()
+        self.optional.image_size()
     }
 }
 
