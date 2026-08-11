@@ -67,6 +67,11 @@ pub struct DosHeader {
 }
 
 impl DosHeader {
+    /// The size of the header, in bytes.
+    pub const SIZE: usize = 64;
+}
+
+impl DosHeader {
     /// Parses the DOS header from the given buffer.
     pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
         let e_magic = buffer.try_get_u16_le()?;
@@ -103,10 +108,5 @@ impl DosHeader {
     /// Gets the file offset of the PE headers.
     pub fn pe_headers_offset(&self) -> u32 {
         self.e_lfanew
-    }
-
-    /// Gets the size of the header.
-    pub fn size(&self) -> u64 {
-        64
     }
 }

@@ -49,7 +49,7 @@ impl Headers {
     /// Parses the image file headers up to the section table.
     pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
         let dos = DosHeader::parse(&mut buffer)?;
-        let pe_offset = dos.pe_headers_offset() as usize - dos.size() as usize;
+        let pe_offset = dos.pe_headers_offset() as usize - DosHeader::SIZE;
 
         if pe_offset > buffer.remaining() {
             return Err(Error::Parse(TryGetError {
