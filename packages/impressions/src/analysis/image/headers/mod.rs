@@ -3,12 +3,14 @@
 mod coff;
 mod dos;
 mod optional;
+mod section;
 
 use bytes::{Buf, TryGetError};
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
 pub use self::optional::{DataDirectory, OptionalHeader};
+pub use self::section::SectionHeader;
 
 use super::Error;
 
@@ -16,10 +18,6 @@ use super::Error;
 const PE_SIGNATURE: u32 = 0x4550;
 
 /// The 32-bit Portable Executable (PE) image file headers.
-///
-/// This type represents a partial analysis of the image file headers up to the
-/// section table. Only fields relevant to the analysis are exposed through
-/// methods to allow the internal representation to remain flexible.
 ///
 /// # Structure
 ///
@@ -30,7 +28,7 @@ const PE_SIGNATURE: u32 = 0x4550;
 /// * PE Signature (checked)
 /// * COFF Header (included)
 /// * Optional Header (included)
-/// * Section Headers (not included)
+/// * Section Headers (included)
 ///
 /// The DOS Stub and Rich Header are not useful for this analysis and have been
 /// skipped. The former describes an application that runs under MS-DOS and the
@@ -43,6 +41,7 @@ pub struct Headers {
     dos: DosHeader,
     coff: CoffHeader,
     optional: OptionalHeader,
+    sections: Vec<SectionHeader>,
 }
 
 impl Headers {
@@ -68,11 +67,15 @@ impl Headers {
 
         let coff = CoffHeader::parse(&mut buffer)?;
         let optional = OptionalHeader::parse(&mut buffer)?;
+        let sections = (0..coff.number_of_sections())
+            .map(|_| SectionHeader::parse(&mut buffer))
+            .collect::<Result<_, _>>()?;
 
         Ok(Self {
             dos,
             coff,
             optional,
+            sections,
         })
     }
 }
@@ -91,6 +94,11 @@ impl Headers {
     /// Gets the Optional header.
     pub fn optional(&self) -> &OptionalHeader {
         &self.optional
+    }
+
+    /// Gets an iterator over the section headers.
+    pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
+        self.sections.iter()
     }
 }
 
@@ -159,6 +167,28 @@ mod tests {
         assert_eq!(headers.address(), 0x00400000);
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
+
+        let mut sections = headers.sections();
+
+        let text = sections.next().unwrap();
+
+        assert_eq!(text.name(), ".text");
+        assert_eq!(text.address(), 0x00001000);
+
+        let rdata = sections.next().unwrap();
+
+        assert_eq!(rdata.name(), ".rdata");
+        assert_eq!(rdata.address(), 0x001D8000);
+
+        let data = sections.next().unwrap();
+
+        assert_eq!(data.name(), ".data");
+        assert_eq!(data.address(), 0x001E8000);
+
+        let rsrc = sections.next().unwrap();
+
+        assert_eq!(rsrc.name(), ".rsrc");
+        assert_eq!(rsrc.address(), 0x0120E000);
     }
 
     #[test]
@@ -168,5 +198,27 @@ mod tests {
         assert_eq!(headers.address(), 0x00400000);
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
+
+        let mut sections = headers.sections();
+
+        let text = sections.next().unwrap();
+
+        assert_eq!(text.name(), ".text");
+        assert_eq!(text.address(), 0x00001000);
+
+        let rdata = sections.next().unwrap();
+
+        assert_eq!(rdata.name(), ".rdata");
+        assert_eq!(rdata.address(), 0x001D8000);
+
+        let data = sections.next().unwrap();
+
+        assert_eq!(data.name(), ".data");
+        assert_eq!(data.address(), 0x001E8000);
+
+        let rsrc = sections.next().unwrap();
+
+        assert_eq!(rsrc.name(), ".rsrc");
+        assert_eq!(rsrc.address(), 0x0120E000);
     }
 }

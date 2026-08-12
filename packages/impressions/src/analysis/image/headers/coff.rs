@@ -62,3 +62,10 @@ impl CoffHeader {
         })
     }
 }
+
+impl CoffHeader {
+    /// Gets the number of sections.
+    pub fn number_of_sections(&self) -> usize {
+        self.number_of_sections as usize
+    }
+}
