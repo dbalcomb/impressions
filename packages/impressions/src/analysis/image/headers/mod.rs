@@ -71,6 +71,19 @@ impl Headers {
             .map(|_| SectionHeader::parse(&mut buffer))
             .collect::<Result<_, _>>()?;
 
+        let file_offset = dos.pe_headers_offset() as usize
+            + 4
+            + CoffHeader::SIZE
+            + OptionalHeader::BASE_SIZE
+            + (DataDirectory::SIZE * optional.number_of_data_directories())
+            + (SectionHeader::SIZE * coff.number_of_sections());
+
+        let remaining = buffer
+            .remaining()
+            .min(optional.headers_size() as usize - file_offset);
+
+        buffer.advance(remaining);
+
         Ok(Self {
             dos,
             coff,
@@ -116,7 +129,7 @@ impl Headers {
 
 #[cfg(test)]
 mod tests {
-    use bytes::{Bytes, BytesMut};
+    use bytes::{Buf, Bytes, BytesMut};
 
     use super::Headers;
 
@@ -154,19 +167,24 @@ mod tests {
     ];
 
     fn sample_headers_padded() -> Bytes {
-        let mut bytes = BytesMut::zeroed(SAMPLE_HEADERS_SIZE);
+        const SECTIONS_SIZE: usize = 4;
+
+        let mut bytes = BytesMut::zeroed(SAMPLE_HEADERS_SIZE + SECTIONS_SIZE);
 
         bytes[0..SAMPLE_HEADERS_DATA.len()].copy_from_slice(&SAMPLE_HEADERS_DATA);
+        bytes[SAMPLE_HEADERS_SIZE..].copy_from_slice(&[1, 2, 3, 4]);
         bytes.freeze()
     }
 
     #[test]
     fn test_parse_bytes() {
-        let headers = Headers::parse(sample_headers_padded()).unwrap();
+        let mut buffer = sample_headers_padded();
+        let headers = Headers::parse(&mut buffer).unwrap();
 
         assert_eq!(headers.address(), 0x00400000);
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
+        assert_eq!(buffer, [1, 2, 3, 4].as_slice());
 
         let mut sections = headers.sections();
 
@@ -195,11 +213,13 @@ mod tests {
 
     #[test]
     fn test_parse_slice() {
-        let headers = Headers::parse(SAMPLE_HEADERS_DATA.as_slice()).unwrap();
+        let mut buffer = SAMPLE_HEADERS_DATA.as_slice();
+        let headers = Headers::parse(&mut buffer).unwrap();
 
         assert_eq!(headers.address(), 0x00400000);
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
+        assert_eq!(buffer.remaining(), 0);
 
         let mut sections = headers.sections();
 

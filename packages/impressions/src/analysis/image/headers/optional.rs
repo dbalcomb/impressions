@@ -192,6 +192,11 @@ impl OptionalHeader {
     pub fn headers_size(&self) -> u64 {
         self.size_of_headers as u64
     }
+
+    /// Gets the number of data directories.
+    pub fn number_of_data_directories(&self) -> usize {
+        self.number_of_rva_and_sizes as usize
+    }
 }
 
 /// A data directory entry within the Optional header.
