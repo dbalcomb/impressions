@@ -189,6 +189,8 @@ mod tests {
 
         assert_eq!(rsrc.name(), ".rsrc");
         assert_eq!(rsrc.address(), 0x0120E000);
+
+        assert_eq!(sections.next(), None);
     }
 
     #[test]
@@ -220,5 +222,7 @@ mod tests {
 
         assert_eq!(rsrc.name(), ".rsrc");
         assert_eq!(rsrc.address(), 0x0120E000);
+
+        assert_eq!(sections.next(), None);
     }
 }
