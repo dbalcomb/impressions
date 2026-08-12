@@ -16,4 +16,8 @@ pub enum Error {
     /// A problem was encountered reading the image.
     #[error("I/O error")]
     Io(#[from] std::io::Error),
+
+    /// A problem was encountered reading a UTF-8 string.
+    #[error("UTF-8 error")]
+    Utf8(#[from] std::str::Utf8Error),
 }
