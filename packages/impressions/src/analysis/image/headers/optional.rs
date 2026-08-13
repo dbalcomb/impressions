@@ -1,5 +1,7 @@
 use bytes::Buf;
 
+use crate::data::Parse;
+
 use super::Error;
 
 /// The signature of a 32-bit PE image file.
@@ -120,8 +122,31 @@ impl OptionalHeader {
 }
 
 impl OptionalHeader {
-    /// Parses the Optional header from the given buffer.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
+    /// Gets the base address of the image.
+    pub fn image_address(&self) -> u32 {
+        self.image_base
+    }
+
+    /// Gets the total size of the image.
+    pub fn image_size(&self) -> u64 {
+        self.size_of_image as u64
+    }
+
+    /// Gets the total size of the headers.
+    pub fn headers_size(&self) -> u64 {
+        self.size_of_headers as u64
+    }
+
+    /// Gets the number of data directories.
+    pub fn number_of_data_directories(&self) -> usize {
+        self.number_of_rva_and_sizes as usize
+    }
+}
+
+impl Parse for OptionalHeader {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         let magic = buffer.try_get_u16_le()?;
 
         if magic != OPTIONAL_SIGNATURE {
@@ -177,28 +202,6 @@ impl OptionalHeader {
     }
 }
 
-impl OptionalHeader {
-    /// Gets the base address of the image.
-    pub fn image_address(&self) -> u32 {
-        self.image_base
-    }
-
-    /// Gets the total size of the image.
-    pub fn image_size(&self) -> u64 {
-        self.size_of_image as u64
-    }
-
-    /// Gets the total size of the headers.
-    pub fn headers_size(&self) -> u64 {
-        self.size_of_headers as u64
-    }
-
-    /// Gets the number of data directories.
-    pub fn number_of_data_directories(&self) -> usize {
-        self.number_of_rva_and_sizes as usize
-    }
-}
-
 /// A data directory entry within the Optional header.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataDirectory {
@@ -215,16 +218,6 @@ impl DataDirectory {
 }
 
 impl DataDirectory {
-    /// Parses a data directory from the given buffer.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
-        Ok(Self {
-            virtual_address: buffer.try_get_u32_le()?,
-            size: buffer.try_get_u32_le()?,
-        })
-    }
-}
-
-impl DataDirectory {
     /// Gets the relative virtual address of the table.
     pub fn address(&self) -> u32 {
         self.virtual_address
@@ -233,5 +226,16 @@ impl DataDirectory {
     /// Gets the size of the table, in bytes.
     pub fn size(&self) -> u32 {
         self.size
+    }
+}
+
+impl Parse for DataDirectory {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+        Ok(Self {
+            virtual_address: buffer.try_get_u32_le()?,
+            size: buffer.try_get_u32_le()?,
+        })
     }
 }

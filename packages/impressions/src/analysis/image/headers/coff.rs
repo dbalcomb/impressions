@@ -1,5 +1,7 @@
 use bytes::Buf;
 
+use crate::data::Parse;
+
 use super::Error;
 
 /// The signature of an x86 CPU.
@@ -43,8 +45,16 @@ impl CoffHeader {
 }
 
 impl CoffHeader {
-    /// Parses the COFF header from the given buffer.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
+    /// Gets the number of sections.
+    pub fn number_of_sections(&self) -> usize {
+        self.number_of_sections as usize
+    }
+}
+
+impl Parse for CoffHeader {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         let machine = buffer.try_get_u16_le()?;
 
         if machine != COFF_MACHINE_X86 {
@@ -60,12 +70,5 @@ impl CoffHeader {
             size_of_optional_header: buffer.try_get_u16_le()?,
             characteristics: buffer.try_get_u16_le()?,
         })
-    }
-}
-
-impl CoffHeader {
-    /// Gets the number of sections.
-    pub fn number_of_sections(&self) -> usize {
-        self.number_of_sections as usize
     }
 }

@@ -7,6 +7,8 @@ mod section;
 
 use bytes::{Buf, TryGetError};
 
+use crate::data::Parse;
+
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
 pub use self::optional::{DataDirectory, OptionalHeader};
@@ -45,8 +47,41 @@ pub struct Headers {
 }
 
 impl Headers {
-    /// Parses the image file headers up to the section table.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
+    /// Gets the DOS header.
+    pub fn dos(&self) -> &DosHeader {
+        &self.dos
+    }
+
+    /// Gets the COFF header.
+    pub fn coff(&self) -> &CoffHeader {
+        &self.coff
+    }
+
+    /// Gets the Optional header.
+    pub fn optional(&self) -> &OptionalHeader {
+        &self.optional
+    }
+
+    /// Gets an iterator over the section headers.
+    pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
+        self.sections.iter()
+    }
+
+    /// Gets the address of the headers.
+    pub fn address(&self) -> u32 {
+        self.optional.image_address()
+    }
+
+    /// Gets the size of the headers.
+    pub fn size(&self) -> u64 {
+        self.optional.headers_size()
+    }
+}
+
+impl Parse for Headers {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         let dos = DosHeader::parse(&mut buffer)?;
         let pe_offset = dos.pe_headers_offset() as usize - DosHeader::SIZE;
 
@@ -93,43 +128,11 @@ impl Headers {
     }
 }
 
-impl Headers {
-    /// Gets the DOS header.
-    pub fn dos(&self) -> &DosHeader {
-        &self.dos
-    }
-
-    /// Gets the COFF header.
-    pub fn coff(&self) -> &CoffHeader {
-        &self.coff
-    }
-
-    /// Gets the Optional header.
-    pub fn optional(&self) -> &OptionalHeader {
-        &self.optional
-    }
-
-    /// Gets an iterator over the section headers.
-    pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
-        self.sections.iter()
-    }
-}
-
-impl Headers {
-    /// Gets the address of the headers.
-    pub fn address(&self) -> u32 {
-        self.optional.image_address()
-    }
-
-    /// Gets the size of the headers.
-    pub fn size(&self) -> u64 {
-        self.optional.headers_size()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use bytes::{Buf, Bytes, BytesMut};
+
+    use crate::data::Parse;
 
     use super::Headers;
 
