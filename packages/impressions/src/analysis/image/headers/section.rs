@@ -3,6 +3,8 @@ use std::ops::Deref;
 
 use bytes::Buf;
 
+use crate::data::Parse;
+
 use super::Error;
 
 /// An image file Section header.
@@ -68,8 +70,21 @@ impl SectionHeader {
 }
 
 impl SectionHeader {
-    /// Parses the Section header from the given buffer.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
+    /// Gets the section name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Gets the address of the section.
+    pub fn address(&self) -> u32 {
+        self.virtual_address
+    }
+}
+
+impl Parse for SectionHeader {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         Ok(Self {
             name: SectionName::parse(&mut buffer)?,
             virtual_size: buffer.try_get_u32_le()?,
@@ -85,18 +100,6 @@ impl SectionHeader {
     }
 }
 
-impl SectionHeader {
-    /// Gets the section name.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Gets the address of the section.
-    pub fn address(&self) -> u32 {
-        self.virtual_address
-    }
-}
-
 /// The section name.
 ///
 /// This is an 8-byte, null-padded UTF-8 encoded string. The documentation
@@ -106,9 +109,10 @@ impl SectionHeader {
 #[repr(transparent)]
 struct SectionName([u8; 8]);
 
-impl SectionName {
-    /// Parses the section name from the given buffer.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
+impl Parse for SectionName {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         let bytes = array_init::try_array_init(|_| buffer.try_get_u8())?;
 
         str::from_utf8(trim_trailing_null(&bytes))?;

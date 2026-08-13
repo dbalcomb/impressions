@@ -10,3 +10,4 @@
 //! [2]: https://en.wikipedia.org/wiki/Impressions_Games
 
 pub mod analysis;
+pub mod data;

@@ -1,5 +1,7 @@
 use bytes::Buf;
 
+use crate::data::Parse;
+
 use super::Error;
 
 /// The signature indicating the start of the DOS headers.
@@ -72,8 +74,16 @@ impl DosHeader {
 }
 
 impl DosHeader {
-    /// Parses the DOS header from the given buffer.
-    pub fn parse(mut buffer: impl Buf) -> Result<Self, Error> {
+    /// Gets the file offset of the PE headers.
+    pub fn pe_headers_offset(&self) -> u32 {
+        self.e_lfanew
+    }
+}
+
+impl Parse for DosHeader {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         let e_magic = buffer.try_get_u16_le()?;
 
         if e_magic != DOS_SIGNATURE {
@@ -101,12 +111,5 @@ impl DosHeader {
             e_res2: array_init::try_array_init(|_| buffer.try_get_u16_le())?,
             e_lfanew: buffer.try_get_u32_le()?,
         })
-    }
-}
-
-impl DosHeader {
-    /// Gets the file offset of the PE headers.
-    pub fn pe_headers_offset(&self) -> u32 {
-        self.e_lfanew
     }
 }
