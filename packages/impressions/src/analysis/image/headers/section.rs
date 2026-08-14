@@ -3,7 +3,7 @@ use std::ops::Deref;
 
 use bytes::Buf;
 
-use crate::data::parse::Parse;
+use crate::data::parse::{ArrayParseError, Parse};
 
 use super::Error;
 
@@ -112,8 +112,8 @@ struct SectionName([u8; 8]);
 impl Parse for SectionName {
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
-        let bytes = array_init::try_array_init(|_| buffer.try_get_u8())?;
+    fn parse(buffer: impl Buf) -> Result<Self, Self::Error> {
+        let bytes = <[u8; 8]>::parse(buffer).map_err(ArrayParseError::into_buffer_error)?;
 
         str::from_utf8(trim_trailing_null(&bytes))?;
 
