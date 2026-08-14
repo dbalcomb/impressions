@@ -7,7 +7,7 @@ use std::path::Path;
 
 use bytes::{Buf, Bytes};
 
-use crate::data::Parse;
+use crate::data::parse::Parse;
 
 pub use self::error::Error;
 use self::headers::Headers;

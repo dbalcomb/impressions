@@ -7,7 +7,7 @@ mod section;
 
 use bytes::{Buf, TryGetError};
 
-use crate::data::Parse;
+use crate::data::parse::Parse;
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
@@ -132,7 +132,7 @@ impl Parse for Headers {
 mod tests {
     use bytes::{Buf, Bytes, BytesMut};
 
-    use crate::data::Parse;
+    use crate::data::parse::Parse;
 
     use super::Headers;
 

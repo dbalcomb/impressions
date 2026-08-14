@@ -3,7 +3,7 @@ use std::ops::Deref;
 
 use bytes::Buf;
 
-use crate::data::Parse;
+use crate::data::parse::Parse;
 
 use super::Error;
 

@@ -1,4 +1,6 @@
-use bytes::Buf;
+//! Parse data from buffers.
+
+pub use bytes::{Buf, TryGetError};
 
 /// Defines the ability to parse a data structure from a buffer.
 pub trait Parse: Sized {
