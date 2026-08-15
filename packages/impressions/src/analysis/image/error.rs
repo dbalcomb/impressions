@@ -1,3 +1,5 @@
+use crate::data::types::array_string;
+
 /// The image file error.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -20,4 +22,13 @@ pub enum Error {
     /// A problem was encountered reading a UTF-8 string.
     #[error("UTF-8 error")]
     Utf8(#[from] std::str::Utf8Error),
+}
+
+impl From<array_string::Error> for Error {
+    fn from(err: array_string::Error) -> Self {
+        match err {
+            array_string::Error::Read(err) => Self::Parse(err),
+            array_string::Error::Utf8(err) => Self::Utf8(err),
+        }
+    }
 }

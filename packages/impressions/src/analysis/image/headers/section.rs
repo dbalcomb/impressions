@@ -1,9 +1,7 @@
-use std::fmt::{self, Debug};
-use std::ops::Deref;
-
 use bytes::Buf;
 
-use crate::data::parse::{ArrayParseError, Parse};
+use crate::data::parse::Parse;
+use crate::data::types::array_string::ArrayString;
 
 use super::Error;
 
@@ -14,7 +12,7 @@ pub struct SectionHeader {
     ///
     /// This is an 8-byte, null-padded UTF-8 string. There is no terminating
     /// null character if the string is exactly eight characters long.
-    name: SectionName,
+    name: ArrayString<8>,
 
     /// The total size of the section when loaded into memory, in bytes.
     ///
@@ -71,7 +69,7 @@ impl SectionHeader {
 
 impl SectionHeader {
     /// Gets the section name.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &ArrayString<8> {
         &self.name
     }
 
@@ -86,7 +84,7 @@ impl Parse for SectionHeader {
 
     fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: SectionName::parse(&mut buffer)?,
+            name: ArrayString::parse(&mut buffer)?,
             virtual_size: buffer.try_get_u32_le()?,
             virtual_address: buffer.try_get_u32_le()?,
             size_of_raw_data: buffer.try_get_u32_le()?,
@@ -98,48 +96,4 @@ impl Parse for SectionHeader {
             characteristics: buffer.try_get_u32_le()?,
         })
     }
-}
-
-/// The section name.
-///
-/// This is an 8-byte, null-padded UTF-8 encoded string. The documentation
-/// states that image files do not support the long name format so this
-/// representation is sufficient.
-#[derive(Clone, PartialEq, Eq)]
-#[repr(transparent)]
-struct SectionName([u8; 8]);
-
-impl Parse for SectionName {
-    type Error = Error;
-
-    fn parse(buffer: impl Buf) -> Result<Self, Self::Error> {
-        let bytes = <[u8; 8]>::parse(buffer).map_err(ArrayParseError::into_buffer_error)?;
-
-        str::from_utf8(trim_trailing_null(&bytes))?;
-
-        Ok(Self(bytes))
-    }
-}
-
-impl Deref for SectionName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        str::from_utf8(trim_trailing_null(&self.0)).expect("validated str")
-    }
-}
-
-impl Debug for SectionName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", &**self)
-    }
-}
-
-/// Trims the trailing null bytes.
-const fn trim_trailing_null(mut bytes: &[u8]) -> &[u8] {
-    while let [rest @ .., 0] = bytes {
-        bytes = rest;
-    }
-
-    bytes
 }
