@@ -1,5 +1,5 @@
 /// The array string error.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
     /// A problem was encountered reading bytes.
     #[error("Read error")]
