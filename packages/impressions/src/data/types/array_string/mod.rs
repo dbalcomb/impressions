@@ -114,3 +114,53 @@ const fn trim_trailing_null(mut bytes: &[u8]) -> &[u8] {
 
     bytes
 }
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use crate::data::parse::{Parse, TryGetError};
+
+    use super::{ArrayString, Error};
+
+    #[test]
+    fn test_parse_exact() {
+        let mut buffer = b"Hello".as_slice();
+        let string = ArrayString::<5>::parse(&mut buffer).unwrap();
+
+        assert_eq!(string, "Hello");
+        assert_eq!(buffer, []);
+    }
+
+    #[test]
+    fn test_parse_under() {
+        let mut buffer = b"Hello World".as_slice();
+        let string = ArrayString::<5>::parse(&mut buffer).unwrap();
+
+        assert_eq!(string, "Hello");
+        assert_eq!(buffer, b" World");
+    }
+
+    #[test]
+    fn test_parse_over() {
+        let mut buffer = b"Hello".as_slice();
+
+        assert_eq!(
+            ArrayString::<8>::parse(&mut buffer),
+            Err(Error::Read(TryGetError {
+                requested: 8,
+                available: 5,
+            }))
+        );
+        assert_eq!(buffer, []);
+    }
+
+    #[test]
+    fn test_parse_invalid() {
+        let mut buffer = [0x68, 0x80].as_slice();
+        let err = ArrayString::<2>::parse(&mut buffer).unwrap_err();
+
+        assert_matches!(err, Error::Utf8(err) if err.valid_up_to() == 1);
+        assert_eq!(buffer, []);
+    }
+}
