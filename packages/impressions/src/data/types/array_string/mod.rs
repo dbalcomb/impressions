@@ -68,6 +68,12 @@ impl<const N: usize> PartialEq<str> for ArrayString<N> {
     }
 }
 
+impl<const N: usize> PartialEq<&str> for ArrayString<N> {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
 impl<const N: usize> Display for ArrayString<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(self.as_str(), f)
