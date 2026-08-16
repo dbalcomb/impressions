@@ -1,11 +1,15 @@
 //! Memory address representation and manipulation.
 
+mod space;
+
 use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Sub};
 
 use bytes::{Buf, TryGetError};
 
 use crate::data::parse::Parse;
+
+pub use self::space::{AddressSpace, Error as AddressSpaceError};
 
 /// Represents an address in memory.
 ///
