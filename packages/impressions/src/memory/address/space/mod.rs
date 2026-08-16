@@ -170,6 +170,25 @@ impl AddressSpace {
         }
     }
 
+    /// Computes the union of the address spaces.
+    ///
+    /// This method constructs the smallest address space that contains both
+    /// input address spaces.
+    pub const fn union(&self, other: Self) -> Self {
+        let lf = self.first().value();
+        let rf = other.first().value();
+        let first = if lf < rf { lf } else { rf };
+
+        let ll = self.last().value();
+        let rl = other.last().value();
+        let last = if ll > rl { ll } else { rl };
+
+        Self(RangeInclusive {
+            start: Address::new(first),
+            last: Address::new(last),
+        })
+    }
+
     /// Checks whether the address space is adjacent before another.
     pub const fn is_adjacent_before(&self, other: Self) -> bool {
         match self.next() {
@@ -420,6 +439,8 @@ mod tests {
         assert!(!a.is_adjacent_before(a));
         assert!(!a.is_adjacent_after(a));
         assert!(!a.is_adjacent_to(a));
+
+        assert_eq!(a.union(a), a);
     }
 
     #[test]
@@ -450,6 +471,9 @@ mod tests {
         assert!(!b.is_adjacent_before(a));
         assert!(!b.is_adjacent_after(a));
         assert!(!b.is_adjacent_to(a));
+
+        assert_eq!(a.union(b), b);
+        assert_eq!(b.union(a), b);
     }
 
     #[test]
@@ -480,6 +504,9 @@ mod tests {
         assert!(!b.is_adjacent_before(a));
         assert!(!b.is_adjacent_after(a));
         assert!(!b.is_adjacent_to(a));
+
+        assert_eq!(a.union(b), AddressSpace::new(5.into(), 79.into()).unwrap());
+        assert_eq!(b.union(a), AddressSpace::new(5.into(), 79.into()).unwrap());
     }
 
     #[test]
@@ -510,6 +537,9 @@ mod tests {
         assert!(b.is_adjacent_before(a));
         assert!(!b.is_adjacent_after(a));
         assert!(b.is_adjacent_to(a));
+
+        assert_eq!(a.union(b), AddressSpace::new(3.into(), 79.into()).unwrap());
+        assert_eq!(b.union(a), AddressSpace::new(3.into(), 79.into()).unwrap());
     }
 
     #[test]
@@ -546,5 +576,8 @@ mod tests {
         assert!(!b.is_adjacent_before(a));
         assert!(!b.is_adjacent_after(a));
         assert!(!b.is_adjacent_to(a));
+
+        assert_eq!(a.union(b), AddressSpace::new(5.into(), 79.into()).unwrap());
+        assert_eq!(b.union(a), AddressSpace::new(5.into(), 79.into()).unwrap());
     }
 }
