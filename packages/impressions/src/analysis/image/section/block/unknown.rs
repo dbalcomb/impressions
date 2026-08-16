@@ -2,6 +2,8 @@ use std::fmt::{self, Debug};
 
 use bytes::Bytes;
 
+use crate::memory::address::Address;
+
 /// A block of unknown bytes.
 ///
 /// This represents a block of memory that has not yet been identified. It may
@@ -9,14 +11,14 @@ use bytes::Bytes;
 /// size of the block and the size of the internal bytes.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Unknown {
-    address: u32,
+    address: Address,
     size: u64,
     bytes: Bytes,
 }
 
 impl Unknown {
     /// Constructs a new unknown block.
-    pub fn new(address: u32, size: u64, mut bytes: Bytes) -> Self {
+    pub fn new(address: Address, size: u64, mut bytes: Bytes) -> Self {
         bytes.truncate(size as usize);
 
         Self {
@@ -29,7 +31,7 @@ impl Unknown {
 
 impl Unknown {
     /// Gets the address of the unknown block.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.address
     }
 

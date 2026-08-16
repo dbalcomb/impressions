@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use bytes::Buf;
 
 use crate::data::types::array_string::ArrayString;
+use crate::memory::address::Address;
 
 use self::block::Block;
 
@@ -20,7 +21,7 @@ use super::headers::{OptionalHeader, SectionHeader};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Section {
     name: ArrayString<8>,
-    blocks: BTreeMap<u32, Block>,
+    blocks: BTreeMap<Address, Block>,
 }
 
 impl Section {
@@ -66,7 +67,7 @@ impl Section {
     }
 
     /// Gets the section address.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.blocks.values().next().expect("not empty").address()
     }
 
@@ -75,6 +76,6 @@ impl Section {
         let first = self.blocks.values().next().expect("not empty");
         let last = self.blocks.values().last().expect("not empty");
 
-        (last.address() - first.address()) as u64 + last.size()
+        (last.address().value() - first.address().value()) as u64 + last.size()
     }
 }

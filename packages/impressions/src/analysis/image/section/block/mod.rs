@@ -7,6 +7,8 @@ use std::fmt::{self, Debug};
 
 use bytes::Bytes;
 
+use crate::memory::address::Address;
+
 pub use self::padding::Padding;
 pub use self::unknown::Unknown;
 
@@ -22,19 +24,19 @@ pub enum Block {
 
 impl Block {
     /// Constructs a new unknown block.
-    pub fn unknown(address: u32, size: u64, bytes: Bytes) -> Self {
+    pub fn unknown(address: Address, size: u64, bytes: Bytes) -> Self {
         Self::Unknown(Unknown::new(address, size, bytes))
     }
 
     /// Constructs a new padding block.
-    pub fn padding(address: u32, size: u64, value: u8) -> Self {
+    pub fn padding(address: Address, size: u64, value: u8) -> Self {
         Self::Padding(Padding::new(address, size, value))
     }
 }
 
 impl Block {
     /// Gets the address of the block.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         match self {
             Block::Unknown(unknown) => unknown.address(),
             Block::Padding(padding) => padding.address(),

@@ -1,3 +1,5 @@
+use crate::memory::address::Address;
+
 /// A block of padding.
 ///
 /// This represents a block of bytes that has been identified as padding. This
@@ -6,14 +8,14 @@
 /// been analysed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Padding {
-    address: u32,
+    address: Address,
     size: u64,
     value: u8,
 }
 
 impl Padding {
     /// Constructs a new padding block.
-    pub fn new(address: u32, size: u64, value: u8) -> Self {
+    pub fn new(address: Address, size: u64, value: u8) -> Self {
         Self {
             address,
             size,
@@ -24,7 +26,7 @@ impl Padding {
 
 impl Padding {
     /// Gets the address of the padding block.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.address
     }
 

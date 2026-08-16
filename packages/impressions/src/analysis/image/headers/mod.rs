@@ -8,6 +8,7 @@ mod section;
 use bytes::{Buf, TryGetError};
 
 use crate::data::parse::Parse;
+use crate::memory::address::Address;
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
@@ -68,7 +69,7 @@ impl Headers {
     }
 
     /// Gets the address of the headers.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.optional.image_address()
     }
 
@@ -133,6 +134,7 @@ mod tests {
     use bytes::{Buf, Bytes, BytesMut};
 
     use crate::data::parse::Parse;
+    use crate::memory::address::Address;
 
     use super::Headers;
 
@@ -184,7 +186,7 @@ mod tests {
         let mut buffer = sample_headers_padded();
         let headers = Headers::parse(&mut buffer).unwrap();
 
-        assert_eq!(headers.address(), 0x00400000);
+        assert_eq!(headers.address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer, [1, 2, 3, 4].as_slice());
@@ -194,22 +196,22 @@ mod tests {
         let text = sections.next().unwrap();
 
         assert_eq!(text.name(), ".text");
-        assert_eq!(text.address(), 0x00001000);
+        assert_eq!(text.address(), Address::new(0x00001000));
 
         let rdata = sections.next().unwrap();
 
         assert_eq!(rdata.name(), ".rdata");
-        assert_eq!(rdata.address(), 0x001D8000);
+        assert_eq!(rdata.address(), Address::new(0x001D8000));
 
         let data = sections.next().unwrap();
 
         assert_eq!(data.name(), ".data");
-        assert_eq!(data.address(), 0x001E8000);
+        assert_eq!(data.address(), Address::new(0x001E8000));
 
         let rsrc = sections.next().unwrap();
 
         assert_eq!(rsrc.name(), ".rsrc");
-        assert_eq!(rsrc.address(), 0x0120E000);
+        assert_eq!(rsrc.address(), Address::new(0x0120E000));
 
         assert_eq!(sections.next(), None);
     }
@@ -219,7 +221,7 @@ mod tests {
         let mut buffer = SAMPLE_HEADERS_DATA.as_slice();
         let headers = Headers::parse(&mut buffer).unwrap();
 
-        assert_eq!(headers.address(), 0x00400000);
+        assert_eq!(headers.address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer.remaining(), 0);
@@ -229,22 +231,22 @@ mod tests {
         let text = sections.next().unwrap();
 
         assert_eq!(text.name(), ".text");
-        assert_eq!(text.address(), 0x00001000);
+        assert_eq!(text.address(), Address::new(0x00001000));
 
         let rdata = sections.next().unwrap();
 
         assert_eq!(rdata.name(), ".rdata");
-        assert_eq!(rdata.address(), 0x001D8000);
+        assert_eq!(rdata.address(), Address::new(0x001D8000));
 
         let data = sections.next().unwrap();
 
         assert_eq!(data.name(), ".data");
-        assert_eq!(data.address(), 0x001E8000);
+        assert_eq!(data.address(), Address::new(0x001E8000));
 
         let rsrc = sections.next().unwrap();
 
         assert_eq!(rsrc.name(), ".rsrc");
-        assert_eq!(rsrc.address(), 0x0120E000);
+        assert_eq!(rsrc.address(), Address::new(0x0120E000));
 
         assert_eq!(sections.next(), None);
     }

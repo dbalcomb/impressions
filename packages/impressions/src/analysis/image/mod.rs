@@ -10,6 +10,7 @@ use std::path::Path;
 use bytes::{Buf, Bytes};
 
 use crate::data::parse::Parse;
+use crate::memory::address::Address;
 
 pub use self::error::Error;
 use self::headers::Headers;
@@ -19,7 +20,7 @@ use self::section::Section;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Image {
     headers: Headers,
-    sections: BTreeMap<u32, Section>,
+    sections: BTreeMap<Address, Section>,
 }
 
 impl Image {
@@ -31,7 +32,7 @@ impl Image {
 
 impl Image {
     /// Gets the image address.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.headers.address()
     }
 
