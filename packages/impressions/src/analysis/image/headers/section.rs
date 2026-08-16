@@ -2,6 +2,7 @@ use bytes::Buf;
 
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::memory::address::Address;
 
 use super::Error;
 
@@ -22,7 +23,7 @@ pub struct SectionHeader {
 
     /// The address of the section when loaded into memory, relative to the
     /// image base.
-    virtual_address: u32,
+    virtual_address: Address,
 
     /// The size of the initialized data on disk, in bytes.
     ///
@@ -74,7 +75,7 @@ impl SectionHeader {
     }
 
     /// Gets the address of the section.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.virtual_address
     }
 
@@ -101,7 +102,7 @@ impl Parse for SectionHeader {
         Ok(Self {
             name: ArrayString::parse(&mut buffer)?,
             virtual_size: buffer.try_get_u32_le()?,
-            virtual_address: buffer.try_get_u32_le()?,
+            virtual_address: Address::parse(&mut buffer)?,
             size_of_raw_data: buffer.try_get_u32_le()?,
             pointer_to_raw_data: buffer.try_get_u32_le()?,
             pointer_to_relocations: buffer.try_get_u32_le()?,

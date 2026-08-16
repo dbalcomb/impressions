@@ -1,6 +1,7 @@
 use bytes::Buf;
 
 use crate::data::parse::Parse;
+use crate::memory::address::Address;
 
 use super::Error;
 
@@ -34,7 +35,7 @@ pub struct OptionalHeader {
     size_of_uninitialized_data: u32,
 
     /// The address of the entry function, relative to the base address.
-    address_of_entry_point: u32,
+    address_of_entry_point: Address,
 
     /// The address of the code section, relative to the image base.
     base_of_code: u32,
@@ -43,7 +44,7 @@ pub struct OptionalHeader {
     base_of_data: u32,
 
     /// The preferred address of the image in memory.
-    image_base: u32,
+    image_base: Address,
 
     /// The alignment of sections in memory.
     section_alignment: u32,
@@ -123,7 +124,7 @@ impl OptionalHeader {
 
 impl OptionalHeader {
     /// Gets the base address of the image.
-    pub fn image_address(&self) -> u32 {
+    pub fn image_address(&self) -> Address {
         self.image_base
     }
 
@@ -167,10 +168,10 @@ impl Parse for OptionalHeader {
             size_of_code: buffer.try_get_u32_le()?,
             size_of_initialized_data: buffer.try_get_u32_le()?,
             size_of_uninitialized_data: buffer.try_get_u32_le()?,
-            address_of_entry_point: buffer.try_get_u32_le()?,
+            address_of_entry_point: Address::parse(&mut buffer)?,
             base_of_code: buffer.try_get_u32_le()?,
             base_of_data: buffer.try_get_u32_le()?,
-            image_base: buffer.try_get_u32_le()?,
+            image_base: Address::parse(&mut buffer)?,
             section_alignment: buffer.try_get_u32_le()?,
             file_alignment: buffer.try_get_u32_le()?,
             major_operating_system_version: buffer.try_get_u16_le()?,
@@ -198,7 +199,7 @@ impl Parse for OptionalHeader {
                 match i < number_of_rva_and_sizes as usize {
                     true => DataDirectory::parse(&mut buffer),
                     false => Ok(DataDirectory {
-                        virtual_address: 0,
+                        virtual_address: Address::new(0),
                         size: 0,
                     }),
                 }
@@ -211,7 +212,7 @@ impl Parse for OptionalHeader {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataDirectory {
     /// The relative virtual address of the table.
-    virtual_address: u32,
+    virtual_address: Address,
 
     /// The size of the table, in bytes.
     size: u32,
@@ -224,7 +225,7 @@ impl DataDirectory {
 
 impl DataDirectory {
     /// Gets the relative virtual address of the table.
-    pub fn address(&self) -> u32 {
+    pub fn address(&self) -> Address {
         self.virtual_address
     }
 
@@ -239,7 +240,7 @@ impl Parse for DataDirectory {
 
     fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         Ok(Self {
-            virtual_address: buffer.try_get_u32_le()?,
+            virtual_address: Address::parse(&mut buffer)?,
             size: buffer.try_get_u32_le()?,
         })
     }
