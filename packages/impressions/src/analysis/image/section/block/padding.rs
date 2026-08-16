@@ -1,4 +1,5 @@
-use crate::memory::address::Address;
+use crate::memory::address::AddressSpace;
+use crate::memory::region::Region;
 
 /// A block of padding.
 ///
@@ -8,35 +9,29 @@ use crate::memory::address::Address;
 /// been analysed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Padding {
-    address: Address,
-    size: u64,
+    address_space: AddressSpace,
     value: u8,
 }
 
 impl Padding {
     /// Constructs a new padding block.
-    pub fn new(address: Address, size: u64, value: u8) -> Self {
+    pub fn new(address_space: AddressSpace, value: u8) -> Self {
         Self {
-            address,
-            size,
+            address_space,
             value,
         }
     }
 }
 
 impl Padding {
-    /// Gets the address of the padding block.
-    pub fn address(&self) -> Address {
-        self.address
-    }
-
-    /// Gets the size of the padding block.
-    pub fn size(&self) -> u64 {
-        self.size
-    }
-
     /// Gets the padding value.
     pub fn value(&self) -> u8 {
         self.value
+    }
+}
+
+impl Region for Padding {
+    fn address_space(&self) -> AddressSpace {
+        self.address_space
     }
 }

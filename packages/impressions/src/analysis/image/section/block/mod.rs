@@ -7,7 +7,8 @@ use std::fmt::{self, Debug};
 
 use bytes::Bytes;
 
-use crate::memory::address::Address;
+use crate::memory::address::AddressSpace;
+use crate::memory::region::Region;
 
 pub use self::padding::Padding;
 pub use self::unknown::Unknown;
@@ -24,33 +25,17 @@ pub enum Block {
 
 impl Block {
     /// Constructs a new unknown block.
-    pub fn unknown(address: Address, size: u64, bytes: Bytes) -> Self {
-        Self::Unknown(Unknown::new(address, size, bytes))
+    pub fn unknown(address_space: AddressSpace, bytes: Bytes) -> Self {
+        Self::Unknown(Unknown::new(address_space, bytes))
     }
 
     /// Constructs a new padding block.
-    pub fn padding(address: Address, size: u64, value: u8) -> Self {
-        Self::Padding(Padding::new(address, size, value))
+    pub fn padding(address_space: AddressSpace, value: u8) -> Self {
+        Self::Padding(Padding::new(address_space, value))
     }
 }
 
 impl Block {
-    /// Gets the address of the block.
-    pub fn address(&self) -> Address {
-        match self {
-            Block::Unknown(unknown) => unknown.address(),
-            Block::Padding(padding) => padding.address(),
-        }
-    }
-
-    /// Gets the size of the block.
-    pub fn size(&self) -> u64 {
-        match self {
-            Block::Unknown(unknown) => unknown.size(),
-            Block::Padding(padding) => padding.size(),
-        }
-    }
-
     /// Gets the block as unknown.
     pub fn as_unknown(&self) -> Option<&Unknown> {
         match self {
@@ -75,6 +60,15 @@ impl Block {
     /// Checks whether the block is padding.
     pub fn is_padding(&self) -> bool {
         self.as_padding().is_some()
+    }
+}
+
+impl Region for Block {
+    fn address_space(&self) -> AddressSpace {
+        match self {
+            Block::Unknown(unknown) => unknown.address_space(),
+            Block::Padding(padding) => padding.address_space(),
+        }
     }
 }
 

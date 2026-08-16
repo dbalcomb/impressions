@@ -10,7 +10,8 @@ use std::path::Path;
 use bytes::{Buf, Bytes};
 
 use crate::data::parse::Parse;
-use crate::memory::address::Address;
+use crate::memory::address::{Address, AddressSpace};
+use crate::memory::region::Region;
 
 pub use self::error::Error;
 use self::headers::Headers;
@@ -31,19 +32,15 @@ impl Image {
 }
 
 impl Image {
-    /// Gets the image address.
-    pub fn address(&self) -> Address {
-        self.headers.address()
-    }
-
-    /// Gets the image size.
-    pub fn size(&self) -> u64 {
-        self.headers.optional().image_size()
-    }
-
     /// Gets an iterator over the sections.
     pub fn sections(&self) -> impl Iterator<Item = &Section> {
         self.sections.values()
+    }
+}
+
+impl Region for Image {
+    fn address_space(&self) -> AddressSpace {
+        self.headers.image_address_space()
     }
 }
 

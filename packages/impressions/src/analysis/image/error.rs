@@ -1,4 +1,5 @@
 use crate::data::types::array_string;
+use crate::memory::address::AddressSpaceError;
 
 /// The image file error.
 #[derive(Debug, thiserror::Error)]
@@ -26,6 +27,10 @@ pub enum Error {
     /// A problem was encountered reading a UTF-8 string.
     #[error("UTF-8 error")]
     Utf8(#[from] std::str::Utf8Error),
+
+    /// A problem was encountered with an address space.
+    #[error("Address space error")]
+    AddressSpace(#[from] AddressSpaceError),
 }
 
 impl From<array_string::Error> for Error {

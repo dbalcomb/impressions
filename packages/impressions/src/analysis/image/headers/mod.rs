@@ -8,7 +8,8 @@ mod section;
 use bytes::{Buf, TryGetError};
 
 use crate::data::parse::Parse;
-use crate::memory::address::Address;
+use crate::memory::address::{Address, AddressSpace};
+use crate::memory::region::Region;
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
@@ -67,14 +68,26 @@ impl Headers {
     pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
         self.sections.iter()
     }
+}
 
-    /// Gets the address of the headers.
-    pub fn address(&self) -> Address {
+impl Headers {
+    /// Gets the address space for the entire image.
+    pub fn image_address_space(&self) -> AddressSpace {
+        AddressSpace::with_size(self.optional.image_address(), self.optional.image_size())
+            .expect("valid address space")
+    }
+}
+
+impl Region for Headers {
+    fn address_space(&self) -> AddressSpace {
+        AddressSpace::with_size(self.address(), self.size()).expect("valid address space")
+    }
+
+    fn address(&self) -> Address {
         self.optional.image_address()
     }
 
-    /// Gets the size of the headers.
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         self.optional.headers_size()
     }
 }
@@ -135,6 +148,7 @@ mod tests {
 
     use crate::data::parse::Parse;
     use crate::memory::address::Address;
+    use crate::memory::region::Region;
 
     use super::Headers;
 
