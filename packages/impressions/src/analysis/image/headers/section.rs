@@ -77,6 +77,21 @@ impl SectionHeader {
     pub fn address(&self) -> u32 {
         self.virtual_address
     }
+
+    /// Gets the size of the section.
+    pub fn size(&self) -> u64 {
+        self.virtual_size as u64
+    }
+
+    /// Gets the file offset of the data.
+    pub fn file_offset(&self) -> usize {
+        self.pointer_to_raw_data as usize
+    }
+
+    /// Gets the size of the data.
+    pub fn file_size(&self) -> usize {
+        self.size_of_raw_data as usize
+    }
 }
 
 impl Parse for SectionHeader {

@@ -11,6 +11,10 @@ pub enum Error {
     #[error("Unsupported architecture")]
     UnsupportedArchitecture,
 
+    /// An empty section was detected.
+    #[error("Empty section")]
+    EmptySection,
+
     /// A problem was encountered parsing the image.
     #[error("Parse error")]
     Parse(#[from] bytes::TryGetError),

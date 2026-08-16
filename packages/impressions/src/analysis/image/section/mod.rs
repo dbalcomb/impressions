@@ -1,0 +1,80 @@
+//! The image file section analysis.
+
+pub mod block;
+
+use std::collections::BTreeMap;
+
+use bytes::Buf;
+
+use crate::data::types::array_string::ArrayString;
+
+use self::block::Block;
+
+use super::Error;
+use super::headers::{OptionalHeader, SectionHeader};
+
+/// A 32-bit Portable Executable (PE) image file section.
+///
+/// Each section is divided up into blocks of memory with the ultimate goal of
+/// identifying each and every byte.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Section {
+    name: ArrayString<8>,
+    blocks: BTreeMap<u32, Block>,
+}
+
+impl Section {
+    /// Parses the buffer for the given section header.
+    pub fn parse_with(
+        mut buffer: impl Buf,
+        optional: &OptionalHeader,
+        section: &SectionHeader,
+    ) -> Result<Self, Error> {
+        if section.size() == 0 {
+            return Err(Error::EmptySection);
+        }
+
+        let name = *section.name();
+        let address = section.address() + optional.image_address();
+        let alignment = optional.section_alignment() as u64;
+        let bytes = buffer.copy_to_bytes(section.file_size());
+        let padding = (alignment - (section.size() % alignment)) % alignment;
+        let mut blocks = BTreeMap::new();
+
+        blocks.insert(address, Block::unknown(address, section.size(), bytes));
+
+        if padding > 0 {
+            blocks.insert(
+                address + section.size() as u32,
+                Block::padding(address + section.size() as u32, padding, 0),
+            );
+        }
+
+        Ok(Self { name, blocks })
+    }
+}
+
+impl Section {
+    /// Gets the section name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Gets an iterator over the blocks.
+    pub fn blocks(&self) -> impl Iterator<Item = &Block> {
+        self.blocks.values()
+    }
+
+    /// Gets the section address.
+    pub fn address(&self) -> u32 {
+        self.blocks.values().next().expect("not empty").address()
+    }
+
+    /// Gets the section size.
+    pub fn size(&self) -> u64 {
+        let first = self.blocks.values().next().expect("not empty");
+        let last = self.blocks.values().last().expect("not empty");
+
+        (last.address() - first.address()) as u64 + last.size()
+    }
+}
