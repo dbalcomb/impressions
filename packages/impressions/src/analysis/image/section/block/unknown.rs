@@ -2,7 +2,8 @@ use std::fmt::{self, Debug};
 
 use bytes::Bytes;
 
-use crate::memory::address::Address;
+use crate::memory::address::AddressSpace;
+use crate::memory::region::Region;
 
 /// A block of unknown bytes.
 ///
@@ -11,41 +12,32 @@ use crate::memory::address::Address;
 /// size of the block and the size of the internal bytes.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Unknown {
-    address: Address,
-    size: u64,
+    address_space: AddressSpace,
     bytes: Bytes,
 }
 
 impl Unknown {
     /// Constructs a new unknown block.
-    pub fn new(address: Address, size: u64, mut bytes: Bytes) -> Self {
-        bytes.truncate(size as usize);
+    pub fn new(address_space: AddressSpace, mut bytes: Bytes) -> Self {
+        bytes.truncate(address_space.size() as usize);
 
         Self {
-            address,
-            size,
+            address_space,
             bytes,
         }
     }
 }
 
-impl Unknown {
-    /// Gets the address of the unknown block.
-    pub fn address(&self) -> Address {
-        self.address
-    }
-
-    /// Gets the size of the unknown block.
-    pub fn size(&self) -> u64 {
-        self.size
+impl Region for Unknown {
+    fn address_space(&self) -> AddressSpace {
+        self.address_space
     }
 }
 
 impl Debug for Unknown {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Unknown")
-            .field("address", &self.address)
-            .field("size", &self.size)
+            .field("address_space", &self.address_space)
             .field("bytes", &self.bytes.len())
             .finish()
     }

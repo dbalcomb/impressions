@@ -1,3 +1,4 @@
-//! Memory region representation and manipulation.
+//! Memory representation and manipulation.
 
 pub mod address;
+pub mod region;

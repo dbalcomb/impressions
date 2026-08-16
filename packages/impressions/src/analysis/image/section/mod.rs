@@ -7,7 +7,8 @@ use std::collections::BTreeMap;
 use bytes::Buf;
 
 use crate::data::types::array_string::ArrayString;
-use crate::memory::address::Address;
+use crate::memory::address::{Address, AddressSpace};
+use crate::memory::region::Region;
 
 use self::block::Block;
 
@@ -42,13 +43,15 @@ impl Section {
         let padding = (alignment - (section.size() % alignment)) % alignment;
         let mut blocks = BTreeMap::new();
 
-        blocks.insert(address, Block::unknown(address, section.size(), bytes));
+        blocks.insert(
+            address,
+            Block::unknown(address.to_space(section.size())?, bytes),
+        );
 
         if padding > 0 {
-            blocks.insert(
-                address + section.size() as u32,
-                Block::padding(address + section.size() as u32, padding, 0),
-            );
+            let address = address + section.size() as u32;
+
+            blocks.insert(address, Block::padding(address.to_space(padding)?, 0));
         }
 
         Ok(Self { name, blocks })
@@ -65,17 +68,13 @@ impl Section {
     pub fn blocks(&self) -> impl Iterator<Item = &Block> {
         self.blocks.values()
     }
+}
 
-    /// Gets the section address.
-    pub fn address(&self) -> Address {
-        self.blocks.values().next().expect("not empty").address()
-    }
-
-    /// Gets the section size.
-    pub fn size(&self) -> u64 {
+impl Region for Section {
+    fn address_space(&self) -> AddressSpace {
         let first = self.blocks.values().next().expect("not empty");
         let last = self.blocks.values().last().expect("not empty");
 
-        (last.address().value() - first.address().value()) as u64 + last.size()
+        first.address_space().union(last.address_space())
     }
 }
