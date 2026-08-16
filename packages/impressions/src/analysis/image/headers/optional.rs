@@ -137,6 +137,11 @@ impl OptionalHeader {
         self.size_of_headers as u64
     }
 
+    /// Gets the section alignment.
+    pub fn section_alignment(&self) -> u32 {
+        self.section_alignment
+    }
+
     /// Gets the number of data directories.
     pub fn number_of_data_directories(&self) -> usize {
         self.number_of_rva_and_sizes as usize
