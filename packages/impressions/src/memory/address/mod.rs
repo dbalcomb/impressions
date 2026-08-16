@@ -48,6 +48,11 @@ impl Address {
     pub const fn value(&self) -> u32 {
         self.0
     }
+
+    /// Constructs an address space of the given size from this address.
+    pub const fn to_space(self, size: u64) -> Result<AddressSpace, AddressSpaceError> {
+        AddressSpace::with_size(self, size)
+    }
 }
 
 impl Address {
