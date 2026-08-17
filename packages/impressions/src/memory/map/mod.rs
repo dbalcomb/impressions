@@ -56,9 +56,9 @@ where
 
     /// Gets a region for the given offset.
     ///
-    /// This method is similar to [`Self::get`] except that it takes a relative
-    /// offset instead of an address.
-    pub fn get_relative(&self, offset: u32) -> Option<Offset<'_, T>> {
+    /// This method is similar to [`Self::get`] except that it takes an offset
+    /// instead of an address.
+    pub fn get_by_offset(&self, offset: u32) -> Option<Offset<'_, T>> {
         self.get(self.address() + offset)
     }
 
