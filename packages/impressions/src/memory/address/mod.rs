@@ -49,6 +49,11 @@ impl Address {
         self.0
     }
 
+    /// Computes the offset between two addresses.
+    pub const fn offset(self, address: Self) -> u32 {
+        self.0.abs_diff(address.0)
+    }
+
     /// Constructs an address space of the given size from this address.
     pub const fn to_space(self, size: u64) -> Result<AddressSpace, AddressSpaceError> {
         AddressSpace::with_size(self, size)
