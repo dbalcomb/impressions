@@ -4,13 +4,13 @@ mod error;
 pub mod headers;
 pub mod section;
 
-use std::collections::BTreeMap;
 use std::path::Path;
 
 use bytes::{Buf, Bytes};
 
 use crate::data::parse::Parse;
-use crate::memory::address::{Address, AddressSpace};
+use crate::memory::address::AddressSpace;
+use crate::memory::map::{Iter, Map};
 use crate::memory::region::Region;
 
 pub use self::error::Error;
@@ -21,7 +21,7 @@ use self::section::Section;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Image {
     headers: Headers,
-    sections: BTreeMap<Address, Section>,
+    sections: Map<Section>,
 }
 
 impl Image {
@@ -33,8 +33,8 @@ impl Image {
 
 impl Image {
     /// Gets an iterator over the sections.
-    pub fn sections(&self) -> impl Iterator<Item = &Section> {
-        self.sections.values()
+    pub fn sections(&self) -> Iter<'_, Section> {
+        self.sections.iter()
     }
 }
 
@@ -50,14 +50,15 @@ impl Parse for Image {
     fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
         let mut position = headers.size() as usize;
-        let mut sections = BTreeMap::new();
+        let mut sections = Map::new(headers.sections_address_space());
 
         for section_header in headers.sections() {
             buffer.advance(section_header.file_offset() - position);
-            sections.insert(
-                headers.address() + section_header.address(),
-                Section::parse_with(&mut buffer, headers.optional(), section_header)?,
-            );
+            sections.insert(Section::parse_with(
+                &mut buffer,
+                headers.optional(),
+                section_header,
+            )?)?;
 
             position = section_header.file_offset() + section_header.file_size();
         }

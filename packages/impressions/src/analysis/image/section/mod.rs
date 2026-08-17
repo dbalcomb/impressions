@@ -2,12 +2,11 @@
 
 pub mod block;
 
-use std::collections::BTreeMap;
-
 use bytes::Buf;
 
 use crate::data::types::array_string::ArrayString;
-use crate::memory::address::{Address, AddressSpace};
+use crate::memory::address::AddressSpace;
+use crate::memory::map::{Iter, Map};
 use crate::memory::region::Region;
 
 use self::block::Block;
@@ -22,7 +21,7 @@ use super::headers::{OptionalHeader, SectionHeader};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Section {
     name: ArrayString<8>,
-    blocks: BTreeMap<Address, Block>,
+    blocks: Map<Block>,
 }
 
 impl Section {
@@ -41,17 +40,14 @@ impl Section {
         let alignment = optional.section_alignment() as u64;
         let bytes = buffer.copy_to_bytes(section.file_size());
         let padding = (alignment - (section.size() % alignment)) % alignment;
-        let mut blocks = BTreeMap::new();
+        let mut blocks = Map::new(address.to_space(section.size() + padding)?);
 
-        blocks.insert(
-            address,
-            Block::unknown(address.to_space(section.size())?, bytes),
-        );
+        blocks.insert(Block::unknown(address.to_space(section.size())?, bytes))?;
 
         if padding > 0 {
             let address = address + section.size() as u32;
 
-            blocks.insert(address, Block::padding(address.to_space(padding)?, 0));
+            blocks.insert(Block::padding(address.to_space(padding)?, 0))?;
         }
 
         Ok(Self { name, blocks })
@@ -65,16 +61,13 @@ impl Section {
     }
 
     /// Gets an iterator over the blocks.
-    pub fn blocks(&self) -> impl Iterator<Item = &Block> {
-        self.blocks.values()
+    pub fn blocks(&self) -> Iter<'_, Block> {
+        self.blocks.iter()
     }
 }
 
 impl Region for Section {
     fn address_space(&self) -> AddressSpace {
-        let first = self.blocks.values().next().expect("not empty");
-        let last = self.blocks.values().last().expect("not empty");
-
-        first.address_space().union(last.address_space())
+        self.blocks.address_space()
     }
 }

@@ -1,5 +1,6 @@
 use crate::data::types::array_string;
 use crate::memory::address::AddressSpaceError;
+use crate::memory::map;
 
 /// The image file error.
 #[derive(Debug, thiserror::Error)]
@@ -31,6 +32,10 @@ pub enum Error {
     /// A problem was encountered with an address space.
     #[error("Address space error")]
     AddressSpace(#[from] AddressSpaceError),
+
+    /// A problem was encountered with a memory map.
+    #[error("Memory map error")]
+    Map(#[from] map::Error),
 }
 
 impl From<array_string::Error> for Error {

@@ -76,6 +76,15 @@ impl Headers {
         AddressSpace::with_size(self.optional.image_address(), self.optional.image_size())
             .expect("valid address space")
     }
+
+    /// Gets the address space for the sections.
+    pub fn sections_address_space(&self) -> AddressSpace {
+        AddressSpace::with_size(
+            self.optional.image_address() + self.optional.headers_size() as u32,
+            self.optional.image_size() - self.optional.headers_size(),
+        )
+        .expect("valid address space")
+    }
 }
 
 impl Region for Headers {
