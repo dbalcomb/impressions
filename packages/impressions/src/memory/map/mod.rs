@@ -197,12 +197,62 @@ mod tests {
 
     use super::{Error, Map};
 
+    #[derive(Debug, PartialEq)]
     struct Range(u32, u32);
 
     impl Region for Range {
         fn address_space(&self) -> AddressSpace {
             AddressSpace::new(Address::new(self.0), Address::new(self.1)).unwrap()
         }
+    }
+
+    #[test]
+    fn test_get() {
+        let mut regions = Map::<Range>::new(AddressSpace::new(30.into(), 89.into()).unwrap());
+
+        regions.insert(Range(30, 49)).unwrap();
+        regions.insert(Range(80, 84)).unwrap();
+
+        let a = regions.get(30.into()).unwrap();
+        let b = regions.get(34.into()).unwrap();
+        let c = regions.get(49.into()).unwrap();
+
+        assert_eq!(a.offset(), 0);
+        assert_eq!(b.offset(), 4);
+        assert_eq!(c.offset(), 19);
+
+        assert_eq!(a.region(), &Range(30, 49));
+        assert_eq!(b.region(), &Range(30, 49));
+        assert_eq!(c.region(), &Range(30, 49));
+
+        let d = regions.get(80.into()).unwrap();
+        let e = regions.get(81.into()).unwrap();
+        let f = regions.get(84.into()).unwrap();
+
+        assert_eq!(d.offset(), 0);
+        assert_eq!(e.offset(), 1);
+        assert_eq!(f.offset(), 4);
+
+        assert_eq!(d.region(), &Range(80, 84));
+        assert_eq!(e.region(), &Range(80, 84));
+        assert_eq!(f.region(), &Range(80, 84));
+
+        assert!(regions.get(0.into()).is_none());
+        assert!(regions.get(29.into()).is_none());
+        assert!(regions.get(50.into()).is_none());
+        assert!(regions.get(79.into()).is_none());
+        assert!(regions.get(85.into()).is_none());
+        assert!(regions.get(99.into()).is_none());
+
+        let g = regions.get_by_offset(0).unwrap();
+        let h = regions.get_by_offset(4).unwrap();
+        let i = regions.get_by_offset(19).unwrap();
+
+        assert_eq!(g.region(), &Range(30, 49));
+        assert_eq!(h.region(), &Range(30, 49));
+        assert_eq!(i.region(), &Range(30, 49));
+
+        assert!(regions.get_by_offset(20).is_none());
     }
 
     #[test]
