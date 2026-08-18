@@ -6,6 +6,7 @@ use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Sub};
 
 use bytes::{Buf, TryGetError};
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 
@@ -16,7 +17,8 @@ pub use self::space::{AddressSpace, Error as AddressSpaceError};
 /// An address is a 32-bit unsigned integer that can be used to access memory
 /// locations. There is no distinction between relative and absolute virtual
 /// memory addresses so care must be taken not to confuse the two.
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
 #[repr(transparent)]
 pub struct Address(u32);
 
@@ -179,5 +181,29 @@ mod tests {
         assert_eq!(buffer, [0, 16, 64, 0]);
         assert_eq!(Address::parse(&mut buffer), Ok(Address::new(0x00401000)));
         assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn test_serde() {
+        let a = Address::MIN;
+        let b = Address::new(0x00400000);
+        let c = Address::MAX;
+
+        let a_str = serde_json::to_string(&a).unwrap();
+        let b_str = serde_json::to_string(&b).unwrap();
+        let c_str = serde_json::to_string(&c).unwrap();
+
+        assert_eq!(a_str, "0");
+        assert_eq!(b_str, "4194304");
+        assert_eq!(c_str, "4294967295");
+
+        assert_eq!(serde_json::from_str::<Address>(&a_str).unwrap(), a);
+        assert_eq!(serde_json::from_str::<Address>(&b_str).unwrap(), b);
+        assert_eq!(serde_json::from_str::<Address>(&c_str).unwrap(), c);
+        assert!(
+            serde_json::from_str::<Address>("4294967296")
+                .unwrap_err()
+                .is_data()
+        );
     }
 }
