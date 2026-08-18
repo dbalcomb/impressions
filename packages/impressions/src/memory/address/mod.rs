@@ -178,6 +178,6 @@ mod tests {
         assert_eq!(Address::parse(&mut buffer), Ok(Address::new(0x00400000)));
         assert_eq!(buffer, [0, 16, 64, 0]);
         assert_eq!(Address::parse(&mut buffer), Ok(Address::new(0x00401000)));
-        assert_eq!(buffer, []);
+        assert!(buffer.is_empty());
     }
 }
