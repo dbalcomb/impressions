@@ -6,6 +6,7 @@ mod optional;
 mod section;
 
 use bytes::{Buf, TryGetError};
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
@@ -40,7 +41,7 @@ const PE_SIGNATURE: u32 = 0x4550;
 ///
 /// The Optional header is only optional in object files and is always included
 /// in image files so it is required here.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Headers {
     dos: DosHeader,
     coff: CoffHeader,

@@ -1,4 +1,5 @@
 use bytes::Buf;
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 
@@ -8,7 +9,7 @@ use super::Error;
 const COFF_MACHINE_X86: u16 = 0x14c;
 
 /// The image file COFF header.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CoffHeader {
     /// The type of target machine.
     machine: u16,
