@@ -68,7 +68,7 @@ mod tests {
                 }
             })
         );
-        assert_eq!(buffer, []);
+        assert!(buffer.is_empty());
     }
 
     #[test]
@@ -92,7 +92,7 @@ mod tests {
                 }
             })
         );
-        assert_eq!(buffer, []);
+        assert!(buffer.is_empty());
     }
 
     #[test]
