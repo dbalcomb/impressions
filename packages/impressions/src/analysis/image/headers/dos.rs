@@ -1,4 +1,5 @@
 use bytes::Buf;
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 
@@ -8,7 +9,7 @@ use super::Error;
 const DOS_SIGNATURE: u16 = 0x5A4D;
 
 /// The image file DOS header.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DosHeader {
     /// The signature that identifies the file as a DOS-compatible executable.
     e_magic: u16,

@@ -1,4 +1,5 @@
 use bytes::Buf;
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
@@ -7,7 +8,7 @@ use crate::memory::address::Address;
 use super::Error;
 
 /// An image file Section header.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SectionHeader {
     /// The section name.
     ///

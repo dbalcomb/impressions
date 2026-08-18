@@ -1,4 +1,5 @@
 use bytes::Buf;
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::memory::address::Address;
@@ -12,7 +13,7 @@ const OPTIONAL_SIGNATURE: u16 = 0x10b;
 const DATA_DIRECTORIES_COUNT: usize = 16;
 
 /// The image file Optional header.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OptionalHeader {
     /// The image file type.
     ///
@@ -209,7 +210,7 @@ impl Parse for OptionalHeader {
 }
 
 /// A data directory entry within the Optional header.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DataDirectory {
     /// The relative virtual address of the table.
     virtual_address: Address,
