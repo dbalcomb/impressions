@@ -24,7 +24,7 @@ use super::region::Region;
 #[derive(Clone, PartialEq, Eq)]
 pub struct Map<T> {
     address_space: AddressSpace,
-    inner: BTreeMap<Address, T>,
+    regions: BTreeMap<Address, T>,
 }
 
 impl<T> Map<T> {
@@ -32,7 +32,7 @@ impl<T> Map<T> {
     pub const fn new(address_space: AddressSpace) -> Self {
         Self {
             address_space,
-            inner: BTreeMap::new(),
+            regions: BTreeMap::new(),
         }
     }
 }
@@ -46,7 +46,7 @@ where
     /// This method returns an optional [`Offset`] which wraps the region with
     /// an offset as the address may be inside the region's address space.
     pub fn get(&self, address: Address) -> Option<Offset<'_, T>> {
-        match self.inner.range(..=address).last() {
+        match self.regions.range(..=address).last() {
             Some((_, region)) if region.address_space().contains(address) => {
                 Some(Offset::new(region, address.offset(region.address())))
             }
@@ -81,19 +81,19 @@ where
             return Err(Error::OutOfBounds(address_space, self.address_space));
         }
 
-        if let Some((_, prev)) = self.inner.range(..=address_space.first()).last()
+        if let Some((_, prev)) = self.regions.range(..=address_space.first()).last()
             && prev.address_space().intersects(address_space)
         {
             return Err(Error::Intersect(address_space, prev.address_space()));
         }
 
-        if let Some((_, next)) = self.inner.range(address_space.first()..).next()
+        if let Some((_, next)) = self.regions.range(address_space.first()..).next()
             && next.address_space().intersects(address_space)
         {
             return Err(Error::Intersect(address_space, next.address_space()));
         }
 
-        self.inner.insert(address_space.first(), region);
+        self.regions.insert(address_space.first(), region);
 
         Ok(())
     }
@@ -119,7 +119,7 @@ impl<T> Default for Map<T> {
     fn default() -> Self {
         Self {
             address_space: AddressSpace::default(),
-            inner: BTreeMap::default(),
+            regions: BTreeMap::default(),
         }
     }
 }
@@ -177,7 +177,7 @@ impl<T> IntoIterator for Map<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter(self.inner.into_values())
+        IntoIter(self.regions.into_values())
     }
 }
 
@@ -186,7 +186,7 @@ impl<'a, T> IntoIterator for &'a Map<T> {
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter(self.inner.values())
+        Iter(self.regions.values())
     }
 }
 
