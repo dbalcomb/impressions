@@ -7,6 +7,8 @@ mod offset;
 use std::collections::btree_map::BTreeMap;
 use std::fmt::{self, Debug};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 pub use self::error::Error;
 pub use self::iter::{IntoIter, Iter};
 pub use self::offset::Offset;
@@ -190,14 +192,203 @@ impl<'a, T> IntoIterator for &'a Map<T> {
     }
 }
 
+impl<T> Serialize for Map<T>
+where
+    T: Region + Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::{SerializeSeq, SerializeStruct};
+
+        struct Regions<'a, T>(&'a BTreeMap<Address, T>);
+
+        impl<'a, T> Serialize for Regions<'a, T>
+        where
+            T: Serialize,
+        {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+
+                for region in self.0.values() {
+                    seq.serialize_element(region)?;
+                }
+
+                seq.end()
+            }
+        }
+
+        let mut map = serializer.serialize_struct("Map", 2)?;
+
+        map.serialize_field("address_space", &self.address_space)?;
+        map.serialize_field("regions", &Regions(&self.regions))?;
+        map.end()
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Map<T>
+where
+    T: Region + Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{DeserializeSeed, Error, MapAccess, SeqAccess, Visitor};
+        use std::marker::PhantomData;
+
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "snake_case")]
+        enum Field {
+            AddressSpace,
+            Regions,
+        }
+
+        struct RegionsSeed<T>(Map<T>);
+
+        impl<'de, T> DeserializeSeed<'de> for RegionsSeed<T>
+        where
+            T: Region + Deserialize<'de>,
+        {
+            type Value = Map<T>;
+
+            fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                deserializer.deserialize_seq(RegionsVisitor(self.0))
+            }
+        }
+
+        struct RegionsVisitor<T>(Map<T>);
+
+        impl<'de, T> Visitor<'de> for RegionsVisitor<T>
+        where
+            T: Region + Deserialize<'de>,
+        {
+            type Value = Map<T>;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "a sequence of regions")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut map = self.0;
+
+                while let Some(region) = seq.next_element::<T>()? {
+                    map.insert(region).map_err(A::Error::custom)?;
+                }
+
+                Ok(map)
+            }
+        }
+
+        struct MapVisitor<T>(PhantomData<T>);
+
+        impl<'de, T> Visitor<'de> for MapVisitor<T>
+        where
+            T: Region + Deserialize<'de>,
+        {
+            type Value = Map<T>;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "struct Map")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Map<T>, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let address_space = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(0, &self))?;
+
+                let regions = seq
+                    .next_element_seed(RegionsSeed(Map::new(address_space)))?
+                    .ok_or_else(|| A::Error::invalid_length(1, &self))?;
+
+                Ok(regions)
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Map<T>, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut address_space: Option<AddressSpace> = None;
+                let mut regions: Option<Map<T>> = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::AddressSpace => {
+                            if address_space.is_some() {
+                                return Err(A::Error::duplicate_field("address_space"));
+                            }
+
+                            let space: AddressSpace = map.next_value()?;
+
+                            if let Some(regions) = &mut regions {
+                                let mut iter = regions.iter();
+
+                                for region in iter.next().into_iter().chain(iter.last()) {
+                                    if !space.includes(region.address_space()) {
+                                        return Err(A::Error::custom(self::Error::OutOfBounds(
+                                            region.address_space(),
+                                            space,
+                                        )));
+                                    }
+                                }
+
+                                regions.address_space = space;
+                            }
+
+                            address_space = Some(space);
+                        }
+                        Field::Regions => {
+                            if regions.is_some() {
+                                return Err(A::Error::duplicate_field("regions"));
+                            }
+
+                            let seed = match address_space {
+                                Some(address_space) => Map::new(address_space),
+                                None => Map::default(),
+                            };
+
+                            regions = Some(map.next_value_seed(RegionsSeed(seed))?);
+                        }
+                    }
+                }
+
+                if address_space.is_none() {
+                    return Err(A::Error::missing_field("address_space"));
+                }
+
+                regions.ok_or_else(|| A::Error::missing_field("regions"))
+            }
+        }
+
+        static FIELDS: &[&str] = &["address_space", "regions"];
+
+        deserializer.deserialize_struct("Map", FIELDS, MapVisitor::<T>(PhantomData))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use serde::{Deserialize, Serialize};
+
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::region::Region;
 
     use super::{Error, Map};
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct Range(u32, u32);
 
     impl Region for Range {
@@ -356,5 +547,63 @@ mod tests {
         );
 
         regions.insert(Range(50, 99)).unwrap();
+    }
+
+    #[test]
+    fn test_serde() {
+        let mut map = Map::<Range>::new(AddressSpace::new(10.into(), 49.into()).unwrap());
+        let map_str = serde_json::to_string(&map).unwrap();
+
+        assert_eq!(map_str, "{\"address_space\":[10,49],\"regions\":[]}");
+        assert_eq!(serde_json::from_str::<Map<Range>>(&map_str).unwrap(), map);
+
+        map.insert(Range(10, 10)).unwrap();
+        map.insert(Range(20, 45)).unwrap();
+
+        let map_str = serde_json::to_string(&map).unwrap();
+
+        assert_eq!(
+            map_str,
+            "{\"address_space\":[10,49],\"regions\":[[10,10],[20,45]]}"
+        );
+        assert_eq!(serde_json::from_str::<Map<Range>>(&map_str).unwrap(), map);
+
+        assert_eq!(
+            serde_json::from_str::<Map<Range>>(
+                "{\"regions\":[[10,10],[20,45]],\"address_space\":[10,49]}"
+            )
+            .unwrap(),
+            map
+        );
+
+        assert!(
+            serde_json::from_str::<Map<Range>>(
+                "{\"address_space\":[10,39],\"regions\":[[10,10],[20,45]]}"
+            )
+            .unwrap_err()
+            .is_data()
+        );
+        assert!(
+            serde_json::from_str::<Map<Range>>(
+                "{\"regions\":[[10,10],[20,45]],\"address_space\":[10,39]}"
+            )
+            .unwrap_err()
+            .is_data()
+        );
+
+        assert!(
+            serde_json::from_str::<Map<Range>>(
+                "{\"address_space\":[12,49],\"regions\":[[10,10],[20,45]]}"
+            )
+            .unwrap_err()
+            .is_data()
+        );
+        assert!(
+            serde_json::from_str::<Map<Range>>(
+                "{\"regions\":[[10,10],[20,45]],\"address_space\":[12,49]}"
+            )
+            .unwrap_err()
+            .is_data()
+        );
     }
 }
