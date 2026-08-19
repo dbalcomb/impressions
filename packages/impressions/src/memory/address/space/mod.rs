@@ -4,6 +4,8 @@ use core::range::RangeInclusive;
 use std::fmt::{self, Debug, Display};
 use std::ops::{Bound, RangeBounds};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use super::Address;
 
 pub use self::error::Error;
@@ -258,6 +260,57 @@ impl TryFrom<std::ops::RangeInclusive<Address>> for AddressSpace {
 
     fn try_from(range: std::ops::RangeInclusive<Address>) -> Result<Self, Self::Error> {
         Self::from_range(range)
+    }
+}
+
+impl Serialize for AddressSpace {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeTuple;
+
+        let mut tuple = serializer.serialize_tuple(2)?;
+
+        tuple.serialize_element(&self.first())?;
+        tuple.serialize_element(&self.last())?;
+        tuple.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for AddressSpace {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{Error, SeqAccess, Visitor};
+
+        struct AddressSpaceVisitor;
+
+        impl<'de> Visitor<'de> for AddressSpaceVisitor {
+            type Value = AddressSpace;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "a pair of addresses")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let first = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(0, &self))?;
+
+                let last = seq
+                    .next_element()?
+                    .ok_or_else(|| A::Error::invalid_length(1, &self))?;
+
+                AddressSpace::new(first, last).map_err(A::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_tuple(2, AddressSpaceVisitor)
     }
 }
 
@@ -579,5 +632,29 @@ mod tests {
 
         assert_eq!(a.union(b), AddressSpace::new(5.into(), 79.into()).unwrap());
         assert_eq!(b.union(a), AddressSpace::new(5.into(), 79.into()).unwrap());
+    }
+
+    #[test]
+    fn test_serde() {
+        let a = AddressSpace::new(5.into(), 79.into()).unwrap();
+        let a_str = serde_json::to_string(&a).unwrap();
+
+        assert_eq!(a_str, "[5,79]");
+        assert_eq!(serde_json::from_str::<AddressSpace>(&a_str).unwrap(), a);
+        assert!(
+            serde_json::from_str::<AddressSpace>("[5]")
+                .unwrap_err()
+                .is_data()
+        );
+        assert!(
+            serde_json::from_str::<AddressSpace>("[5,79,85]")
+                .unwrap_err()
+                .is_syntax()
+        );
+        assert!(
+            serde_json::from_str::<AddressSpace>("[79,5]")
+                .unwrap_err()
+                .is_data()
+        );
     }
 }
