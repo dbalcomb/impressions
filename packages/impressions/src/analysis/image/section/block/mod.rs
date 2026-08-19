@@ -16,6 +16,7 @@ pub use self::unknown::Unknown;
 
 /// A block of memory within a section.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Block {
     /// A block of unknown bytes.
     Unknown(Unknown),
