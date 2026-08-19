@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 
 use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
@@ -10,7 +11,7 @@ use crate::memory::region::Region;
 /// This represents a block of memory that has not yet been identified. It may
 /// contain initialised memory, uninitialised memory, or both depending on the
 /// size of the block and the size of the internal bytes.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Unknown {
     address_space: AddressSpace,
     bytes: Bytes,

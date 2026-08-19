@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 array-init = "2.1.0"
-bytes = "1.12.1"
+bytes = { version = "1.12.1", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.20"
 

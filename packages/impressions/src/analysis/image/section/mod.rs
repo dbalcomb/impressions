@@ -3,6 +3,7 @@
 pub mod block;
 
 use bytes::Buf;
+use serde::{Deserialize, Serialize};
 
 use crate::data::types::array_string::ArrayString;
 use crate::memory::address::AddressSpace;
@@ -18,7 +19,7 @@ use super::headers::{OptionalHeader, SectionHeader};
 ///
 /// Each section is divided up into blocks of memory with the ultimate goal of
 /// identifying each and every byte.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Section {
     name: ArrayString<8>,
     blocks: Map<Block>,
