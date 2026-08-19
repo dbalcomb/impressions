@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
@@ -7,7 +9,7 @@ use crate::memory::region::Region;
 /// may be found between sections, code, or data. In addition to an address and
 /// size, each block of padding has a byte value to indicate what values have
 /// been analysed.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Padding {
     address_space: AddressSpace,
     value: u8,

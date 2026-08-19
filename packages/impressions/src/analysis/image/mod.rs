@@ -7,6 +7,7 @@ pub mod section;
 use std::path::Path;
 
 use bytes::{Buf, Bytes};
+use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::memory::address::AddressSpace;
@@ -18,7 +19,7 @@ use self::headers::Headers;
 use self::section::Section;
 
 /// A 32-bit Portable Executable (PE) image file analysis.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Image {
     headers: Headers,
     sections: Map<Section>,
