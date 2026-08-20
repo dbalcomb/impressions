@@ -4,8 +4,6 @@ mod error;
 pub mod headers;
 pub mod section;
 
-use std::path::Path;
-
 use bytes::{Buf, Bytes};
 use serde::{Deserialize, Serialize};
 
@@ -23,13 +21,6 @@ use self::section::Section;
 pub struct Image {
     headers: Headers,
     sections: Map<Section>,
-}
-
-impl Image {
-    /// Constructs a new image file analysis from the given image file path.
-    pub fn open(path: impl AsRef<Path>) -> Result<Self, Error> {
-        Self::parse(Bytes::from(std::fs::read(path)?))
-    }
 }
 
 impl Image {
