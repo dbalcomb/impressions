@@ -24,10 +24,10 @@ pub struct Address(u32);
 
 impl Address {
     /// The smallest address.
-    pub const MIN: Address = Address::new(0);
+    pub const MIN: Self = Self::new(0);
 
     /// The largest address.
-    pub const MAX: Address = Address::new(u32::MAX);
+    pub const MAX: Self = Self::new(u32::MAX);
 }
 
 impl Address {
