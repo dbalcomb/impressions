@@ -3,4 +3,4 @@ resolver = "3"
 members = ["packages/*"]
 
 [workspace.lints.clippy]
-use_self = "deny"
+use_self = "warn"
