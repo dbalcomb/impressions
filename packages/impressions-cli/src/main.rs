@@ -17,6 +17,7 @@ fn main() -> Result<(), Error> {
 
     match cli.command {
         Command::Analyse(command) => command.exec()?,
+        Command::Inspect(command) => command.exec()?,
     }
 
     Ok(())
