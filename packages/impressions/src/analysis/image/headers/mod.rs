@@ -8,6 +8,7 @@ mod section;
 use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::region::Region;
@@ -99,6 +100,12 @@ impl Region for Headers {
 
     fn size(&self) -> u64 {
         self.optional.headers_size()
+    }
+}
+
+impl Completion for Headers {
+    fn identified(&self) -> u64 {
+        self.size()
     }
 }
 
