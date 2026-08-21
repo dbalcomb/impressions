@@ -3,6 +3,7 @@ use std::fmt::{self, Debug};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
@@ -32,6 +33,12 @@ impl Unknown {
 impl Region for Unknown {
     fn address_space(&self) -> AddressSpace {
         self.address_space
+    }
+}
+
+impl Completion for Unknown {
+    fn identified(&self) -> u64 {
+        0
     }
 }
 

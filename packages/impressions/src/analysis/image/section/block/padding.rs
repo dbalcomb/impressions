@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
@@ -35,5 +36,11 @@ impl Padding {
 impl Region for Padding {
     fn address_space(&self) -> AddressSpace {
         self.address_space
+    }
+}
+
+impl Completion for Padding {
+    fn identified(&self) -> u64 {
+        self.size()
     }
 }

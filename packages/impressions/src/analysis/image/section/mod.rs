@@ -5,6 +5,7 @@ pub mod block;
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Completion;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::address::AddressSpace;
 use crate::memory::map::{Iter, Map};
@@ -70,5 +71,11 @@ impl Section {
 impl Region for Section {
     fn address_space(&self) -> AddressSpace {
         self.blocks.address_space()
+    }
+}
+
+impl Completion for Section {
+    fn identified(&self) -> u64 {
+        self.blocks().map(Block::identified).sum()
     }
 }

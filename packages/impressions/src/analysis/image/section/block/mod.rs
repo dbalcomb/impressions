@@ -8,6 +8,7 @@ use std::fmt::{self, Debug};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
@@ -70,6 +71,15 @@ impl Region for Block {
         match self {
             Block::Unknown(unknown) => unknown.address_space(),
             Block::Padding(padding) => padding.address_space(),
+        }
+    }
+}
+
+impl Completion for Block {
+    fn identified(&self) -> u64 {
+        match self {
+            Self::Unknown(unknown) => unknown.identified(),
+            Self::Padding(padding) => padding.identified(),
         }
     }
 }

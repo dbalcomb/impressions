@@ -16,6 +16,8 @@ pub use self::error::Error;
 use self::headers::Headers;
 use self::section::Section;
 
+use super::Completion;
+
 /// A 32-bit Portable Executable (PE) image file analysis.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Image {
@@ -33,6 +35,12 @@ impl Image {
 impl Region for Image {
     fn address_space(&self) -> AddressSpace {
         self.headers.image_address_space()
+    }
+}
+
+impl Completion for Image {
+    fn identified(&self) -> u64 {
+        self.headers.identified() + self.sections().map(Section::identified).sum::<u64>()
     }
 }
 
