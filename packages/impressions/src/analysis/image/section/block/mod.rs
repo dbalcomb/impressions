@@ -69,8 +69,8 @@ impl Block {
 impl Region for Block {
     fn address_space(&self) -> AddressSpace {
         match self {
-            Block::Unknown(unknown) => unknown.address_space(),
-            Block::Padding(padding) => padding.address_space(),
+            Self::Unknown(unknown) => unknown.address_space(),
+            Self::Padding(padding) => padding.address_space(),
         }
     }
 }

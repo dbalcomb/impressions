@@ -12,6 +12,9 @@ publish = false
 clap = { version = "4.6.6", features = ["derive"] }
 impressions = { path = "../impressions" }
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "impressions"
 path = "src/main.rs"
