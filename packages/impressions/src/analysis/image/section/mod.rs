@@ -14,7 +14,7 @@ use crate::memory::region::Region;
 use self::block::Block;
 
 use super::Error;
-use super::headers::{OptionalHeader, SectionHeader};
+use super::headers::{OptionalHeader, SectionCharacteristics, SectionHeader};
 
 /// A 32-bit Portable Executable (PE) image file section.
 ///
@@ -23,6 +23,7 @@ use super::headers::{OptionalHeader, SectionHeader};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Section {
     name: ArrayString<8>,
+    characteristics: SectionCharacteristics,
     blocks: Map<Block>,
 }
 
@@ -38,6 +39,7 @@ impl Section {
         }
 
         let name = *section.name();
+        let characteristics = section.characteristics();
         let address = section.address() + optional.image_address();
         let alignment = optional.section_alignment() as u64;
         let bytes = buffer.copy_to_bytes(section.file_size());
@@ -52,7 +54,11 @@ impl Section {
             blocks.insert(Block::padding(address.to_space(padding)?, 0))?;
         }
 
-        Ok(Self { name, blocks })
+        Ok(Self {
+            name,
+            characteristics,
+            blocks,
+        })
     }
 }
 

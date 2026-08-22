@@ -16,7 +16,7 @@ use crate::memory::region::Region;
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
 pub use self::optional::{DataDirectory, OptionalHeader};
-pub use self::section::SectionHeader;
+pub use self::section::{SectionCharacteristics, SectionHeader};
 
 use super::Error;
 
@@ -229,20 +229,64 @@ mod tests {
         assert_eq!(text.name(), ".text");
         assert_eq!(text.address(), Address::new(0x00001000));
 
+        assert!(text.characteristics().read());
+        assert!(!text.characteristics().write());
+        assert!(text.characteristics().execute());
+        assert!(!text.characteristics().share());
+        assert!(text.characteristics().page());
+        assert!(text.characteristics().cache());
+        assert!(!text.characteristics().discard());
+        assert!(!text.characteristics().initialised());
+        assert!(!text.characteristics().uninitialised());
+        assert!(text.characteristics().code());
+
         let rdata = sections.next().unwrap();
 
         assert_eq!(rdata.name(), ".rdata");
         assert_eq!(rdata.address(), Address::new(0x001D8000));
+
+        assert!(rdata.characteristics().read());
+        assert!(!rdata.characteristics().write());
+        assert!(!rdata.characteristics().execute());
+        assert!(!rdata.characteristics().share());
+        assert!(rdata.characteristics().page());
+        assert!(rdata.characteristics().cache());
+        assert!(!rdata.characteristics().discard());
+        assert!(rdata.characteristics().initialised());
+        assert!(!rdata.characteristics().uninitialised());
+        assert!(!rdata.characteristics().code());
 
         let data = sections.next().unwrap();
 
         assert_eq!(data.name(), ".data");
         assert_eq!(data.address(), Address::new(0x001E8000));
 
+        assert!(data.characteristics().read());
+        assert!(data.characteristics().write());
+        assert!(!data.characteristics().execute());
+        assert!(!data.characteristics().share());
+        assert!(data.characteristics().page());
+        assert!(data.characteristics().cache());
+        assert!(!data.characteristics().discard());
+        assert!(data.characteristics().initialised());
+        assert!(!data.characteristics().uninitialised());
+        assert!(!data.characteristics().code());
+
         let rsrc = sections.next().unwrap();
 
         assert_eq!(rsrc.name(), ".rsrc");
         assert_eq!(rsrc.address(), Address::new(0x0120E000));
+
+        assert!(rsrc.characteristics().read());
+        assert!(!rsrc.characteristics().write());
+        assert!(!rsrc.characteristics().execute());
+        assert!(!rsrc.characteristics().share());
+        assert!(rsrc.characteristics().page());
+        assert!(rsrc.characteristics().cache());
+        assert!(!rsrc.characteristics().discard());
+        assert!(rsrc.characteristics().initialised());
+        assert!(!rsrc.characteristics().uninitialised());
+        assert!(!rsrc.characteristics().code());
 
         assert_eq!(sections.next(), None);
     }
