@@ -82,9 +82,10 @@ impl DosHeader {
 }
 
 impl Parse for DosHeader {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let e_magic = buffer.try_get_u16_le()?;
 
         if e_magic != DOS_SIGNATURE {

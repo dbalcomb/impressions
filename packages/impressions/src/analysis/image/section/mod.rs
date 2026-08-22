@@ -6,6 +6,7 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
+use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::address::AddressSpace;
 use crate::memory::map::{Iter, Map};
@@ -28,12 +29,37 @@ pub struct Section {
 }
 
 impl Section {
-    /// Parses the buffer for the given section header.
-    pub fn parse_with(
+    /// Gets the section name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Gets an iterator over the blocks.
+    pub fn blocks(&self) -> Iter<'_, Block> {
+        self.blocks.iter()
+    }
+}
+
+impl Region for Section {
+    fn address_space(&self) -> AddressSpace {
+        self.blocks.address_space()
+    }
+}
+
+impl Completion for Section {
+    fn identified(&self) -> u64 {
+        self.blocks().map(Block::identified).sum()
+    }
+}
+
+impl Parse for Section {
+    type Context<'a> = (&'a OptionalHeader, &'a SectionHeader);
+    type Error = Error;
+
+    fn parse_with(
         mut buffer: impl Buf,
-        optional: &OptionalHeader,
-        section: &SectionHeader,
-    ) -> Result<Self, Error> {
+        (optional, section): Self::Context<'_>,
+    ) -> Result<Self, Self::Error> {
         if section.size() == 0 {
             return Err(Error::EmptySection);
         }
@@ -59,29 +85,5 @@ impl Section {
             characteristics,
             blocks,
         })
-    }
-}
-
-impl Section {
-    /// Gets the section name.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Gets an iterator over the blocks.
-    pub fn blocks(&self) -> Iter<'_, Block> {
-        self.blocks.iter()
-    }
-}
-
-impl Region for Section {
-    fn address_space(&self) -> AddressSpace {
-        self.blocks.address_space()
-    }
-}
-
-impl Completion for Section {
-    fn identified(&self) -> u64 {
-        self.blocks().map(Block::identified).sum()
     }
 }

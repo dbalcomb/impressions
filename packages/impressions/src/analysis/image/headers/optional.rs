@@ -145,9 +145,10 @@ impl OptionalHeader {
 }
 
 impl Parse for OptionalHeader {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let magic = buffer.try_get_u16_le()?;
 
         if magic != OPTIONAL_SIGNATURE {
@@ -286,9 +287,10 @@ impl DataDirectoryTable {
 }
 
 impl Parse for DataDirectoryTable {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let count = buffer.try_get_u32_le()?;
 
         assert!(count as usize <= Self::MAX_SIZE);
@@ -334,9 +336,10 @@ impl DataDirectory {
 }
 
 impl Parse for DataDirectory {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
             virtual_address: Address::parse(&mut buffer)?,
             size: buffer.try_get_u32_le()?,

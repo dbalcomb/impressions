@@ -45,9 +45,10 @@ impl Completion for Image {
 }
 
 impl Parse for Image {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
         let mut position = headers.size() as usize;
         let mut sections = Map::new(headers.sections_address_space());
@@ -56,8 +57,7 @@ impl Parse for Image {
             buffer.advance(section_header.file_offset() - position);
             sections.insert(Section::parse_with(
                 &mut buffer,
-                headers.optional(),
-                section_header,
+                (headers.optional(), section_header),
             )?)?;
 
             position = section_header.file_offset() + section_header.file_size();

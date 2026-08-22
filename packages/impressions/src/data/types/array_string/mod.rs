@@ -52,9 +52,10 @@ impl<const N: usize> ArrayString<N> {
 }
 
 impl<const N: usize> Parse for ArrayString<N> {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(buffer: impl Buf) -> Result<Self, Error> {
+    fn parse_with(buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let bytes = <[u8; N]>::parse(buffer).map_err(ArrayParseError::into_buffer_error)?;
 
         str::from_utf8(trim_trailing_null(&bytes))?;
