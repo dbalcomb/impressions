@@ -81,9 +81,10 @@ impl Address {
 }
 
 impl Parse for Address {
+    type Context<'a> = ();
     type Error = TryGetError;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         buffer.try_get_u32_le().map(Self)
     }
 }

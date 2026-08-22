@@ -10,30 +10,43 @@ pub use self::error::ArrayParseError;
 
 /// Defines the ability to parse a data structure from a buffer.
 pub trait Parse: Sized {
+    /// The associated context.
+    type Context<'a>;
+
     /// The associated parse error.
     type Error;
 
+    /// Parses the data from the given buffer with the provided context.
+    fn parse_with(buffer: impl Buf, context: Self::Context<'_>) -> Result<Self, Self::Error>;
+
     /// Parses the data from the given buffer.
-    fn parse(buffer: impl Buf) -> Result<Self, Self::Error>;
+    fn parse(buffer: impl Buf) -> Result<Self, Self::Error>
+    where
+        Self: for<'a> Parse<Context<'a> = ()>,
+    {
+        Self::parse_with(buffer, ())
+    }
 }
 
 impl Parse for u8 {
+    type Context<'a> = ();
     type Error = TryGetError;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         buffer.try_get_u8()
     }
 }
 
 impl<T, const N: usize> Parse for [T; N]
 where
-    T: Parse,
+    T: for<'a> Parse<Context<'a>: Copy>,
 {
+    type Context<'a> = T::Context<'a>;
     type Error = ArrayParseError<T::Error, N>;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, context: Self::Context<'_>) -> Result<Self, Self::Error> {
         try_array_init(|index| {
-            T::parse(&mut buffer).map_err(|error| ArrayParseError { error, index })
+            T::parse_with(&mut buffer, context).map_err(|error| ArrayParseError { error, index })
         })
     }
 }

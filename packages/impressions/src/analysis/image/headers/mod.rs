@@ -110,9 +110,10 @@ impl Completion for Headers {
 }
 
 impl Parse for Headers {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let dos = DosHeader::parse(&mut buffer)?;
         let pe_offset = dos.pe_headers_offset() as usize - DosHeader::SIZE;
 

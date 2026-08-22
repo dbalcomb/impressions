@@ -104,9 +104,10 @@ impl SectionHeader {
 }
 
 impl Parse for SectionHeader {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
             name: ArrayString::parse(&mut buffer)?,
             virtual_size: buffer.try_get_u32_le()?,
@@ -213,9 +214,10 @@ impl SectionCharacteristics {
 }
 
 impl Parse for SectionCharacteristics {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self(buffer.try_get_u32_le()?))
     }
 }

@@ -53,9 +53,10 @@ impl CoffHeader {
 }
 
 impl Parse for CoffHeader {
+    type Context<'a> = ();
     type Error = Error;
 
-    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let machine = buffer.try_get_u16_le()?;
 
         if machine != COFF_MACHINE_X86 {
