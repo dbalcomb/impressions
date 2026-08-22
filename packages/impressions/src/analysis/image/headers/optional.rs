@@ -9,9 +9,6 @@ use super::Error;
 /// The signature of a 32-bit PE image file.
 const OPTIONAL_SIGNATURE: u16 = 0x10b;
 
-/// The number of data directories.
-const DATA_DIRECTORIES_COUNT: usize = 16;
-
 /// The image file Optional header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OptionalHeader {
@@ -111,11 +108,8 @@ pub struct OptionalHeader {
     /// This member is obsolete.
     loader_flags: u32,
 
-    /// The number of data directory entries in the remainder of the header.
-    number_of_rva_and_sizes: u32,
-
     /// The data directories.
-    data_directories: [DataDirectory; DATA_DIRECTORIES_COUNT],
+    data_directories: DataDirectoryTable,
 }
 
 impl OptionalHeader {
@@ -144,9 +138,9 @@ impl OptionalHeader {
         self.section_alignment
     }
 
-    /// Gets the number of data directories.
-    pub fn number_of_data_directories(&self) -> usize {
-        self.number_of_rva_and_sizes as usize
+    /// Gets the data directories.
+    pub fn data_directories(&self) -> &DataDirectoryTable {
+        &self.data_directories
     }
 }
 
@@ -159,8 +153,6 @@ impl Parse for OptionalHeader {
         if magic != OPTIONAL_SIGNATURE {
             return Err(Error::UnsupportedArchitecture);
         }
-
-        let number_of_rva_and_sizes;
 
         Ok(Self {
             magic,
@@ -192,18 +184,123 @@ impl Parse for OptionalHeader {
             size_of_heap_reserve: buffer.try_get_u32_le()?,
             size_of_heap_commit: buffer.try_get_u32_le()?,
             loader_flags: buffer.try_get_u32_le()?,
-            number_of_rva_and_sizes: {
-                number_of_rva_and_sizes = buffer.try_get_u32_le()?;
-                number_of_rva_and_sizes
-            },
-            data_directories: array_init::try_array_init(|i| {
-                match i < number_of_rva_and_sizes as usize {
-                    true => DataDirectory::parse(&mut buffer),
-                    false => Ok(DataDirectory {
-                        virtual_address: Address::new(0),
-                        size: 0,
-                    }),
-                }
+            data_directories: DataDirectoryTable::parse(&mut buffer)?,
+        })
+    }
+}
+
+/// The data directory table within the Optional header.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DataDirectoryTable {
+    count: u32,
+    table: [DataDirectory; Self::MAX_SIZE],
+}
+
+impl DataDirectoryTable {
+    /// The maximum number of entries in the table.
+    const MAX_SIZE: usize = 16;
+}
+
+impl DataDirectoryTable {
+    /// Gets the export table data directory.
+    pub fn export_table(&self) -> Option<&DataDirectory> {
+        self.get(0)
+    }
+
+    /// Gets the import table data directory.
+    pub fn import_table(&self) -> Option<&DataDirectory> {
+        self.get(1)
+    }
+
+    /// Gets the resource table data directory.
+    pub fn resource_table(&self) -> Option<&DataDirectory> {
+        self.get(2)
+    }
+
+    /// Gets the exception table data directory.
+    pub fn exception_table(&self) -> Option<&DataDirectory> {
+        self.get(3)
+    }
+
+    /// Gets the certificate table data directory.
+    pub fn certificate_table(&self) -> Option<&DataDirectory> {
+        self.get(4)
+    }
+
+    /// Gets the base relocation table data directory.
+    pub fn base_relocation_table(&self) -> Option<&DataDirectory> {
+        self.get(5)
+    }
+
+    /// Gets the debug data directory.
+    pub fn debug(&self) -> Option<&DataDirectory> {
+        self.get(6)
+    }
+
+    /// Gets the global pointer data directory.
+    pub fn global_pointer(&self) -> Option<&DataDirectory> {
+        self.get(8)
+    }
+
+    /// Gets the thread local storage (TLS) table data directory.
+    pub fn tls_table(&self) -> Option<&DataDirectory> {
+        self.get(9)
+    }
+
+    /// Gets the load configuration table data directory.
+    pub fn load_config_table(&self) -> Option<&DataDirectory> {
+        self.get(10)
+    }
+
+    /// Gets the bound import table data directory.
+    pub fn bound_import_table(&self) -> Option<&DataDirectory> {
+        self.get(11)
+    }
+
+    /// Gets the import address table data directory.
+    pub fn import_address_table(&self) -> Option<&DataDirectory> {
+        self.get(12)
+    }
+
+    /// Gets the delay import descriptor data directory.
+    pub fn delay_import_descriptor(&self) -> Option<&DataDirectory> {
+        self.get(13)
+    }
+
+    /// Gets the data directory at the given index.
+    fn get(&self, index: usize) -> Option<&DataDirectory> {
+        self.table.get(index).and_then(|data_directory| {
+            match data_directory.address().value() != 0 {
+                true => Some(data_directory),
+                false => None,
+            }
+        })
+    }
+}
+
+impl DataDirectoryTable {
+    /// Gets the number of data directory entries included in the image.
+    pub const fn count(&self) -> usize {
+        self.count as usize
+    }
+}
+
+impl Parse for DataDirectoryTable {
+    type Error = Error;
+
+    fn parse(mut buffer: impl Buf) -> Result<Self, Self::Error> {
+        let count = buffer.try_get_u32_le()?;
+
+        assert!(count as usize <= Self::MAX_SIZE);
+
+        Ok(Self {
+            count,
+            table: array_init::try_array_init(|i| match i < count as usize {
+                true => DataDirectory::parse(&mut buffer),
+                false => Ok(DataDirectory {
+                    virtual_address: Address::new(0),
+                    size: 0,
+                }),
             })?,
         })
     }

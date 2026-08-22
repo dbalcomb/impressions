@@ -141,7 +141,7 @@ impl Parse for Headers {
             + 4
             + CoffHeader::SIZE
             + OptionalHeader::BASE_SIZE
-            + (DataDirectory::SIZE * optional.number_of_data_directories())
+            + (DataDirectory::SIZE * optional.data_directories().count())
             + (SectionHeader::SIZE * coff.number_of_sections());
 
         let remaining = buffer
@@ -221,6 +221,20 @@ mod tests {
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer, [1, 2, 3, 4].as_slice());
+
+        let data_directories = headers.optional().data_directories();
+        let import_table = data_directories.import_table().unwrap();
+        let import_address_table = data_directories.import_address_table().unwrap();
+        let resource_table = data_directories.resource_table().unwrap();
+
+        assert_eq!(import_table.address(), Address::new(0x001e5f90));
+        assert_eq!(import_table.size(), 220);
+
+        assert_eq!(import_address_table.address(), Address::new(0x001d8000));
+        assert_eq!(import_address_table.size(), 848);
+
+        assert_eq!(resource_table.address(), Address::new(0x0120e000));
+        assert_eq!(resource_table.size(), 10448);
 
         let mut sections = headers.sections();
 
