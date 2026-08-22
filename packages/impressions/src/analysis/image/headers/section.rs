@@ -122,6 +122,7 @@ impl Parse for SectionHeader {
     }
 }
 
+/// The image file section characteristics.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 #[repr(transparent)]
