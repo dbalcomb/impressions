@@ -221,7 +221,7 @@ impl Parse for SectionCharacteristics {
 
 impl Debug for SectionCharacteristics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Characteristics")
+        f.debug_struct("SectionCharacteristics")
             .field("read", &self.read())
             .field("write", &self.write())
             .field("execute", &self.execute())
