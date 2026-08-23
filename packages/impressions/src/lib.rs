@@ -11,4 +11,5 @@
 
 pub mod analysis;
 pub mod data;
+pub mod image;
 pub mod memory;

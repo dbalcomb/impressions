@@ -3,7 +3,6 @@
 mod builder;
 mod completion;
 mod error;
-pub mod image;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
@@ -12,10 +11,11 @@ use std::path::PathBuf;
 use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 
+use crate::image::Image;
+
 pub use self::builder::Builder;
 pub use self::completion::Completion;
 pub use self::error::Error;
-use self::image::Image;
 
 /// A 32-bit Portable Executable (PE) binary analysis.
 #[derive(Debug)]

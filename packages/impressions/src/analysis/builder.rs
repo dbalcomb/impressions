@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use bytes::Bytes;
 
 use crate::data::parse::Parse;
+use crate::image::Image;
 
-use super::image::Image;
 use super::{Analysis, Error};
 
 /// The binary analysis builder.

@@ -1,4 +1,4 @@
-//! The image file analysis.
+//! The 32-bit Portable Executable (PE) image file.
 
 mod error;
 pub mod headers;
@@ -7,6 +7,7 @@ pub mod section;
 use bytes::{Buf, Bytes};
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::address::AddressSpace;
 use crate::memory::map::{Iter, Map};
@@ -15,8 +16,6 @@ use crate::memory::region::Region;
 pub use self::error::Error;
 use self::headers::Headers;
 use self::section::Section;
-
-use super::Completion;
 
 /// A 32-bit Portable Executable (PE) image file analysis.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

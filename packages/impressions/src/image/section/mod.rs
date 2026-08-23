@@ -1,4 +1,4 @@
-//! The image file section analysis.
+//! The image file section.
 
 pub mod block;
 
