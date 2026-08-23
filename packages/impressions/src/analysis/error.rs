@@ -3,7 +3,7 @@
 pub enum Error {
     /// A problem was encountered with the image.
     #[error("Image error")]
-    Image(#[from] super::image::Error),
+    Image(#[from] crate::image::Error),
 
     /// A problem was encountered reading the analysis.
     #[error("I/O error")]

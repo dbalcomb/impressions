@@ -1,4 +1,4 @@
-//! The image file headers analysis.
+//! The image file headers.
 
 mod coff;
 mod dos;

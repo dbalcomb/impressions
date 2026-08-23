@@ -1,4 +1,4 @@
-//! The image file section block analysis.
+//! The image file section block.
 
 mod padding;
 mod unknown;
