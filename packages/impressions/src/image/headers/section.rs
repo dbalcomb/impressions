@@ -78,12 +78,12 @@ impl SectionHeader {
     }
 
     /// Gets the address of the section.
-    pub fn address(&self) -> Address {
+    pub fn section_address(&self) -> Address {
         self.virtual_address
     }
 
     /// Gets the size of the section.
-    pub fn size(&self) -> u64 {
+    pub fn section_size(&self) -> u64 {
         self.virtual_size as u64
     }
 

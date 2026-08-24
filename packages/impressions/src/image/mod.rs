@@ -60,7 +60,7 @@ impl Parse for Image {
         for section_header in headers.sections() {
             buffer.advance(section_header.file_offset() - position);
             sections.insert(
-                headers.optional().image_address() + section_header.address(),
+                headers.optional().image_address() + section_header.section_address(),
                 Section::parse_with(&mut buffer, (headers.optional(), section_header))?,
             )?;
 
