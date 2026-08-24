@@ -300,8 +300,8 @@ impl Parse for DataDirectoryTable {
             table: array_init::try_array_init(|i| match i < count as usize {
                 true => DataDirectory::parse(&mut buffer),
                 false => Ok(DataDirectory {
-                    address: Address::new(0),
-                    size: 0,
+                    target_address: Address::new(0),
+                    target_size: 0,
                 }),
             })?,
         })
@@ -312,10 +312,10 @@ impl Parse for DataDirectoryTable {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DataDirectory {
     /// The relative virtual address of the target.
-    address: Address,
+    target_address: Address,
 
     /// The size of the target, in bytes.
-    size: u32,
+    target_size: u32,
 }
 
 impl DataDirectory {
@@ -326,12 +326,12 @@ impl DataDirectory {
 impl DataDirectory {
     /// Gets the relative virtual address of the target.
     pub const fn target_address(&self) -> Address {
-        self.address
+        self.target_address
     }
 
     /// Gets the size of the target, in bytes.
     pub const fn target_size(&self) -> u64 {
-        self.size as u64
+        self.target_size as u64
     }
 }
 
@@ -341,8 +341,8 @@ impl Parse for DataDirectory {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            address: Address::parse(&mut buffer)?,
-            size: buffer.try_get_u32_le()?,
+            target_address: Address::parse(&mut buffer)?,
+            target_size: buffer.try_get_u32_le()?,
         })
     }
 }
