@@ -1,8 +1,5 @@
 use std::ops::Deref;
 
-use crate::memory::address::Address;
-use crate::memory::region::Region;
-
 /// A memory region offset.
 pub struct Offset<'a, T> {
     region: &'a T,
@@ -25,16 +22,6 @@ impl<'a, T> Offset<'a, T> {
     /// Gets the offset into the memory region.
     pub const fn offset(&self) -> u32 {
         self.offset
-    }
-}
-
-impl<T> Offset<'_, T>
-where
-    T: Region,
-{
-    /// Gets the address of the memory region offset.
-    pub fn offset_address(&self) -> Address {
-        self.region.address() + self.offset
     }
 }
 

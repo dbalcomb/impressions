@@ -4,7 +4,6 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
 /// A block of unknown bytes.
@@ -14,25 +13,22 @@ use crate::memory::region::Region;
 /// size of the block and the size of the internal bytes.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Unknown {
-    address_space: AddressSpace,
+    size: u64,
     bytes: Bytes,
 }
 
 impl Unknown {
     /// Constructs a new unknown block.
-    pub fn new(address_space: AddressSpace, mut bytes: Bytes) -> Self {
-        bytes.truncate(address_space.size() as usize);
+    pub fn new(size: u64, mut bytes: Bytes) -> Self {
+        bytes.truncate(size as usize);
 
-        Self {
-            address_space,
-            bytes,
-        }
+        Self { size, bytes }
     }
 }
 
 impl Region for Unknown {
-    fn address_space(&self) -> AddressSpace {
-        self.address_space
+    fn size(&self) -> u64 {
+        self.size
     }
 }
 
@@ -45,7 +41,7 @@ impl Completion for Unknown {
 impl Debug for Unknown {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Unknown")
-            .field("address_space", &self.address_space)
+            .field("size", &self.size)
             .field("bytes", &self.bytes.len())
             .finish()
     }

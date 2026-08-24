@@ -32,8 +32,8 @@ impl Image {
 }
 
 impl Region for Image {
-    fn address_space(&self) -> AddressSpace {
-        self.headers.image_address_space()
+    fn size(&self) -> u64 {
+        self.headers.optional().image_size()
     }
 }
 
@@ -49,15 +49,20 @@ impl Parse for Image {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
+        let sections_address_space = AddressSpace::with_size(
+            headers.optional().image_address() + headers.optional().headers_size() as u32,
+            headers.optional().image_size() - headers.optional().headers_size(),
+        )?;
+
         let mut position = headers.size() as usize;
-        let mut sections = Map::new(headers.sections_address_space());
+        let mut sections = Map::new(sections_address_space);
 
         for section_header in headers.sections() {
             buffer.advance(section_header.file_offset() - position);
-            sections.insert(Section::parse_with(
-                &mut buffer,
-                (headers.optional(), section_header),
-            )?)?;
+            sections.insert(
+                headers.optional().image_address() + section_header.address(),
+                Section::parse_with(&mut buffer, (headers.optional(), section_header))?,
+            )?;
 
             position = section_header.file_offset() + section_header.file_size();
         }

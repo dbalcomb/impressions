@@ -9,7 +9,6 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
 pub use self::padding::Padding;
@@ -28,13 +27,13 @@ pub enum Block {
 
 impl Block {
     /// Constructs a new unknown block.
-    pub fn unknown(address_space: AddressSpace, bytes: Bytes) -> Self {
-        Self::Unknown(Unknown::new(address_space, bytes))
+    pub fn unknown(size: u64, bytes: Bytes) -> Self {
+        Self::Unknown(Unknown::new(size, bytes))
     }
 
     /// Constructs a new padding block.
-    pub fn padding(address_space: AddressSpace, value: u8) -> Self {
-        Self::Padding(Padding::new(address_space, value))
+    pub fn padding(size: u64, value: u8) -> Self {
+        Self::Padding(Padding::new(size, value))
     }
 }
 
@@ -67,10 +66,10 @@ impl Block {
 }
 
 impl Region for Block {
-    fn address_space(&self) -> AddressSpace {
+    fn size(&self) -> u64 {
         match self {
-            Self::Unknown(unknown) => unknown.address_space(),
-            Self::Padding(padding) => padding.address_space(),
+            Self::Unknown(unknown) => unknown.size(),
+            Self::Padding(padding) => padding.size(),
         }
     }
 }
