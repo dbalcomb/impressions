@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::address::Address;
+use crate::memory::region::Region;
 
 use super::Error;
 
@@ -67,11 +68,6 @@ pub struct SectionHeader {
 }
 
 impl SectionHeader {
-    /// The size of the section header.
-    pub const SIZE: usize = 40;
-}
-
-impl SectionHeader {
     /// Gets the section name.
     pub fn name(&self) -> &ArrayString<8> {
         &self.name
@@ -100,6 +96,12 @@ impl SectionHeader {
     /// Gets the section characteristics.
     pub fn characteristics(&self) -> SectionCharacteristics {
         self.characteristics
+    }
+}
+
+impl Region for SectionHeader {
+    fn size(&self) -> u64 {
+        40
     }
 }
 

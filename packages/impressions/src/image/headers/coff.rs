@@ -2,6 +2,7 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
+use crate::memory::region::Region;
 
 use super::Error;
 
@@ -41,14 +42,15 @@ pub struct CoffHeader {
 }
 
 impl CoffHeader {
-    /// The size of the header, in bytes.
-    pub const SIZE: usize = 20;
-}
-
-impl CoffHeader {
     /// Gets the number of sections.
     pub fn number_of_sections(&self) -> usize {
         self.number_of_sections as usize
+    }
+}
+
+impl Region for CoffHeader {
+    fn size(&self) -> u64 {
+        20
     }
 }
 

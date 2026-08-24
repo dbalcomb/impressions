@@ -2,6 +2,7 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
+use crate::memory::region::Region;
 
 use super::Error;
 
@@ -70,14 +71,15 @@ pub struct DosHeader {
 }
 
 impl DosHeader {
-    /// The size of the header, in bytes.
-    pub const SIZE: usize = 64;
-}
-
-impl DosHeader {
     /// Gets the file offset of the PE headers.
     pub fn pe_headers_offset(&self) -> u32 {
         self.e_lfanew
+    }
+}
+
+impl Region for DosHeader {
+    fn size(&self) -> u64 {
+        64
     }
 }
 
