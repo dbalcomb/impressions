@@ -271,7 +271,7 @@ impl DataDirectoryTable {
     /// Gets the data directory at the given index.
     fn get(&self, index: usize) -> Option<&DataDirectory> {
         self.table.get(index).and_then(|data_directory| {
-            match data_directory.address().value() != 0 {
+            match data_directory.target_address().value() != 0 {
                 true => Some(data_directory),
                 false => None,
             }
@@ -300,7 +300,7 @@ impl Parse for DataDirectoryTable {
             table: array_init::try_array_init(|i| match i < count as usize {
                 true => DataDirectory::parse(&mut buffer),
                 false => Ok(DataDirectory {
-                    virtual_address: Address::new(0),
+                    address: Address::new(0),
                     size: 0,
                 }),
             })?,
@@ -311,10 +311,10 @@ impl Parse for DataDirectoryTable {
 /// A data directory entry within the Optional header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DataDirectory {
-    /// The relative virtual address of the table.
-    virtual_address: Address,
+    /// The relative virtual address of the target.
+    address: Address,
 
-    /// The size of the table, in bytes.
+    /// The size of the target, in bytes.
     size: u32,
 }
 
@@ -324,14 +324,14 @@ impl DataDirectory {
 }
 
 impl DataDirectory {
-    /// Gets the relative virtual address of the table.
-    pub fn address(&self) -> Address {
-        self.virtual_address
+    /// Gets the relative virtual address of the target.
+    pub const fn target_address(&self) -> Address {
+        self.address
     }
 
-    /// Gets the size of the table, in bytes.
-    pub fn size(&self) -> u32 {
-        self.size
+    /// Gets the size of the target, in bytes.
+    pub const fn target_size(&self) -> u64 {
+        self.size as u64
     }
 }
 
@@ -341,7 +341,7 @@ impl Parse for DataDirectory {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            virtual_address: Address::parse(&mut buffer)?,
+            address: Address::parse(&mut buffer)?,
             size: buffer.try_get_u32_le()?,
         })
     }

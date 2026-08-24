@@ -228,14 +228,17 @@ mod tests {
         let import_address_table = data_directories.import_address_table().unwrap();
         let resource_table = data_directories.resource_table().unwrap();
 
-        assert_eq!(import_table.address(), Address::new(0x001e5f90));
-        assert_eq!(import_table.size(), 220);
+        assert_eq!(import_table.target_address(), Address::new(0x001e5f90));
+        assert_eq!(import_table.target_size(), 220);
 
-        assert_eq!(import_address_table.address(), Address::new(0x001d8000));
-        assert_eq!(import_address_table.size(), 848);
+        assert_eq!(
+            import_address_table.target_address(),
+            Address::new(0x001d8000)
+        );
+        assert_eq!(import_address_table.target_size(), 848);
 
-        assert_eq!(resource_table.address(), Address::new(0x0120e000));
-        assert_eq!(resource_table.size(), 10448);
+        assert_eq!(resource_table.target_address(), Address::new(0x0120e000));
+        assert_eq!(resource_table.target_size(), 10448);
 
         let mut sections = headers.sections();
 
