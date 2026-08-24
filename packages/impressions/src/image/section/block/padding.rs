@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::AddressSpace;
 use crate::memory::region::Region;
 
 /// A block of padding.
@@ -12,17 +11,14 @@ use crate::memory::region::Region;
 /// been analysed.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Padding {
-    address_space: AddressSpace,
+    size: u64,
     value: u8,
 }
 
 impl Padding {
     /// Constructs a new padding block.
-    pub fn new(address_space: AddressSpace, value: u8) -> Self {
-        Self {
-            address_space,
-            value,
-        }
+    pub fn new(size: u64, value: u8) -> Self {
+        Self { size, value }
     }
 }
 
@@ -34,8 +30,8 @@ impl Padding {
 }
 
 impl Region for Padding {
-    fn address_space(&self) -> AddressSpace {
-        self.address_space
+    fn size(&self) -> u64 {
+        self.size
     }
 }
 

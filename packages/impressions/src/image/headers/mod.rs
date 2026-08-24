@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
-use crate::memory::address::{Address, AddressSpace};
 use crate::memory::region::Region;
 
 pub use self::coff::CoffHeader;
@@ -72,32 +71,7 @@ impl Headers {
     }
 }
 
-impl Headers {
-    /// Gets the address space for the entire image.
-    pub fn image_address_space(&self) -> AddressSpace {
-        AddressSpace::with_size(self.optional.image_address(), self.optional.image_size())
-            .expect("valid address space")
-    }
-
-    /// Gets the address space for the sections.
-    pub fn sections_address_space(&self) -> AddressSpace {
-        AddressSpace::with_size(
-            self.optional.image_address() + self.optional.headers_size() as u32,
-            self.optional.image_size() - self.optional.headers_size(),
-        )
-        .expect("valid address space")
-    }
-}
-
 impl Region for Headers {
-    fn address_space(&self) -> AddressSpace {
-        AddressSpace::with_size(self.address(), self.size()).expect("valid address space")
-    }
-
-    fn address(&self) -> Address {
-        self.optional.image_address()
-    }
-
     fn size(&self) -> u64 {
         self.optional.headers_size()
     }
@@ -218,7 +192,7 @@ mod tests {
         let mut buffer = sample_headers_padded();
         let headers = Headers::parse(&mut buffer).unwrap();
 
-        assert_eq!(headers.address(), Address::new(0x00400000));
+        assert_eq!(headers.optional.image_address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer, [1, 2, 3, 4].as_slice());
@@ -314,7 +288,7 @@ mod tests {
         let mut buffer = SAMPLE_HEADERS_DATA.as_slice();
         let headers = Headers::parse(&mut buffer).unwrap();
 
-        assert_eq!(headers.address(), Address::new(0x00400000));
+        assert_eq!(headers.optional.image_address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer.remaining(), 0);

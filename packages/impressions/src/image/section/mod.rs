@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
-use crate::memory::address::AddressSpace;
 use crate::memory::map::{Iter, Map};
 use crate::memory::region::Region;
 
@@ -41,8 +40,8 @@ impl Section {
 }
 
 impl Region for Section {
-    fn address_space(&self) -> AddressSpace {
-        self.blocks.address_space()
+    fn size(&self) -> u64 {
+        self.blocks.size()
     }
 }
 
@@ -72,12 +71,12 @@ impl Parse for Section {
         let padding = (alignment - (section.size() % alignment)) % alignment;
         let mut blocks = Map::new(address.to_space(section.size() + padding)?);
 
-        blocks.insert(Block::unknown(address.to_space(section.size())?, bytes))?;
+        blocks.insert(address, Block::unknown(section.size(), bytes))?;
 
         if padding > 0 {
             let address = address + section.size() as u32;
 
-            blocks.insert(Block::padding(address.to_space(padding)?, 0))?;
+            blocks.insert(address, Block::padding(padding, 0))?;
         }
 
         Ok(Self {

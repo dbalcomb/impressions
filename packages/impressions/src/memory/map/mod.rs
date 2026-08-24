@@ -20,9 +20,9 @@ use super::region::Region;
 ///
 /// # Invariants
 ///
-/// The address space of each region in the map must be **immutable**. Any
-/// modifications to the address space may corrupt the map and potentially cause
-/// items to overlap or escape the bounds of the map.
+/// The size of each region in the map must be **immutable**. Any modifications
+/// to the size may corrupt the map and potentially cause regions to overlap or
+/// escape the bounds of the map.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Map<T> {
     address_space: AddressSpace,
@@ -49,8 +49,12 @@ where
     /// an offset as the address may be inside the region's address space.
     pub fn get(&self, address: Address) -> Option<Offset<'_, T>> {
         match self.regions.range(..=address).last() {
-            Some((_, region)) if region.address_space().contains(address) => {
-                Some(Offset::new(region, address.offset(region.address())))
+            Some((&region_address, region))
+                if AddressSpace::with_size(region_address, region.size())
+                    .expect("address spaces within map are always valid")
+                    .contains(address) =>
+            {
+                Some(Offset::new(region, address.offset(region_address)))
             }
             _ => None,
         }
@@ -61,7 +65,7 @@ where
     /// This method is similar to [`Self::get`] except that it takes an offset
     /// instead of an address.
     pub fn get_by_offset(&self, offset: u32) -> Option<Offset<'_, T>> {
-        self.get(self.address() + offset)
+        self.get(self.address_space.first() + offset)
     }
 
     /// Inserts a region into the map.
@@ -75,27 +79,31 @@ where
     /// This method returns an error if the region's address space is already
     /// occupied by another region or if the region's address space is outside
     /// the map's address space.
-    pub fn insert(&mut self, region: impl Into<T>) -> Result<(), Error> {
+    pub fn insert(&mut self, address: Address, region: impl Into<T>) -> Result<(), Error> {
         let region = region.into();
-        let address_space = region.address_space();
+        let address_space = AddressSpace::with_size(address, region.size())?;
 
         if !self.address_space.includes(address_space) {
             return Err(Error::OutOfBounds(address_space, self.address_space));
         }
 
-        if let Some((_, prev)) = self.regions.range(..=address_space.first()).last()
-            && prev.address_space().intersects(address_space)
-        {
-            return Err(Error::Intersect(address_space, prev.address_space()));
+        if let Some((&prev_address, prev)) = self.regions.range(..=address).last() {
+            let prev_address_space = AddressSpace::with_size(prev_address, prev.size())?;
+
+            if prev_address_space.intersects(address_space) {
+                return Err(Error::Intersect(address_space, prev_address_space));
+            }
         }
 
-        if let Some((_, next)) = self.regions.range(address_space.first()..).next()
-            && next.address_space().intersects(address_space)
-        {
-            return Err(Error::Intersect(address_space, next.address_space()));
+        if let Some((&next_address, next)) = self.regions.range(address..).next() {
+            let next_address_space = AddressSpace::with_size(next_address, next.size())?;
+
+            if next_address_space.intersects(address_space) {
+                return Err(Error::Intersect(address_space, next_address_space));
+            }
         }
 
-        self.regions.insert(address_space.first(), region);
+        self.regions.insert(address, region);
 
         Ok(())
     }
@@ -112,8 +120,8 @@ impl<T> Region for Map<T>
 where
     T: Region,
 {
-    fn address_space(&self) -> AddressSpace {
-        self.address_space
+    fn size(&self) -> u64 {
+        self.address_space.size()
     }
 }
 
@@ -132,14 +140,14 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let spacer = fmt::from_fn(|f| write!(f, "..."));
-        let mut regions = self.iter();
+        let mut regions = self.regions.iter();
         let mut dbg = f.debug_map();
 
-        if let Some(region) = regions.next() {
-            let mut space = region.address_space();
+        if let Some((&address, region)) = regions.next() {
+            let mut space = AddressSpace::with_size(address, region.size()).expect("ok");
 
-            if space.first() > self.address() {
-                let range = self.address()..space.first();
+            if space.first() > self.address_space.first() {
+                let range = self.address_space.first()..space.first();
                 let space = AddressSpace::from_range(range).expect("ok");
 
                 dbg.entry(&space, &spacer);
@@ -147,15 +155,18 @@ where
 
             dbg.entry(&space, region);
 
-            for region in regions {
-                if !space.is_adjacent_before(region.address_space()) {
-                    let range = space.next().expect("some")..region.address();
+            for (&region_address, region) in regions {
+                let region_address_space =
+                    AddressSpace::with_size(region_address, region.size()).expect("ok");
+
+                if !space.is_adjacent_before(region_address_space) {
+                    let range = space.next().expect("some")..region_address;
                     let space = AddressSpace::from_range(range).expect("ok");
 
                     dbg.entry(&space, &spacer);
                 }
 
-                space = region.address_space();
+                space = region_address_space;
 
                 dbg.entry(&space, region);
             }
@@ -214,8 +225,8 @@ where
             {
                 let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
 
-                for region in self.0.values() {
-                    seq.serialize_element(region)?;
+                for (address, region) in self.0 {
+                    seq.serialize_element(&(*address, region))?;
                 }
 
                 seq.end()
@@ -282,8 +293,8 @@ where
             {
                 let mut map = self.0;
 
-                while let Some(region) = seq.next_element::<T>()? {
-                    map.insert(region).map_err(A::Error::custom)?;
+                while let Some((address, region)) = seq.next_element::<(Address, T)>()? {
+                    map.insert(address, region).map_err(A::Error::custom)?;
                 }
 
                 Ok(map)
@@ -334,12 +345,21 @@ where
                             let space: AddressSpace = map.next_value()?;
 
                             if let Some(regions) = &mut regions {
-                                let mut iter = regions.iter();
+                                let iter = regions
+                                    .regions
+                                    .iter()
+                                    .next()
+                                    .into_iter()
+                                    .chain(regions.regions.iter().last());
 
-                                for region in iter.next().into_iter().chain(iter.last()) {
-                                    if !space.includes(region.address_space()) {
+                                for (address, region) in iter {
+                                    let region_space =
+                                        AddressSpace::with_size(*address, region.size())
+                                            .map_err(A::Error::custom)?;
+
+                                    if !space.includes(region_space) {
                                         return Err(A::Error::custom(self::Error::OutOfBounds(
-                                            region.address_space(),
+                                            region_space,
                                             space,
                                         )));
                                     }
@@ -383,26 +403,26 @@ where
 mod tests {
     use serde::{Deserialize, Serialize};
 
-    use crate::memory::address::{Address, AddressSpace};
+    use crate::memory::address::AddressSpace;
     use crate::memory::region::Region;
 
     use super::{Error, Map};
 
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
-    struct Range(u32, u32);
+    struct Node(u64);
 
-    impl Region for Range {
-        fn address_space(&self) -> AddressSpace {
-            AddressSpace::new(Address::new(self.0), Address::new(self.1)).unwrap()
+    impl Region for Node {
+        fn size(&self) -> u64 {
+            self.0
         }
     }
 
     #[test]
     fn test_get() {
-        let mut regions = Map::<Range>::new(AddressSpace::new(30.into(), 89.into()).unwrap());
+        let mut regions = Map::<Node>::new(AddressSpace::new(30.into(), 89.into()).unwrap());
 
-        regions.insert(Range(30, 49)).unwrap();
-        regions.insert(Range(80, 84)).unwrap();
+        regions.insert(30.into(), Node(20)).unwrap();
+        regions.insert(80.into(), Node(5)).unwrap();
 
         let a = regions.get(30.into()).unwrap();
         let b = regions.get(34.into()).unwrap();
@@ -412,9 +432,9 @@ mod tests {
         assert_eq!(b.offset(), 4);
         assert_eq!(c.offset(), 19);
 
-        assert_eq!(a.region(), &Range(30, 49));
-        assert_eq!(b.region(), &Range(30, 49));
-        assert_eq!(c.region(), &Range(30, 49));
+        assert_eq!(a.region(), &Node(20));
+        assert_eq!(b.region(), &Node(20));
+        assert_eq!(c.region(), &Node(20));
 
         let d = regions.get(80.into()).unwrap();
         let e = regions.get(81.into()).unwrap();
@@ -424,9 +444,9 @@ mod tests {
         assert_eq!(e.offset(), 1);
         assert_eq!(f.offset(), 4);
 
-        assert_eq!(d.region(), &Range(80, 84));
-        assert_eq!(e.region(), &Range(80, 84));
-        assert_eq!(f.region(), &Range(80, 84));
+        assert_eq!(d.region(), &Node(5));
+        assert_eq!(e.region(), &Node(5));
+        assert_eq!(f.region(), &Node(5));
 
         assert!(regions.get(0.into()).is_none());
         assert!(regions.get(29.into()).is_none());
@@ -439,168 +459,170 @@ mod tests {
         let h = regions.get_by_offset(4).unwrap();
         let i = regions.get_by_offset(19).unwrap();
 
-        assert_eq!(g.region(), &Range(30, 49));
-        assert_eq!(h.region(), &Range(30, 49));
-        assert_eq!(i.region(), &Range(30, 49));
+        assert_eq!(g.region(), &Node(20));
+        assert_eq!(h.region(), &Node(20));
+        assert_eq!(i.region(), &Node(20));
 
         assert!(regions.get_by_offset(20).is_none());
     }
 
     #[test]
     fn test_insert_intersect() {
-        let mut regions = Map::<Range>::default();
+        let mut regions = Map::<Node>::default();
 
-        regions.insert(Range(10, 19)).unwrap();
-        regions.insert(Range(40, 59)).unwrap();
-        regions.insert(Range(80, 99)).unwrap();
+        regions.insert(10.into(), Node(10)).unwrap();
+        regions.insert(40.into(), Node(20)).unwrap();
+        regions.insert(80.into(), Node(20)).unwrap();
 
         assert_eq!(
-            regions.insert(Range(10, 19)),
+            regions.insert(10.into(), Node(10)),
             Err(Error::Intersect(
-                Range(10, 19).address_space(),
-                Range(10, 19).address_space(),
+                AddressSpace::new(10.into(), 19.into()).unwrap(),
+                AddressSpace::new(10.into(), 19.into()).unwrap(),
             )),
             "exists",
         );
 
         assert_eq!(
-            regions.insert(Range(11, 18)),
+            regions.insert(11.into(), Node(8)),
             Err(Error::Intersect(
-                Range(11, 18).address_space(),
-                Range(10, 19).address_space(),
+                AddressSpace::new(11.into(), 18.into()).unwrap(),
+                AddressSpace::new(10.into(), 19.into()).unwrap(),
             )),
             "inside",
         );
 
         assert_eq!(
-            regions.insert(Range(0, 119)),
+            regions.insert(0.into(), Node(120)),
             Err(Error::Intersect(
-                Range(0, 119).address_space(),
-                Range(10, 19).address_space(),
+                AddressSpace::new(0.into(), 119.into()).unwrap(),
+                AddressSpace::new(10.into(), 19.into()).unwrap(),
             )),
             "outside",
         );
 
         assert_eq!(
-            regions.insert(Range(0, 14)),
+            regions.insert(0.into(), Node(15)),
             Err(Error::Intersect(
-                Range(0, 14).address_space(),
-                Range(10, 19).address_space(),
+                AddressSpace::new(0.into(), 14.into()).unwrap(),
+                AddressSpace::new(10.into(), 19.into()).unwrap(),
             )),
             "top edge",
         );
 
         assert_eq!(
-            regions.insert(Range(15, 24)),
+            regions.insert(15.into(), Node(10)),
             Err(Error::Intersect(
-                Range(15, 24).address_space(),
-                Range(10, 19).address_space(),
+                AddressSpace::new(15.into(), 24.into()).unwrap(),
+                AddressSpace::new(10.into(), 19.into()).unwrap(),
             )),
             "bottom edge",
         );
 
-        regions.insert(Range(20, 39)).unwrap();
-        regions.insert(Range(61, 78)).unwrap();
-        regions.insert(Range(1000, 1999)).unwrap();
-        regions.insert(Range(2000, u32::MAX)).unwrap();
-        regions.insert(Range(0, 0)).unwrap();
+        regions.insert(20.into(), Node(20)).unwrap();
+        regions.insert(61.into(), Node(18)).unwrap();
+        regions.insert(1000.into(), Node(1000)).unwrap();
+        regions
+            .insert(2000.into(), Node(u32::MAX as u64 - 2000 + 1))
+            .unwrap();
+        regions.insert(0.into(), Node(1)).unwrap();
     }
 
     #[test]
     fn test_insert_bounds() {
-        let mut regions = Map::<Range>::new(AddressSpace::new(50.into(), 99.into()).unwrap());
+        let mut regions = Map::<Node>::new(AddressSpace::new(50.into(), 99.into()).unwrap());
 
         assert_eq!(
-            regions.insert(Range(0, 20)),
+            regions.insert(0.into(), Node(21)),
             Err(Error::OutOfBounds(
-                Range(0, 20).address_space(),
-                Range(50, 99).address_space(),
+                AddressSpace::new(0.into(), 20.into()).unwrap(),
+                AddressSpace::new(50.into(), 99.into()).unwrap(),
             )),
             "below",
         );
 
         assert_eq!(
-            regions.insert(Range(120, 149)),
+            regions.insert(120.into(), Node(30)),
             Err(Error::OutOfBounds(
-                Range(120, 149).address_space(),
-                Range(50, 99).address_space(),
+                AddressSpace::new(120.into(), 149.into()).unwrap(),
+                AddressSpace::new(50.into(), 99.into()).unwrap(),
             )),
             "above",
         );
 
         assert_eq!(
-            regions.insert(Range(5, 74)),
+            regions.insert(5.into(), Node(70)),
             Err(Error::OutOfBounds(
-                Range(5, 74).address_space(),
-                Range(50, 99).address_space(),
+                AddressSpace::new(5.into(), 74.into()).unwrap(),
+                AddressSpace::new(50.into(), 99.into()).unwrap(),
             )),
             "top edge",
         );
 
         assert_eq!(
-            regions.insert(Range(75, 119)),
+            regions.insert(75.into(), Node(45)),
             Err(Error::OutOfBounds(
-                Range(75, 119).address_space(),
-                Range(50, 99).address_space(),
+                AddressSpace::new(75.into(), 119.into()).unwrap(),
+                AddressSpace::new(50.into(), 99.into()).unwrap(),
             )),
             "bottom edge",
         );
 
-        regions.insert(Range(50, 99)).unwrap();
+        regions.insert(50.into(), Node(50)).unwrap();
     }
 
     #[test]
     fn test_serde() {
-        let mut map = Map::<Range>::new(AddressSpace::new(10.into(), 49.into()).unwrap());
+        let mut map = Map::<Node>::new(AddressSpace::new(10.into(), 49.into()).unwrap());
         let map_str = serde_json::to_string(&map).unwrap();
 
         assert_eq!(map_str, "{\"address_space\":[10,49],\"regions\":[]}");
-        assert_eq!(serde_json::from_str::<Map<Range>>(&map_str).unwrap(), map);
+        assert_eq!(serde_json::from_str::<Map<Node>>(&map_str).unwrap(), map);
 
-        map.insert(Range(10, 10)).unwrap();
-        map.insert(Range(20, 45)).unwrap();
+        map.insert(10.into(), Node(1)).unwrap();
+        map.insert(20.into(), Node(26)).unwrap();
 
         let map_str = serde_json::to_string(&map).unwrap();
 
         assert_eq!(
             map_str,
-            "{\"address_space\":[10,49],\"regions\":[[10,10],[20,45]]}"
+            "{\"address_space\":[10,49],\"regions\":[[10,1],[20,26]]}"
         );
-        assert_eq!(serde_json::from_str::<Map<Range>>(&map_str).unwrap(), map);
+        assert_eq!(serde_json::from_str::<Map<Node>>(&map_str).unwrap(), map);
 
         assert_eq!(
-            serde_json::from_str::<Map<Range>>(
-                "{\"regions\":[[10,10],[20,45]],\"address_space\":[10,49]}"
+            serde_json::from_str::<Map<Node>>(
+                "{\"regions\":[[10,1],[20,26]],\"address_space\":[10,49]}"
             )
             .unwrap(),
             map
         );
 
         assert!(
-            serde_json::from_str::<Map<Range>>(
-                "{\"address_space\":[10,39],\"regions\":[[10,10],[20,45]]}"
+            serde_json::from_str::<Map<Node>>(
+                "{\"address_space\":[10,39],\"regions\":[[10,1],[20,26]]}"
             )
             .unwrap_err()
             .is_data()
         );
         assert!(
-            serde_json::from_str::<Map<Range>>(
-                "{\"regions\":[[10,10],[20,45]],\"address_space\":[10,39]}"
+            serde_json::from_str::<Map<Node>>(
+                "{\"regions\":[[10,1],[20,26]],\"address_space\":[10,39]}"
             )
             .unwrap_err()
             .is_data()
         );
 
         assert!(
-            serde_json::from_str::<Map<Range>>(
-                "{\"address_space\":[12,49],\"regions\":[[10,10],[20,45]]}"
+            serde_json::from_str::<Map<Node>>(
+                "{\"address_space\":[12,49],\"regions\":[[10,1],[20,26]]}"
             )
             .unwrap_err()
             .is_data()
         );
         assert!(
-            serde_json::from_str::<Map<Range>>(
-                "{\"regions\":[[10,10],[20,45]],\"address_space\":[12,49]}"
+            serde_json::from_str::<Map<Node>>(
+                "{\"regions\":[[10,1],[20,26]],\"address_space\":[12,49]}"
             )
             .unwrap_err()
             .is_data()
