@@ -89,7 +89,7 @@ impl Parse for Headers {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let dos = DosHeader::parse(&mut buffer)?;
-        let pe_offset = dos.pe_headers_offset() as usize - DosHeader::SIZE;
+        let pe_offset = dos.pe_headers_offset() as usize - dos.size() as usize;
 
         if pe_offset > buffer.remaining() {
             return Err(Error::Parse(TryGetError {
@@ -110,14 +110,13 @@ impl Parse for Headers {
         let optional = OptionalHeader::parse(&mut buffer)?;
         let sections = (0..coff.number_of_sections())
             .map(|_| SectionHeader::parse(&mut buffer))
-            .collect::<Result<_, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
 
         let file_offset = dos.pe_headers_offset() as usize
             + 4
-            + CoffHeader::SIZE
-            + OptionalHeader::BASE_SIZE
-            + (DataDirectory::SIZE * optional.data_directories().count())
-            + (SectionHeader::SIZE * coff.number_of_sections());
+            + coff.size() as usize
+            + optional.size() as usize
+            + sections.iter().map(Region::size).sum::<u64>() as usize;
 
         let remaining = buffer
             .remaining()

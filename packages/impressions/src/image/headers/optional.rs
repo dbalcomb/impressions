@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::memory::address::Address;
+use crate::memory::region::Region;
 
 use super::Error;
 
@@ -113,11 +114,6 @@ pub struct OptionalHeader {
 }
 
 impl OptionalHeader {
-    /// The base size of the header without data directories, in bytes.
-    pub const BASE_SIZE: usize = 96;
-}
-
-impl OptionalHeader {
     /// Gets the base address of the image.
     pub fn image_address(&self) -> Address {
         self.image_base
@@ -141,6 +137,12 @@ impl OptionalHeader {
     /// Gets the data directories.
     pub fn data_directories(&self) -> &DataDirectoryTable {
         &self.data_directories
+    }
+}
+
+impl Region for OptionalHeader {
+    fn size(&self) -> u64 {
+        96 + self.data_directories.size()
     }
 }
 
@@ -286,6 +288,12 @@ impl DataDirectoryTable {
     }
 }
 
+impl Region for DataDirectoryTable {
+    fn size(&self) -> u64 {
+        self.table.iter().take(self.count()).map(Region::size).sum()
+    }
+}
+
 impl Parse for DataDirectoryTable {
     type Context<'a> = ();
     type Error = Error;
@@ -319,11 +327,6 @@ pub struct DataDirectory {
 }
 
 impl DataDirectory {
-    /// The size of the data directory entry, in bytes.
-    pub const SIZE: usize = 8;
-}
-
-impl DataDirectory {
     /// Gets the relative virtual address of the target.
     pub const fn target_address(&self) -> Address {
         self.target_address
@@ -332,6 +335,12 @@ impl DataDirectory {
     /// Gets the size of the target, in bytes.
     pub const fn target_size(&self) -> u64 {
         self.target_size as u64
+    }
+}
+
+impl Region for DataDirectory {
+    fn size(&self) -> u64 {
+        8
     }
 }
 
