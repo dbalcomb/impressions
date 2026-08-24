@@ -219,7 +219,7 @@ mod tests {
         let text = sections.next().unwrap();
 
         assert_eq!(text.name(), ".text");
-        assert_eq!(text.address(), Address::new(0x00001000));
+        assert_eq!(text.section_address(), Address::new(0x00001000));
 
         assert!(text.characteristics().read());
         assert!(!text.characteristics().write());
@@ -235,7 +235,7 @@ mod tests {
         let rdata = sections.next().unwrap();
 
         assert_eq!(rdata.name(), ".rdata");
-        assert_eq!(rdata.address(), Address::new(0x001D8000));
+        assert_eq!(rdata.section_address(), Address::new(0x001D8000));
 
         assert!(rdata.characteristics().read());
         assert!(!rdata.characteristics().write());
@@ -251,7 +251,7 @@ mod tests {
         let data = sections.next().unwrap();
 
         assert_eq!(data.name(), ".data");
-        assert_eq!(data.address(), Address::new(0x001E8000));
+        assert_eq!(data.section_address(), Address::new(0x001E8000));
 
         assert!(data.characteristics().read());
         assert!(data.characteristics().write());
@@ -267,7 +267,7 @@ mod tests {
         let rsrc = sections.next().unwrap();
 
         assert_eq!(rsrc.name(), ".rsrc");
-        assert_eq!(rsrc.address(), Address::new(0x0120E000));
+        assert_eq!(rsrc.section_address(), Address::new(0x0120E000));
 
         assert!(rsrc.characteristics().read());
         assert!(!rsrc.characteristics().write());
@@ -298,22 +298,22 @@ mod tests {
         let text = sections.next().unwrap();
 
         assert_eq!(text.name(), ".text");
-        assert_eq!(text.address(), Address::new(0x00001000));
+        assert_eq!(text.section_address(), Address::new(0x00001000));
 
         let rdata = sections.next().unwrap();
 
         assert_eq!(rdata.name(), ".rdata");
-        assert_eq!(rdata.address(), Address::new(0x001D8000));
+        assert_eq!(rdata.section_address(), Address::new(0x001D8000));
 
         let data = sections.next().unwrap();
 
         assert_eq!(data.name(), ".data");
-        assert_eq!(data.address(), Address::new(0x001E8000));
+        assert_eq!(data.section_address(), Address::new(0x001E8000));
 
         let rsrc = sections.next().unwrap();
 
         assert_eq!(rsrc.name(), ".rsrc");
-        assert_eq!(rsrc.address(), Address::new(0x0120E000));
+        assert_eq!(rsrc.section_address(), Address::new(0x0120E000));
 
         assert_eq!(sections.next(), None);
     }

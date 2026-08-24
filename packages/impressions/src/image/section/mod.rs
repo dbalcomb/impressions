@@ -59,22 +59,22 @@ impl Parse for Section {
         mut buffer: impl Buf,
         (optional, section): Self::Context<'_>,
     ) -> Result<Self, Self::Error> {
-        if section.size() == 0 {
+        if section.section_size() == 0 {
             return Err(Error::EmptySection);
         }
 
         let name = *section.name();
         let characteristics = section.characteristics();
-        let address = section.address() + optional.image_address();
+        let address = section.section_address() + optional.image_address();
         let alignment = optional.section_alignment() as u64;
         let bytes = buffer.copy_to_bytes(section.file_size());
-        let padding = (alignment - (section.size() % alignment)) % alignment;
-        let mut blocks = Map::new(address.to_space(section.size() + padding)?);
+        let padding = (alignment - (section.section_size() % alignment)) % alignment;
+        let mut blocks = Map::new(address.to_space(section.section_size() + padding)?);
 
-        blocks.insert(address, Block::unknown(section.size(), bytes))?;
+        blocks.insert(address, Block::unknown(section.section_size(), bytes))?;
 
         if padding > 0 {
-            let address = address + section.size() as u32;
+            let address = address + section.section_size() as u32;
 
             blocks.insert(address, Block::padding(padding, 0))?;
         }
