@@ -9,7 +9,7 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 pub use self::padding::Padding;
 pub use self::unknown::Unknown;
@@ -65,7 +65,7 @@ impl Block {
     }
 }
 
-impl Region for Block {
+impl Extent for Block {
     fn size(&self) -> u64 {
         match self {
             Self::Unknown(unknown) => unknown.size(),

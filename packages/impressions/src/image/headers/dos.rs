@@ -2,7 +2,7 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 use super::Error;
 
@@ -77,7 +77,7 @@ impl DosHeader {
     }
 }
 
-impl Region for DosHeader {
+impl Extent for DosHeader {
     fn size(&self) -> u64 {
         64
     }

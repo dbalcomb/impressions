@@ -2,4 +2,7 @@
 
 pub mod address;
 pub mod map;
-pub mod region;
+
+mod extent;
+
+pub use self::extent::Extent;

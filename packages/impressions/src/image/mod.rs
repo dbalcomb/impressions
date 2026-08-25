@@ -9,9 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
+use crate::memory::Extent;
 use crate::memory::address::AddressSpace;
 use crate::memory::map::{Iter, Map};
-use crate::memory::region::Region;
 
 pub use self::error::Error;
 use self::headers::Headers;
@@ -31,7 +31,7 @@ impl Image {
     }
 }
 
-impl Region for Image {
+impl Extent for Image {
     fn size(&self) -> u64 {
         self.headers.optional().image_size()
     }

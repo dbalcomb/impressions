@@ -4,7 +4,7 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 /// A block of unknown bytes.
 ///
@@ -26,7 +26,7 @@ impl Unknown {
     }
 }
 
-impl Region for Unknown {
+impl Extent for Unknown {
     fn size(&self) -> u64 {
         self.size
     }

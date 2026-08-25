@@ -2,8 +2,8 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
+use crate::memory::Extent;
 use crate::memory::address::Address;
-use crate::memory::region::Region;
 
 use super::Error;
 
@@ -140,7 +140,7 @@ impl OptionalHeader {
     }
 }
 
-impl Region for OptionalHeader {
+impl Extent for OptionalHeader {
     fn size(&self) -> u64 {
         96 + self.data_directories.size()
     }
@@ -288,9 +288,9 @@ impl DataDirectoryTable {
     }
 }
 
-impl Region for DataDirectoryTable {
+impl Extent for DataDirectoryTable {
     fn size(&self) -> u64 {
-        self.table.iter().take(self.count()).map(Region::size).sum()
+        self.table.iter().take(self.count()).map(Extent::size).sum()
     }
 }
 
@@ -338,7 +338,7 @@ impl DataDirectory {
     }
 }
 
-impl Region for DataDirectory {
+impl Extent for DataDirectory {
     fn size(&self) -> u64 {
         8
     }

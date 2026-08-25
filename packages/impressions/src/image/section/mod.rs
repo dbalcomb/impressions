@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::memory::Extent;
 use crate::memory::map::{Iter, Map};
-use crate::memory::region::Region;
 
 use self::block::Block;
 
@@ -39,7 +39,7 @@ impl Section {
     }
 }
 
-impl Region for Section {
+impl Extent for Section {
     fn size(&self) -> u64 {
         self.blocks.size()
     }

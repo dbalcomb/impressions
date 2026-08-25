@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::memory::Extent;
 use crate::memory::address::Address;
-use crate::memory::region::Region;
 
 use super::Error;
 
@@ -99,7 +99,7 @@ impl SectionHeader {
     }
 }
 
-impl Region for SectionHeader {
+impl Extent for SectionHeader {
     fn size(&self) -> u64 {
         40
     }
