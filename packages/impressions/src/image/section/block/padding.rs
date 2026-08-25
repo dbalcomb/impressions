@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 /// A block of padding.
 ///
@@ -29,7 +29,7 @@ impl Padding {
     }
 }
 
-impl Region for Padding {
+impl Extent for Padding {
     fn size(&self) -> u64 {
         self.size
     }

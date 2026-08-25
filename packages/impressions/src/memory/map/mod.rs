@@ -13,8 +13,8 @@ pub use self::error::Error;
 pub use self::iter::{IntoIter, Iter};
 pub use self::offset::Offset;
 
+use super::Extent;
 use super::address::{Address, AddressSpace};
-use super::region::Region;
 
 /// A map of address spaces to memory regions.
 ///
@@ -41,7 +41,7 @@ impl<T> Map<T> {
 
 impl<T> Map<T>
 where
-    T: Region,
+    T: Extent,
 {
     /// Gets a region for the given address.
     ///
@@ -116,9 +116,9 @@ impl<T> Map<T> {
     }
 }
 
-impl<T> Region for Map<T>
+impl<T> Extent for Map<T>
 where
-    T: Region,
+    T: Extent,
 {
     fn size(&self) -> u64 {
         self.address_space.size()
@@ -136,7 +136,7 @@ impl<T> Default for Map<T> {
 
 impl<T> Debug for Map<T>
 where
-    T: Region + Debug,
+    T: Extent + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let spacer = fmt::from_fn(|f| write!(f, "..."));
@@ -205,7 +205,7 @@ impl<'a, T> IntoIterator for &'a Map<T> {
 
 impl<T> Serialize for Map<T>
 where
-    T: Region + Serialize,
+    T: Extent + Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -243,7 +243,7 @@ where
 
 impl<'de, T> Deserialize<'de> for Map<T>
 where
-    T: Region + Deserialize<'de>,
+    T: Extent + Deserialize<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -263,7 +263,7 @@ where
 
         impl<'de, T> DeserializeSeed<'de> for RegionsSeed<T>
         where
-            T: Region + Deserialize<'de>,
+            T: Extent + Deserialize<'de>,
         {
             type Value = Map<T>;
 
@@ -279,7 +279,7 @@ where
 
         impl<'de, T> Visitor<'de> for RegionsVisitor<T>
         where
-            T: Region + Deserialize<'de>,
+            T: Extent + Deserialize<'de>,
         {
             type Value = Map<T>;
 
@@ -305,7 +305,7 @@ where
 
         impl<'de, T> Visitor<'de> for MapVisitor<T>
         where
-            T: Region + Deserialize<'de>,
+            T: Extent + Deserialize<'de>,
         {
             type Value = Map<T>;
 
@@ -403,15 +403,15 @@ where
 mod tests {
     use serde::{Deserialize, Serialize};
 
+    use crate::memory::Extent;
     use crate::memory::address::AddressSpace;
-    use crate::memory::region::Region;
 
     use super::{Error, Map};
 
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct Node(u64);
 
-    impl Region for Node {
+    impl Extent for Node {
         fn size(&self) -> u64 {
             self.0
         }

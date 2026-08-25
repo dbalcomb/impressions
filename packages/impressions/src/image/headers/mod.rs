@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
@@ -71,7 +71,7 @@ impl Headers {
     }
 }
 
-impl Region for Headers {
+impl Extent for Headers {
     fn size(&self) -> u64 {
         self.optional.headers_size()
     }
@@ -116,7 +116,7 @@ impl Parse for Headers {
             + 4
             + coff.size() as usize
             + optional.size() as usize
-            + sections.iter().map(Region::size).sum::<u64>() as usize;
+            + sections.iter().map(Extent::size).sum::<u64>() as usize;
 
         let remaining = buffer
             .remaining()
@@ -138,8 +138,8 @@ mod tests {
     use bytes::{Buf, Bytes, BytesMut};
 
     use crate::data::parse::Parse;
+    use crate::memory::Extent;
     use crate::memory::address::Address;
-    use crate::memory::region::Region;
 
     use super::Headers;
 

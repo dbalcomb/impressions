@@ -1,11 +1,11 @@
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 /// Defines the ability to calculate the completion percentage of a region.
 ///
 /// The completion percentage for a region is calculated using the number of
 /// bytes identified out of the total size. Implementors need only to provide
 /// the number of identified bytes and a correct region size.
-pub trait Completion: Region {
+pub trait Completion: Extent {
     /// Gets the number of identified bytes.
     fn identified(&self) -> u64;
 

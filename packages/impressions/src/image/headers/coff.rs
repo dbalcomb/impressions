@@ -2,7 +2,7 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
-use crate::memory::region::Region;
+use crate::memory::Extent;
 
 use super::Error;
 
@@ -48,7 +48,7 @@ impl CoffHeader {
     }
 }
 
-impl Region for CoffHeader {
+impl Extent for CoffHeader {
     fn size(&self) -> u64 {
         20
     }
