@@ -2,7 +2,7 @@
 
 pub mod block;
 
-use bytes::Buf;
+use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
@@ -63,20 +63,28 @@ impl Parse for Section {
             return Err(Error::EmptySection);
         }
 
+        if buffer.remaining() < section.file_size() {
+            return Err(Error::Parse(TryGetError {
+                requested: section.file_size(),
+                available: buffer.remaining(),
+            }));
+        }
+
         let name = *section.name();
         let characteristics = section.characteristics();
         let address = section.section_address() + optional.image_address();
-        let alignment = optional.section_alignment() as u64;
-        let bytes = buffer.copy_to_bytes(section.file_size());
-        let padding = (alignment - (section.section_size() % alignment)) % alignment;
-        let mut blocks = Map::new(address.to_space(section.section_size() + padding)?);
+        let mut blocks = Map::new(address.to_space(section.section_size())?);
 
-        blocks.insert(address, Block::unknown(section.section_size(), bytes))?;
+        if section.section_size() >= section.file_size() as u64 {
+            let bytes = buffer.copy_to_bytes(section.file_size());
 
-        if padding > 0 {
-            let address = address + section.section_size() as u32;
+            blocks.insert(address, Block::unknown(section.section_size(), bytes))?;
+        } else {
+            let bytes = buffer.copy_to_bytes(section.section_size() as usize);
+            let padding = section.file_size() as u64 - section.section_size();
 
-            blocks.insert(address, Block::padding(padding, 0))?;
+            buffer.advance(padding as usize);
+            blocks.insert(address, Block::unknown(section.section_size(), bytes))?;
         }
 
         Ok(Self {
