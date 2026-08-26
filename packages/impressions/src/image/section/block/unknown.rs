@@ -40,9 +40,34 @@ impl Completion for Unknown {
 
 impl Debug for Unknown {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let bytes = fmt::from_fn(|f| {
+            let split = self.bytes.len() > 8;
+            let prefix = self.bytes.iter().take(if split { 4 } else { 8 });
+
+            for (index, byte) in prefix.enumerate() {
+                if index > 0 {
+                    write!(f, " ")?;
+                }
+
+                write!(f, "{byte:02x}")?;
+            }
+
+            if split {
+                write!(f, " ...")?;
+
+                for byte in self.bytes.iter().rev().take(4).rev() {
+                    write!(f, " {byte:02x}")?;
+                }
+            }
+
+            write!(f, " ({})", self.bytes.len())?;
+
+            Ok(())
+        });
+
         f.debug_struct("Unknown")
             .field("size", &self.size)
-            .field("bytes", &self.bytes.len())
+            .field("bytes", &bytes)
             .finish()
     }
 }
