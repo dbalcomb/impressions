@@ -1,3 +1,5 @@
+//! A block of unknown bytes.
+
 use std::fmt::{self, Debug};
 
 use bytes::Bytes;
