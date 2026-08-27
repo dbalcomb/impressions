@@ -1,4 +1,4 @@
 //! Memory regions.
 
 pub mod map;
-pub mod unknown;
+pub mod unidentified;
