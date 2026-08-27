@@ -1,7 +1,6 @@
 //! The image file section block.
 
 mod padding;
-mod unknown;
 
 use std::fmt::{self, Debug};
 
@@ -10,9 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::Extent;
+use crate::memory::regions::unknown::Unknown;
 
 pub use self::padding::Padding;
-pub use self::unknown::Unknown;
 
 /// A block of memory within a section.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
