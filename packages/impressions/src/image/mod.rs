@@ -11,7 +11,7 @@ use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
 use crate::memory::address::AddressSpace;
-use crate::memory::map::{Iter, Map};
+use crate::memory::regions::map::{Iter, Map};
 
 pub use self::error::Error;
 use self::headers::Headers;
