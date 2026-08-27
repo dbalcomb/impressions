@@ -1,6 +1,6 @@
 use crate::data::types::array_string;
 use crate::memory::address::AddressSpaceError;
-use crate::memory::map;
+use crate::memory::regions::map;
 
 /// The image file error.
 #[derive(Debug, thiserror::Error)]

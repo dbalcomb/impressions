@@ -9,12 +9,12 @@ use std::fmt::{self, Debug};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::memory::Extent;
+use crate::memory::address::{Address, AddressSpace};
+
 pub use self::error::Error;
 pub use self::iter::{IntoIter, Iter};
 pub use self::offset::Offset;
-
-use super::Extent;
-use super::address::{Address, AddressSpace};
 
 /// A map of address spaces to memory regions.
 ///
