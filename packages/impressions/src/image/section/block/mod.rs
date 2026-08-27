@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::Extent;
-use crate::memory::regions::unknown::Unknown;
+use crate::memory::regions::unidentified::Unidentified;
 
 pub use self::padding::Padding;
 
@@ -17,17 +17,17 @@ pub use self::padding::Padding;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Block {
-    /// A block of unknown bytes.
-    Unknown(Unknown),
+    /// A block of unidentified bytes.
+    Unidentified(Unidentified),
 
     /// A block of padding.
     Padding(Padding),
 }
 
 impl Block {
-    /// Constructs a new unknown block.
-    pub fn unknown(size: u64, bytes: Bytes) -> Self {
-        Self::Unknown(Unknown::new(size, bytes))
+    /// Constructs a new unidentified block.
+    pub fn unidentified(size: u64, bytes: Bytes) -> Self {
+        Self::Unidentified(Unidentified::new(size, bytes))
     }
 
     /// Constructs a new padding block.
@@ -37,17 +37,17 @@ impl Block {
 }
 
 impl Block {
-    /// Gets the block as unknown.
-    pub fn as_unknown(&self) -> Option<&Unknown> {
+    /// Gets the block as unidentified.
+    pub fn as_unidentified(&self) -> Option<&Unidentified> {
         match self {
-            Self::Unknown(unknown) => Some(unknown),
+            Self::Unidentified(unidentified) => Some(unidentified),
             _ => None,
         }
     }
 
-    /// Checks whether the block is unknown.
-    pub fn is_unknown(&self) -> bool {
-        self.as_unknown().is_some()
+    /// Checks whether the block is unidentified.
+    pub fn is_unidentified(&self) -> bool {
+        self.as_unidentified().is_some()
     }
 
     /// Gets the block as padding.
@@ -67,7 +67,7 @@ impl Block {
 impl Extent for Block {
     fn size(&self) -> u64 {
         match self {
-            Self::Unknown(unknown) => unknown.size(),
+            Self::Unidentified(unidentified) => unidentified.size(),
             Self::Padding(padding) => padding.size(),
         }
     }
@@ -76,7 +76,7 @@ impl Extent for Block {
 impl Completion for Block {
     fn identified(&self) -> u64 {
         match self {
-            Self::Unknown(unknown) => unknown.identified(),
+            Self::Unidentified(unidentified) => unidentified.identified(),
             Self::Padding(padding) => padding.identified(),
         }
     }
@@ -85,7 +85,7 @@ impl Completion for Block {
 impl Debug for Block {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unknown(unknown) => Debug::fmt(unknown, f),
+            Self::Unidentified(unidentified) => Debug::fmt(unidentified, f),
             Self::Padding(padding) => Debug::fmt(padding, f),
         }
     }
