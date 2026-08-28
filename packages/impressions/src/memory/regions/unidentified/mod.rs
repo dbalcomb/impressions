@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::memory::Extent;
 
+use super::uninitialized::Uninitialized;
+
 /// A region of unidentified bytes.
 ///
 /// This represents a region of memory that has not yet been identified. It may
@@ -15,8 +17,8 @@ use crate::memory::Extent;
 /// size of the region and the size of the internal bytes.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Unidentified {
-    size: u64,
     bytes: Bytes,
+    uninitialized: Uninitialized,
 }
 
 impl Unidentified {
@@ -24,13 +26,16 @@ impl Unidentified {
     pub fn new(size: u64, mut bytes: Bytes) -> Self {
         bytes.truncate(size as usize);
 
-        Self { size, bytes }
+        Self {
+            uninitialized: Uninitialized::new(size - bytes.len() as u64),
+            bytes,
+        }
     }
 }
 
 impl Extent for Unidentified {
     fn size(&self) -> u64 {
-        self.size
+        self.bytes.len() as u64 + self.uninitialized.size()
     }
 }
 
@@ -68,8 +73,9 @@ impl Debug for Unidentified {
         });
 
         f.debug_struct("Unidentified")
-            .field("size", &self.size)
             .field("bytes", &bytes)
+            .field("uninitialized", &self.uninitialized.size())
+            .field("size", &self.size())
             .finish()
     }
 }
