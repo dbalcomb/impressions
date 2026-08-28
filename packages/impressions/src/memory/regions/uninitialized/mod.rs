@@ -8,6 +8,7 @@ use crate::memory::Extent;
 /// A region of uninitialized memory.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
+#[repr(transparent)]
 pub struct Uninitialized(u64);
 
 impl Uninitialized {
