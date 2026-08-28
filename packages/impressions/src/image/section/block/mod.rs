@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::Extent;
-use crate::memory::regions::unidentified::Unidentified;
+use crate::memory::regions::unidentified::{Error as UnidentifiedError, Unidentified};
 
 pub use self::padding::Padding;
 
@@ -26,8 +26,8 @@ pub enum Block {
 
 impl Block {
     /// Constructs a new unidentified block.
-    pub fn unidentified(size: u64, bytes: Bytes) -> Self {
-        Self::Unidentified(Unidentified::new(size, bytes))
+    pub fn unidentified(bytes: Bytes, uninitialized: u64) -> Result<Self, UnidentifiedError> {
+        Ok(Self::Unidentified(Unidentified::new(bytes, uninitialized)?))
     }
 
     /// Constructs a new padding block.

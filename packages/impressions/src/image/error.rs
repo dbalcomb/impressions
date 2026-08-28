@@ -32,6 +32,10 @@ pub enum Error {
     /// A problem was encountered with a memory map.
     #[error("Memory map error")]
     Map(#[from] map::Error),
+
+    /// A problem was encountered with an unidentified region.
+    #[error("unidentified region error")]
+    Unidentified(#[from] crate::memory::regions::unidentified::Error),
 }
 
 impl From<array_string::Error> for Error {
