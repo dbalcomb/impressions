@@ -78,13 +78,16 @@ impl Parse for Section {
         if section.section_size() >= section.file_size() as u64 {
             let bytes = buffer.copy_to_bytes(section.file_size());
 
-            blocks.insert(address, Block::unidentified(section.section_size(), bytes))?;
+            blocks.insert(
+                address,
+                Block::unidentified(bytes, section.section_size() - section.file_size() as u64)?,
+            )?;
         } else {
             let bytes = buffer.copy_to_bytes(section.section_size() as usize);
             let padding = section.file_size() as u64 - section.section_size();
 
             buffer.advance(padding as usize);
-            blocks.insert(address, Block::unidentified(section.section_size(), bytes))?;
+            blocks.insert(address, Block::unidentified(bytes, 0)?)?;
         }
 
         Ok(Self {
