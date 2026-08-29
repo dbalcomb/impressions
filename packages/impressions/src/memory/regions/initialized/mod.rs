@@ -9,7 +9,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Extent;
+use crate::memory::{Extent, Slice, SliceBoundsError};
 
 pub use self::error::Error;
 
@@ -41,6 +41,27 @@ impl Initialized {
     /// Gets the bytes of the initialized memory region.
     pub const fn bytes(&self) -> &Bytes {
         &self.0
+    }
+}
+
+impl Slice for Initialized {
+    type Error = Error;
+
+    fn slice(&self, offset: u32, size: u64) -> Result<Self, Self::Error> {
+        let offset = offset as u64;
+        let region_size = self.size();
+
+        if offset >= region_size || size > region_size - offset {
+            return Err(Error::SliceBounds(SliceBoundsError {
+                offset: offset as u32,
+                size,
+                region_size,
+            }));
+        }
+
+        let end = offset + size;
+
+        Ok(Self(self.0.slice(offset as usize..end as usize)))
     }
 }
 
@@ -110,9 +131,9 @@ impl From<Initialized> for Bytes {
 mod tests {
     use bytes::Bytes;
 
-    use crate::memory::Extent;
+    use crate::memory::{Extent, Slice, SliceBoundsError};
 
-    use super::Initialized;
+    use super::{Error, Initialized};
 
     #[test]
     fn new_preserves_input_bytes() {
@@ -137,5 +158,49 @@ mod tests {
 
         assert_eq!(region.bytes(), "");
         assert_eq!(region.size(), 0);
+    }
+
+    #[test]
+    fn slice_returns_requested_bytes() {
+        let region = Initialized::new(Bytes::from_static(b"abcdefghij")).unwrap();
+        let slice = region.slice(3, 4).unwrap();
+
+        assert_eq!(slice.bytes(), "defg");
+        assert_eq!(slice.size(), 4);
+    }
+
+    #[test]
+    fn slice_allows_empty_slice_at_addressable_offset() {
+        let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
+
+        assert_eq!(region.slice(2, 0), Ok(Initialized::empty()));
+    }
+
+    #[test]
+    fn slice_rejects_offset_at_exclusive_end() {
+        let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
+
+        assert_eq!(
+            region.slice(4, 0),
+            Err(Error::SliceBounds(SliceBoundsError {
+                offset: 4,
+                size: 0,
+                region_size: 4,
+            })),
+        );
+    }
+
+    #[test]
+    fn slice_rejects_slice_past_end() {
+        let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
+
+        assert_eq!(
+            region.slice(3, 2),
+            Err(Error::SliceBounds(SliceBoundsError {
+                offset: 3,
+                size: 2,
+                region_size: 4,
+            })),
+        );
     }
 }
