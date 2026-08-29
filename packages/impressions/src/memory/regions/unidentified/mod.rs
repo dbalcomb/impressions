@@ -32,6 +32,10 @@ impl Unidentified {
         let uninitialized = Uninitialized::new(uninitialized)?;
         let size = uninitialized.size().saturating_add(bytes.len() as u64);
 
+        if size == 0 {
+            return Err(Error::Empty);
+        }
+
         if size > u32::MAX as u64 + 1 {
             return Err(Error::SizeTooLarge(size));
         }
