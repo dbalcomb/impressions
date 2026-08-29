@@ -61,7 +61,7 @@ impl Parse for Image {
             buffer.advance(section_header.file_offset() - position);
             sections.insert(
                 headers.optional().image_address() + section_header.section_address(),
-                Section::parse_with(&mut buffer, section_header)?,
+                Section::parse_with(&mut buffer, (headers.optional(), section_header))?,
             )?;
 
             position = section_header.file_offset() + section_header.file_size();
