@@ -9,6 +9,10 @@ pub enum Error {
     #[error("the region size {0} exceeds maximum {max}", max = u32::MAX as u64 + 1)]
     SizeTooLarge(u64),
 
+    /// The initialized region is invalid.
+    #[error("the initialized region is invalid")]
+    Initialized(#[from] crate::memory::regions::initialized::Error),
+
     /// The uninitialized region is invalid.
     #[error("the uninitialized region is invalid")]
     Uninitialized(#[from] crate::memory::regions::uninitialized::Error),
