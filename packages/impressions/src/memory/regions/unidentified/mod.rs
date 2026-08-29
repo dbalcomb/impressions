@@ -9,7 +9,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Extent;
+use crate::memory::{Extent, Slice, SliceBoundsError};
 
 use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
@@ -61,6 +61,32 @@ impl Unidentified {
     }
 }
 
+impl Slice for Unidentified {
+    type Error = Error;
+
+    fn slice(&self, offset: u32, size: u64) -> Result<Self, Self::Error> {
+        let offset = offset as u64;
+        let region_size = self.size();
+
+        if offset >= region_size || size > region_size - offset {
+            return Err(Error::SliceBounds(SliceBoundsError {
+                offset: offset as u32,
+                size,
+                region_size,
+            }));
+        }
+
+        let end = offset + size;
+        let initialized_size = self.initialized.size();
+        let bytes_start = offset.min(initialized_size) as usize;
+        let bytes_end = end.min(initialized_size) as usize;
+        let bytes = self.initialized.bytes().slice(bytes_start..bytes_end);
+        let uninitialized_size = size - bytes.len() as u64;
+
+        Self::new(bytes, uninitialized_size)
+    }
+}
+
 impl Extent for Unidentified {
     fn size(&self) -> u64 {
         self.initialized.size() + self.uninitialized.size()
@@ -104,7 +130,7 @@ impl<'de> Deserialize<'de> for Unidentified {
 mod tests {
     use bytes::Bytes;
 
-    use crate::memory::Extent;
+    use crate::memory::{Extent, Slice};
 
     use super::{Error, Unidentified};
 
@@ -134,5 +160,56 @@ mod tests {
             Unidentified::new(bytes.clone(), u32::MAX as u64 + 1),
             Err(Error::SizeTooLarge(u32::MAX as u64 + 3))
         );
+    }
+
+    #[test]
+    fn slice_within_initialized_memory() {
+        let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
+
+        let slice = region.slice(1, 2).unwrap();
+
+        assert_eq!(slice.initialized().bytes(), "bc");
+        assert_eq!(slice.uninitialized().size(), 0);
+        assert_eq!(slice.size(), 2);
+    }
+
+    #[test]
+    fn slice_within_uninitialized_memory() {
+        let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
+
+        let slice = region.slice(5, 3).unwrap();
+
+        assert_eq!(slice.initialized().bytes(), "");
+        assert_eq!(slice.uninitialized().size(), 3);
+        assert_eq!(slice.size(), 3);
+    }
+
+    #[test]
+    fn slice_crossing_initialized_and_uninitialized_memory() {
+        let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
+
+        let slice = region.slice(2, 6).unwrap();
+
+        assert_eq!(slice.initialized().bytes(), "cd");
+        assert_eq!(slice.uninitialized().size(), 4);
+        assert_eq!(slice.size(), 6);
+    }
+
+    #[test]
+    fn slice_including_initialized_boundary() {
+        let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
+
+        let slice = region.slice(2, 4).unwrap();
+
+        assert_eq!(slice.initialized().bytes(), "cd");
+        assert_eq!(slice.uninitialized().size(), 2);
+        assert_eq!(slice.size(), 4);
+    }
+
+    #[test]
+    fn slice_rejects_empty_slice() {
+        let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
+
+        assert_eq!(region.slice(2, 0), Err(Error::Empty));
     }
 }

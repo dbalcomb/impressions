@@ -9,6 +9,10 @@ pub enum Error {
     #[error("the region size {0} exceeds maximum {max}", max = u32::MAX as u64 + 1)]
     SizeTooLarge(u64),
 
+    /// The requested slice is outside the unidentified region.
+    #[error(transparent)]
+    SliceBounds(#[from] crate::memory::SliceBoundsError),
+
     /// The initialized region is invalid.
     #[error("the initialized region is invalid")]
     Initialized(#[from] crate::memory::regions::initialized::Error),
