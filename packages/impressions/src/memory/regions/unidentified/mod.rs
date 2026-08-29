@@ -11,6 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::Extent;
 
+use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
 
 pub use self::error::Error;
@@ -22,15 +23,16 @@ pub use self::error::Error;
 /// size of the region and the size of the internal bytes.
 #[derive(Clone, PartialEq, Eq, Serialize)]
 pub struct Unidentified {
-    bytes: Bytes,
+    initialized: Initialized,
     uninitialized: Uninitialized,
 }
 
 impl Unidentified {
     /// Constructs a new unidentified region.
     pub fn new(bytes: Bytes, uninitialized: u64) -> Result<Self, Error> {
+        let initialized = Initialized::new(bytes)?;
         let uninitialized = Uninitialized::new(uninitialized)?;
-        let size = uninitialized.size().saturating_add(bytes.len() as u64);
+        let size = initialized.size() + uninitialized.size();
 
         if size == 0 {
             return Err(Error::Empty);
@@ -41,15 +43,27 @@ impl Unidentified {
         }
 
         Ok(Self {
-            bytes,
+            initialized,
             uninitialized,
         })
     }
 }
 
+impl Unidentified {
+    /// Gets the initialized region.
+    pub fn initialized(&self) -> &Initialized {
+        &self.initialized
+    }
+
+    /// Gets the uninitialized region.
+    pub fn uninitialized(&self) -> &Uninitialized {
+        &self.uninitialized
+    }
+}
+
 impl Extent for Unidentified {
     fn size(&self) -> u64 {
-        self.bytes.len() as u64 + self.uninitialized.size()
+        self.initialized.size() + self.uninitialized.size()
     }
 }
 
@@ -61,33 +75,8 @@ impl Completion for Unidentified {
 
 impl Debug for Unidentified {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let bytes = fmt::from_fn(|f| {
-            let split = self.bytes.len() > 8;
-            let prefix = self.bytes.iter().take(if split { 4 } else { 8 });
-
-            for (index, byte) in prefix.enumerate() {
-                if index > 0 {
-                    write!(f, " ")?;
-                }
-
-                write!(f, "{byte:02x}")?;
-            }
-
-            if split {
-                write!(f, " ...")?;
-
-                for byte in self.bytes.iter().rev().take(4).rev() {
-                    write!(f, " {byte:02x}")?;
-                }
-            }
-
-            write!(f, " ({})", self.bytes.len())?;
-
-            Ok(())
-        });
-
         f.debug_struct("Unidentified")
-            .field("bytes", &bytes)
+            .field("initialized", &self.initialized())
             .field("uninitialized", &self.uninitialized.size())
             .field("size", &self.size())
             .finish()
@@ -101,13 +90,13 @@ impl<'de> Deserialize<'de> for Unidentified {
     {
         #[derive(Deserialize)]
         struct Unidentified {
-            bytes: Bytes,
+            initialized: Initialized,
             uninitialized: Uninitialized,
         }
 
         let this = Unidentified::deserialize(deserializer)?;
 
-        Self::new(this.bytes, this.uninitialized.size()).map_err(D::Error::custom)
+        Self::new(this.initialized.into(), this.uninitialized.size()).map_err(D::Error::custom)
     }
 }
 
