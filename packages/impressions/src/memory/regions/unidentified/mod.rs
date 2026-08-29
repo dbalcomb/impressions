@@ -136,6 +136,7 @@ mod tests {
     fn size_invalid() {
         let bytes = Bytes::from_static(&[0, 1]);
 
+        assert_eq!(Unidentified::new(Bytes::new(), 0), Err(Error::Empty));
         assert_eq!(
             Unidentified::new(bytes.clone(), u32::MAX as u64),
             Err(Error::SizeTooLarge(u32::MAX as u64 + 2))
