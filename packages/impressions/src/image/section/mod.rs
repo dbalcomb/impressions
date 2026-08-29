@@ -9,12 +9,13 @@ use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::Extent;
-use crate::memory::regions::map::{Iter, Map};
+use crate::memory::regions::contiguous::{Contiguous, Segment};
+use crate::memory::regions::unidentified::Unidentified;
 
 use self::block::Block;
 
 use super::Error;
-use super::headers::{OptionalHeader, SectionCharacteristics, SectionHeader};
+use super::headers::{SectionCharacteristics, SectionHeader};
 
 /// A 32-bit Portable Executable (PE) image file section.
 ///
@@ -24,7 +25,7 @@ use super::headers::{OptionalHeader, SectionCharacteristics, SectionHeader};
 pub struct Section {
     name: ArrayString<8>,
     characteristics: SectionCharacteristics,
-    blocks: Map<Block>,
+    blocks: Contiguous<Block>,
 }
 
 impl Section {
@@ -34,8 +35,11 @@ impl Section {
     }
 
     /// Gets an iterator over the blocks.
-    pub fn blocks(&self) -> Iter<'_, Block> {
-        self.blocks.iter()
+    pub fn blocks(&self) -> impl Iterator<Item = &Block> {
+        self.blocks
+            .segments()
+            .map(|entry| entry.segment())
+            .flat_map(Segment::as_identified)
     }
 }
 
@@ -52,13 +56,10 @@ impl Completion for Section {
 }
 
 impl Parse for Section {
-    type Context<'a> = (&'a OptionalHeader, &'a SectionHeader);
+    type Context<'a> = &'a SectionHeader;
     type Error = Error;
 
-    fn parse_with(
-        mut buffer: impl Buf,
-        (optional, section): Self::Context<'_>,
-    ) -> Result<Self, Self::Error> {
+    fn parse_with(mut buffer: impl Buf, section: Self::Context<'_>) -> Result<Self, Self::Error> {
         if section.section_size() == 0 {
             return Err(Error::EmptySection);
         }
@@ -72,23 +73,21 @@ impl Parse for Section {
 
         let name = *section.name();
         let characteristics = section.characteristics();
-        let address = section.section_address() + optional.image_address();
-        let mut blocks = Map::new(address.to_space(section.section_size())?);
-
-        if section.section_size() >= section.file_size() as u64 {
+        let blocks = if section.section_size() >= section.file_size() as u64 {
             let bytes = buffer.copy_to_bytes(section.file_size());
 
-            blocks.insert(
-                address,
-                Block::unidentified(bytes, section.section_size() - section.file_size() as u64)?,
-            )?;
+            Contiguous::unidentified(Unidentified::new(
+                bytes,
+                section.section_size() - section.file_size() as u64,
+            )?)
         } else {
             let bytes = buffer.copy_to_bytes(section.section_size() as usize);
             let padding = section.file_size() as u64 - section.section_size();
 
             buffer.advance(padding as usize);
-            blocks.insert(address, Block::unidentified(bytes, 0)?)?;
-        }
+
+            Contiguous::unidentified(Unidentified::new(bytes, 0)?)
+        };
 
         Ok(Self {
             name,
