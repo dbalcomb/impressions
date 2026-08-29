@@ -32,6 +32,10 @@ impl Unidentified {
         let uninitialized = Uninitialized::new(uninitialized)?;
         let size = uninitialized.size().saturating_add(bytes.len() as u64);
 
+        if size == 0 {
+            return Err(Error::Empty);
+        }
+
         if size > u32::MAX as u64 + 1 {
             return Err(Error::SizeTooLarge(size));
         }
@@ -132,6 +136,7 @@ mod tests {
     fn size_invalid() {
         let bytes = Bytes::from_static(&[0, 1]);
 
+        assert_eq!(Unidentified::new(Bytes::new(), 0), Err(Error::Empty));
         assert_eq!(
             Unidentified::new(bytes.clone(), u32::MAX as u64),
             Err(Error::SizeTooLarge(u32::MAX as u64 + 2))
