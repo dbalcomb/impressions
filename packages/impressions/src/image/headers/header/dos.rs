@@ -2,9 +2,8 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
+use crate::image::Error;
 use crate::memory::Extent;
-
-use super::Error;
 
 /// The signature indicating the start of the DOS headers.
 const DOS_SIGNATURE: u16 = 0x5A4D;

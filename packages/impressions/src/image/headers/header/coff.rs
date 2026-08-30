@@ -2,9 +2,8 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
+use crate::image::Error;
 use crate::memory::Extent;
-
-use super::Error;
 
 /// The signature of an x86 CPU.
 const COFF_MACHINE_X86: u16 = 0x14c;
