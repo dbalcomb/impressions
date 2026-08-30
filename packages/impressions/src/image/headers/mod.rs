@@ -1,9 +1,9 @@
 //! The image file headers.
 
-mod coff;
-mod dos;
-mod optional;
-mod section;
+mod header;
+
+use std::fmt::{self, Debug};
+use std::iter::once;
 
 use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
@@ -11,13 +11,15 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
+use crate::memory::regions::contiguous::{Contiguous, Segment};
+use crate::memory::regions::unidentified::Unidentified;
 
-pub use self::coff::CoffHeader;
-pub use self::dos::DosHeader;
-pub use self::optional::{DataDirectory, OptionalHeader};
-pub use self::section::{SectionCharacteristics, SectionHeader};
+pub use self::header::{
+    CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, OptionalHeader,
+    SectionCharacteristics, SectionHeader,
+};
 
-use super::Error;
+use super::{Error, Padding};
 
 /// The signature indicating the start of the PE headers.
 const PE_SIGNATURE: u32 = 0x4550;
@@ -41,45 +43,58 @@ const PE_SIGNATURE: u32 = 0x4550;
 ///
 /// The Optional header is only optional in object files and is always included
 /// in image files so it is required here.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Headers {
-    dos: DosHeader,
-    coff: CoffHeader,
-    optional: OptionalHeader,
-    sections: Vec<SectionHeader>,
-}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Headers(Contiguous<Header>);
 
 impl Headers {
     /// Gets the DOS header.
     pub fn dos(&self) -> &DosHeader {
-        &self.dos
+        self.0
+            .segments()
+            .flat_map(|entry| entry.segment().as_identified())
+            .flat_map(Header::as_dos)
+            .next()
+            .expect("DOS header not found")
     }
 
     /// Gets the COFF header.
     pub fn coff(&self) -> &CoffHeader {
-        &self.coff
+        self.0
+            .segments()
+            .flat_map(|entry| entry.segment().as_identified())
+            .flat_map(Header::as_coff)
+            .next()
+            .expect("COFF header not found")
     }
 
     /// Gets the Optional header.
     pub fn optional(&self) -> &OptionalHeader {
-        &self.optional
+        self.0
+            .segments()
+            .flat_map(|entry| entry.segment().as_identified())
+            .flat_map(Header::as_optional)
+            .next()
+            .expect("Optional header not found")
     }
 
     /// Gets an iterator over the section headers.
     pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
-        self.sections.iter()
+        self.0
+            .segments()
+            .flat_map(|entry| entry.segment().as_identified())
+            .flat_map(Header::as_section)
     }
 }
 
 impl Extent for Headers {
     fn size(&self) -> u64 {
-        self.optional.headers_size()
+        self.optional().headers_size()
     }
 }
 
 impl Completion for Headers {
     fn identified(&self) -> u64 {
-        self.size()
+        self.0.identified()
     }
 }
 
@@ -89,16 +104,20 @@ impl Parse for Headers {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let dos = DosHeader::parse(&mut buffer)?;
-        let pe_offset = dos.pe_headers_offset() as usize - dos.size() as usize;
+        let offset = dos.pe_headers_offset() as usize - dos.size() as usize;
 
-        if pe_offset > buffer.remaining() {
+        if offset > buffer.remaining() {
             return Err(Error::Parse(TryGetError {
-                requested: pe_offset,
+                requested: offset,
                 available: buffer.remaining(),
             }));
         }
 
-        buffer.advance(pe_offset);
+        let stub = if offset > 0 {
+            Some(Unidentified::new(buffer.copy_to_bytes(offset), 0)?)
+        } else {
+            None
+        };
 
         let signature = buffer.try_get_u32_le()?;
 
@@ -124,12 +143,32 @@ impl Parse for Headers {
 
         buffer.advance(remaining);
 
-        Ok(Self {
-            dos,
-            coff,
-            optional,
-            sections,
-        })
+        let padding = if remaining > 0 {
+            Some(Header::Padding(Padding::new(remaining as u64, 0)))
+        } else {
+            None
+        };
+
+        let headers = once(Segment::Identified(Header::Dos(dos)))
+            .chain(stub.map(Segment::Unidentified))
+            .chain(once(Segment::Identified(Header::Signature)))
+            .chain(once(Segment::Identified(Header::Coff(coff))))
+            .chain(once(Segment::Identified(Header::Optional(optional))))
+            .chain(
+                sections
+                    .into_iter()
+                    .map(Header::Section)
+                    .map(Segment::Identified),
+            )
+            .chain(padding.map(Segment::Identified));
+
+        Ok(Self(Contiguous::try_from_iterator(headers)?))
+    }
+}
+
+impl Debug for Headers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0, f)
     }
 }
 
@@ -191,7 +230,7 @@ mod tests {
         let mut buffer = sample_headers_padded();
         let headers = Headers::parse(&mut buffer).unwrap();
 
-        assert_eq!(headers.optional.image_address(), Address::new(0x00400000));
+        assert_eq!(headers.optional().image_address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer, [1, 2, 3, 4].as_slice());
@@ -287,7 +326,7 @@ mod tests {
         let mut buffer = SAMPLE_HEADERS_DATA.as_slice();
         let headers = Headers::parse(&mut buffer).unwrap();
 
-        assert_eq!(headers.optional.image_address(), Address::new(0x00400000));
+        assert_eq!(headers.optional().image_address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer.remaining(), 0);

@@ -36,6 +36,10 @@ pub enum Error {
     /// A problem was encountered with an unidentified region.
     #[error("unidentified region error")]
     Unidentified(#[from] crate::memory::regions::unidentified::Error),
+
+    /// A problem was encountered with a contiguous region.
+    #[error("contiguous region error")]
+    Contiguous(#[from] crate::memory::regions::contiguous::Error),
 }
 
 impl From<array_string::Error> for Error {

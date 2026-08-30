@@ -5,10 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::image::Error;
 use crate::memory::Extent;
 use crate::memory::address::Address;
-
-use super::Error;
 
 /// An image file Section header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
