@@ -25,24 +25,6 @@ use super::{Error, Padding};
 const PE_SIGNATURE: u32 = 0x4550;
 
 /// The 32-bit Portable Executable (PE) image file headers.
-///
-/// # Structure
-///
-/// This region consists of the following components:
-/// * DOS Header (included)
-/// * DOS Stub (skipped)
-/// * Rich Header (skipped)
-/// * PE Signature (checked)
-/// * COFF Header (included)
-/// * Optional Header (included)
-/// * Section Headers (included)
-///
-/// The DOS Stub and Rich Header are not useful for this analysis and have been
-/// skipped. The former describes an application that runs under MS-DOS and the
-/// latter includes compiler toolchain information.
-///
-/// The Optional header is only optional in object files and is always included
-/// in image files so it is required here.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Headers(Contiguous<Header>);
 
