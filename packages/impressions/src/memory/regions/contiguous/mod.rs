@@ -54,10 +54,6 @@ where
             .filter(|&end| end <= total_size)
             .ok_or(Error::OutOfBounds(offset, total_size))?;
 
-        if end > self.size() {
-            return Err(Error::OutOfBounds(offset, self.size()));
-        }
-
         let mut selected = self.segments().select(offset, region.size());
 
         let first = if region.size() == 0 {
