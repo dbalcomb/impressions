@@ -1,6 +1,8 @@
 //! The 32-bit Portable Executable (PE) image file.
 
 mod error;
+mod padding;
+
 pub mod headers;
 pub mod section;
 
@@ -14,6 +16,8 @@ use crate::memory::address::AddressSpace;
 use crate::memory::regions::map::{Iter, Map};
 
 pub use self::error::Error;
+pub use self::padding::Padding;
+
 use self::headers::Headers;
 use self::section::Section;
 
