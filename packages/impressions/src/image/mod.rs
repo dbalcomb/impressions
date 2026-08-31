@@ -2,6 +2,7 @@
 
 mod error;
 mod padding;
+mod region;
 
 pub mod headers;
 pub mod section;
@@ -12,11 +13,11 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
-use crate::memory::address::AddressSpace;
-use crate::memory::regions::map::{Iter, Map};
+use crate::memory::regions::sparse::Sparse;
 
 pub use self::error::Error;
 pub use self::padding::Padding;
+pub use self::region::Region;
 
 use self::headers::Headers;
 use self::section::Section;
@@ -24,26 +25,37 @@ use self::section::Section;
 /// A 32-bit Portable Executable (PE) image file analysis.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Image {
-    headers: Headers,
-    sections: Map<Section>,
+    regions: Sparse<Region>,
 }
 
 impl Image {
+    /// Gets the mapped image headers.
+    pub fn headers(&self) -> &Headers {
+        self.regions
+            .get(0)
+            .and_then(|entry| entry.segment().as_occupied())
+            .and_then(Region::as_headers)
+            .expect("an image always has headers at RVA 0")
+    }
+
     /// Gets an iterator over the sections.
-    pub fn sections(&self) -> Iter<'_, Section> {
-        self.sections.iter()
+    pub fn sections(&self) -> impl Iterator<Item = &Section> {
+        self.regions
+            .segments()
+            .filter_map(|entry| entry.segment().as_occupied())
+            .filter_map(Region::as_section)
     }
 }
 
 impl Extent for Image {
     fn size(&self) -> u64 {
-        self.headers.optional().image_size()
+        self.regions.size()
     }
 }
 
 impl Completion for Image {
     fn identified(&self) -> u64 {
-        self.headers.identified() + self.sections().map(Section::identified).sum::<u64>()
+        self.regions.identified()
     }
 }
 
@@ -53,25 +65,24 @@ impl Parse for Image {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
-        let sections_address_space = AddressSpace::with_size(
-            headers.optional().image_address() + headers.optional().headers_size() as u32,
-            headers.optional().image_size() - headers.optional().headers_size(),
-        )?;
 
+        let mut regions = Sparse::new(headers.optional().image_size())?;
         let mut position = headers.size() as usize;
-        let mut sections = Map::new(sections_address_space);
 
         for section_header in headers.sections() {
             buffer.advance(section_header.file_offset() - position);
-            sections.insert(
-                headers.optional().image_address() + section_header.section_address(),
-                Section::parse_with(&mut buffer, section_header)?,
+
+            regions.insert(
+                section_header.section_address().value(),
+                Region::section(Section::parse_with(&mut buffer, section_header)?),
             )?;
 
             position = section_header.file_offset() + section_header.file_size();
         }
 
-        Ok(Self { headers, sections })
+        regions.insert(0, Region::headers(headers))?;
+
+        Ok(Self { regions })
     }
 }
 
