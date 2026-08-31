@@ -1,6 +1,4 @@
 use crate::data::types::array_string;
-use crate::memory::address::AddressSpaceError;
-use crate::memory::regions::map;
 
 /// The image file error.
 #[derive(Debug, thiserror::Error)]
@@ -25,14 +23,6 @@ pub enum Error {
     #[error("UTF-8 error")]
     Utf8(#[from] std::str::Utf8Error),
 
-    /// A problem was encountered with an address space.
-    #[error("Address space error")]
-    AddressSpace(#[from] AddressSpaceError),
-
-    /// A problem was encountered with a memory map.
-    #[error("Memory map error")]
-    Map(#[from] map::Error),
-
     /// A problem was encountered with an unidentified region.
     #[error("unidentified region error")]
     Unidentified(#[from] crate::memory::regions::unidentified::Error),
@@ -40,6 +30,10 @@ pub enum Error {
     /// A problem was encountered with a contiguous region.
     #[error("contiguous region error")]
     Contiguous(#[from] crate::memory::regions::contiguous::Error),
+
+    /// A problem was encountered with a sparse region.
+    #[error("sparse region error")]
+    Sparse(#[from] crate::memory::regions::sparse::Error),
 }
 
 impl From<array_string::Error> for Error {
