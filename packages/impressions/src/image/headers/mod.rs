@@ -26,12 +26,14 @@ const PE_SIGNATURE: u32 = 0x4550;
 
 /// The 32-bit Portable Executable (PE) image file headers.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Headers(Contiguous<Header>);
+pub struct Headers {
+    headers: Contiguous<Header>,
+}
 
 impl Headers {
     /// Gets the DOS header.
     pub fn dos(&self) -> &DosHeader {
-        self.0
+        self.headers
             .segments()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_dos)
@@ -41,7 +43,7 @@ impl Headers {
 
     /// Gets the COFF header.
     pub fn coff(&self) -> &CoffHeader {
-        self.0
+        self.headers
             .segments()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_coff)
@@ -51,7 +53,7 @@ impl Headers {
 
     /// Gets the Optional header.
     pub fn optional(&self) -> &OptionalHeader {
-        self.0
+        self.headers
             .segments()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_optional)
@@ -61,7 +63,7 @@ impl Headers {
 
     /// Gets an iterator over the section headers.
     pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
-        self.0
+        self.headers
             .segments()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_section)
@@ -76,7 +78,7 @@ impl Extent for Headers {
 
 impl Completion for Headers {
     fn identified(&self) -> u64 {
-        self.0.identified()
+        self.headers.identified()
     }
 }
 
@@ -144,13 +146,20 @@ impl Parse for Headers {
             )
             .chain(padding.map(Segment::Identified));
 
-        Ok(Self(Contiguous::try_from_iterator(headers)?))
+        Ok(Self {
+            headers: Contiguous::try_from_iterator(headers)?,
+        })
     }
 }
 
 impl Debug for Headers {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, f)
+        let completion = std::fmt::from_fn(|f| write!(f, "{:.2}%", self.completion()));
+
+        f.debug_struct("Headers")
+            .field("completion", &completion)
+            .field("headers", &self.headers)
+            .finish()
     }
 }
 
