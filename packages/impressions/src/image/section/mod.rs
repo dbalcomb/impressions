@@ -2,6 +2,8 @@
 
 pub mod block;
 
+use std::fmt::{self, Debug};
+
 use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +23,7 @@ use super::headers::{SectionCharacteristics, SectionHeader};
 ///
 /// Each section is divided up into blocks of memory with the ultimate goal of
 /// identifying each and every byte.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Section {
     name: ArrayString<8>,
     characteristics: SectionCharacteristics,
@@ -91,5 +93,18 @@ impl Parse for Section {
             characteristics,
             blocks,
         })
+    }
+}
+
+impl Debug for Section {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let completion = std::fmt::from_fn(|f| write!(f, "{:.2}%", self.completion()));
+
+        f.debug_struct("Section")
+            .field("name", &self.name)
+            .field("completion", &completion)
+            .field("characteristics", &self.characteristics)
+            .field("blocks", &self.blocks)
+            .finish()
     }
 }

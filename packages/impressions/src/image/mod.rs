@@ -7,6 +7,8 @@ mod region;
 pub mod headers;
 pub mod section;
 
+use std::fmt::{self, Debug};
+
 use bytes::{Buf, Bytes};
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +25,7 @@ use self::headers::Headers;
 use self::section::Section;
 
 /// A 32-bit Portable Executable (PE) image file analysis.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Image {
     regions: Sparse<Region>,
 }
@@ -83,6 +85,17 @@ impl Parse for Image {
         regions.insert(0, Region::headers(headers))?;
 
         Ok(Self { regions })
+    }
+}
+
+impl Debug for Image {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let completion = std::fmt::from_fn(|f| write!(f, "{:.2}%", self.completion()));
+
+        f.debug_struct("Image")
+            .field("completion", &completion)
+            .field("regions", &self.regions)
+            .finish()
     }
 }
 
