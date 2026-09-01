@@ -1,8 +1,6 @@
 //! A sparse region of memory.
 
-mod entry;
 mod error;
-mod iter;
 mod segment;
 
 use std::fmt::{self, Debug};
@@ -12,11 +10,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::regions::uninitialized::Uninitialized;
+use crate::memory::segmented::{Segmented, Segments};
 use crate::memory::{Extent, Slice};
 
-pub use self::entry::Entry;
 pub use self::error::Error;
-pub use self::iter::Segments;
 pub use self::segment::Segment;
 
 /// A sparse region of memory composed of occupied and/or vacant segments.
@@ -76,14 +73,14 @@ where
         };
 
         if first.is_occupied() {
-            return Err(Error::AlreadyOccupied(first.segment_index()));
+            return Err(Error::AlreadyOccupied(first.index()));
         }
 
         let mut last = None;
 
         for entry in selected {
             if entry.is_occupied() {
-                return Err(Error::AlreadyOccupied(entry.segment_index()));
+                return Err(Error::AlreadyOccupied(entry.index()));
             }
 
             last = Some(entry);
@@ -94,11 +91,11 @@ where
         let first_vacant = first.as_vacant().expect("occupied segments were rejected");
         let last_vacant = last.as_vacant().expect("occupied segments were rejected");
 
-        let before = (offset > first.segment_offset())
-            .then(|| first_vacant.slice(0, u64::from(offset - first.segment_offset())))
+        let before = (offset > first.start_offset())
+            .then(|| first_vacant.slice(0, u64::from(offset - first.start_offset())))
             .transpose()?;
 
-        let after_offset = end - u64::from(last.segment_offset());
+        let after_offset = end - u64::from(last.start_offset());
         let after = (after_offset < last.size())
             .then(|| last_vacant.slice(after_offset as u32, last.size() - after_offset))
             .transpose()?;
@@ -109,20 +106,9 @@ where
             .chain(std::iter::once(Segment::occupied(region)))
             .chain(after.into_iter().map(Segment::vacant));
 
-        self.0
-            .splice(first.segment_index()..=last.segment_index(), replacement);
+        self.0.splice(first.index()..=last.index(), replacement);
 
         Ok(())
-    }
-
-    /// Gets the segment at the given offset.
-    pub fn get(&self, offset: u32) -> Option<Entry<'_, T>> {
-        self.segments().get(offset)
-    }
-
-    /// Gets an iterator over the segments.
-    pub fn segments(&self) -> Segments<'_, T> {
-        Segments::new(self)
     }
 }
 
@@ -132,6 +118,17 @@ where
 {
     fn size(&self) -> u64 {
         self.0.iter().map(Extent::size).sum()
+    }
+}
+
+impl<T> Segmented for Sparse<T>
+where
+    T: Extent,
+{
+    type Segment = Segment<T>;
+
+    fn segments(&self) -> Segments<'_, Self> {
+        Segments::new(&self.0)
     }
 }
 
@@ -204,6 +201,7 @@ where
 mod tests {
     use crate::memory::Extent;
     use crate::memory::regions::uninitialized::Uninitialized;
+    use crate::memory::segmented::Segmented;
 
     use super::{Error, Segment, Sparse};
 
@@ -378,7 +376,7 @@ mod tests {
         let start_indices = region
             .segments()
             .select(5, 5)
-            .map(|entry| entry.segment_index())
+            .map(|entry| entry.index())
             .collect::<Vec<_>>();
 
         assert_eq!(start_indices, [2]);
@@ -386,7 +384,7 @@ mod tests {
         let crossing_indices = region
             .segments()
             .select(4, 2)
-            .map(|entry| entry.segment_index())
+            .map(|entry| entry.index())
             .collect::<Vec<_>>();
 
         assert_eq!(crossing_indices, [0, 1, 2]);

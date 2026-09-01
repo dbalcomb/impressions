@@ -13,6 +13,7 @@ use crate::data::parse::Parse;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
+use crate::memory::segmented::Segmented;
 
 pub use self::header::{
     CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, OptionalHeader,

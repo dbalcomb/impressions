@@ -2,6 +2,7 @@
 
 pub mod address;
 pub mod regions;
+pub mod segmented;
 
 mod extent;
 mod slice;
