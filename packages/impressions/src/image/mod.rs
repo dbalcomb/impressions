@@ -16,6 +16,7 @@ use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
 use crate::memory::regions::sparse::Sparse;
+use crate::memory::segmented::Segmented;
 
 pub use self::error::Error;
 pub use self::padding::Padding;
