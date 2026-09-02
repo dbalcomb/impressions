@@ -1,5 +1,6 @@
 //! The image file headers.
 
+mod error;
 mod header;
 
 use std::fmt::{self, Debug};
@@ -10,12 +11,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
-use crate::image::{Error, Padding};
+use crate::image::Padding;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
 
+pub use self::error::Error;
 pub use self::header::{
     CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, OptionalHeader,
     SectionCharacteristics, SectionHeader,

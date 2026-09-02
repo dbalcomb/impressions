@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
-use crate::image::Error;
+use crate::image::region::headers::Error;
 use crate::memory::Extent;
 use crate::memory::address::Address;
 
@@ -110,7 +110,7 @@ impl Parse for SectionHeader {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: ArrayString::parse(&mut buffer)?,
+            name: ArrayString::parse(&mut buffer).map_err(Error::InvalidSectionName)?,
             virtual_size: buffer.try_get_u32_le()?,
             virtual_address: Address::parse(&mut buffer)?,
             size_of_raw_data: buffer.try_get_u32_le()?,

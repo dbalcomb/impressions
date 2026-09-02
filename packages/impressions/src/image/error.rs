@@ -1,46 +1,15 @@
-use crate::data::types::array_string;
-
 /// The image file error.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    /// An invalid signature was detected.
-    #[error("Invalid signature")]
-    InvalidSignature,
+    /// A problem was encountered with the image headers.
+    #[error("headers region error")]
+    Headers(#[from] crate::image::region::headers::Error),
 
-    /// An unsupported architecture was detected.
-    #[error("Unsupported architecture")]
-    UnsupportedArchitecture,
-
-    /// An empty section was detected.
-    #[error("Empty section")]
-    EmptySection,
-
-    /// A problem was encountered parsing the image.
-    #[error("Parse error")]
-    Parse(#[from] bytes::TryGetError),
-
-    /// A problem was encountered reading a UTF-8 string.
-    #[error("UTF-8 error")]
-    Utf8(#[from] std::str::Utf8Error),
-
-    /// A problem was encountered with an unidentified region.
-    #[error("unidentified region error")]
-    Unidentified(#[from] crate::memory::regions::unidentified::Error),
-
-    /// A problem was encountered with a contiguous region.
-    #[error("contiguous region error")]
-    Contiguous(#[from] crate::memory::regions::contiguous::Error),
+    /// A problem was encountered with an image section.
+    #[error("section region error")]
+    Section(#[from] crate::image::region::section::Error),
 
     /// A problem was encountered with a sparse region.
     #[error("sparse region error")]
     Sparse(#[from] crate::memory::regions::sparse::Error),
-}
-
-impl From<array_string::Error> for Error {
-    fn from(err: array_string::Error) -> Self {
-        match err {
-            array_string::Error::Read(err) => Self::Parse(err),
-            array_string::Error::Utf8(err) => Self::Utf8(err),
-        }
-    }
 }
