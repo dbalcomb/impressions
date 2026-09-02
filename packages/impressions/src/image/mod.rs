@@ -2,10 +2,8 @@
 
 mod error;
 mod padding;
-mod region;
 
-pub mod headers;
-pub mod section;
+pub mod region;
 
 use std::fmt::{self, Debug};
 
@@ -20,10 +18,10 @@ use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::error::Error;
 pub use self::padding::Padding;
-pub use self::region::Region;
 
-use self::headers::Headers;
-use self::section::Section;
+use self::region::Region;
+use self::region::headers::Headers;
+use self::region::section::Section;
 
 /// A 32-bit Portable Executable (PE) image file analysis.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

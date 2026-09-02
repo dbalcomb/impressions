@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
+use crate::image::{Error, Padding};
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
@@ -19,8 +20,6 @@ pub use self::header::{
     CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, OptionalHeader,
     SectionCharacteristics, SectionHeader,
 };
-
-use super::{Error, Padding};
 
 /// The signature indicating the start of the PE headers.
 const PE_SIGNATURE: u32 = 0x4550;

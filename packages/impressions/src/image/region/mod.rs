@@ -1,3 +1,8 @@
+//! A region in a PE image.
+
+pub mod headers;
+pub mod section;
+
 use std::fmt::{self, Debug};
 
 use serde::{Deserialize, Serialize};
@@ -5,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::memory::Extent;
 
-use super::headers::Headers;
-use super::section::Section;
+use self::headers::Headers;
+use self::section::Section;
 
 /// A mapped region in a PE image.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
