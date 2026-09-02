@@ -11,7 +11,7 @@ use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::Extent;
-use crate::memory::regions::contiguous::Contiguous;
+use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
 
@@ -38,7 +38,7 @@ impl Section {
     }
 
     /// Gets an iterator over the block segments.
-    pub fn blocks(&self) -> Segments<'_, Contiguous<Block>> {
+    pub fn blocks(&self) -> Segments<'_, Segment<Block>> {
         self.blocks.segments()
     }
 }

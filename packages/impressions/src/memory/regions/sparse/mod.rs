@@ -127,7 +127,7 @@ where
 {
     type Segment = Segment<T>;
 
-    fn segments(&self) -> Segments<'_, Self> {
+    fn segments(&self) -> Segments<'_, Segment<T>> {
         Segments::new(&self.0)
     }
 }

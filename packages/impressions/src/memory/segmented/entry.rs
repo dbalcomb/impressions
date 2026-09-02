@@ -2,26 +2,18 @@ use std::ops::Deref;
 
 use crate::memory::Extent;
 
-use super::Segmented;
-
 /// A reference to a segment in a segmented region of memory.
 #[derive(Clone, Debug)]
-pub struct SegmentRef<'a, T>
-where
-    T: Segmented,
-{
-    segment: &'a T::Segment,
+pub struct SegmentRef<'a, T> {
+    segment: &'a T,
     index: usize,
     start_offset: u32,
     offset: u32,
 }
 
-impl<'a, T> SegmentRef<'a, T>
-where
-    T: Segmented,
-{
+impl<'a, T> SegmentRef<'a, T> {
     /// Constructs a new segment reference.
-    pub(super) const fn new(segment: &'a T::Segment, index: usize, start_offset: u32) -> Self {
+    pub(super) const fn new(segment: &'a T, index: usize, start_offset: u32) -> Self {
         Self {
             segment,
             index,
@@ -42,12 +34,9 @@ where
     }
 }
 
-impl<'a, T> SegmentRef<'a, T>
-where
-    T: Segmented,
-{
+impl<'a, T> SegmentRef<'a, T> {
     /// Gets the referenced segment.
-    pub const fn segment(&self) -> &'a T::Segment {
+    pub const fn segment(&self) -> &'a T {
         self.segment
     }
 
@@ -74,7 +63,7 @@ where
 
 impl<T> SegmentRef<'_, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     /// Checks whether the given offset is contained within the segment.
     pub fn contains_offset(&self, offset: u32) -> bool {
@@ -85,11 +74,8 @@ where
     }
 }
 
-impl<T> Deref for SegmentRef<'_, T>
-where
-    T: Segmented,
-{
-    type Target = T::Segment;
+impl<T> Deref for SegmentRef<'_, T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
         self.segment()

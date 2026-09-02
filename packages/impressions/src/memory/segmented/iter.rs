@@ -3,25 +3,22 @@ use std::slice::Iter as SliceIter;
 
 use crate::memory::Extent;
 
-use super::{SegmentRef, Segmented};
+use super::SegmentRef;
 
 /// An iterator over the segments of a segmented region of memory.
 #[derive(Clone, Debug)]
-pub struct Segments<'a, T>
-where
-    T: Segmented,
-{
-    segments: Enumerate<SliceIter<'a, T::Segment>>,
+pub struct Segments<'a, T> {
+    segments: Enumerate<SliceIter<'a, T>>,
     next_offset: u64,
     next_back_offset: u64,
 }
 
 impl<'a, T> Segments<'a, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     /// Creates an iterator over the segments of a segmented region of memory.
-    pub(in crate::memory) fn new(segments: &'a [T::Segment]) -> Self {
+    pub(in crate::memory) fn new(segments: &'a [T]) -> Self {
         Self {
             segments: segments.iter().enumerate(),
             next_offset: 0,
@@ -32,7 +29,7 @@ where
 
 impl<'a, T> Segments<'a, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     /// Gets the segment at the given offset.
     ///
@@ -55,7 +52,7 @@ where
 
 impl<'a, T> Segments<'a, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     /// Selects the segments that overlap with the given offset and size.
     pub fn select(self, offset: u32, size: u64) -> impl Iterator<Item = SegmentRef<'a, T>> {
@@ -68,7 +65,7 @@ where
 
 impl<'a, T> Iterator for Segments<'a, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     type Item = SegmentRef<'a, T>;
 
@@ -88,7 +85,7 @@ where
 
 impl<'a, T> DoubleEndedIterator for Segments<'a, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let (index, segment) = self.segments.next_back()?;
@@ -105,11 +102,11 @@ where
 
 impl<'a, T> ExactSizeIterator for Segments<'a, T>
 where
-    T: Segmented,
+    T: Extent,
 {
     fn len(&self) -> usize {
         self.segments.len()
     }
 }
 
-impl<'a, T> FusedIterator for Segments<'a, T> where T: Segmented {}
+impl<'a, T> FusedIterator for Segments<'a, T> where T: Extent {}
