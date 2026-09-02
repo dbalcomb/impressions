@@ -9,15 +9,15 @@ pub use self::entry::SegmentRef;
 pub use self::iter::Segments;
 
 /// Defines a memory region that is segmented into multiple sub-regions.
-pub trait Segmented: Extent + Sized {
+pub trait Segmented: Extent {
     /// The associated segment type for this region.
     type Segment: Extent;
 
     /// Gets an iterator over the segments.
-    fn segments(&self) -> Segments<'_, Self>;
+    fn segments(&self) -> Segments<'_, Self::Segment>;
 
     /// Gets the segment at the given offset.
-    fn get(&self, offset: u32) -> Option<SegmentRef<'_, Self>> {
+    fn get(&self, offset: u32) -> Option<SegmentRef<'_, Self::Segment>> {
         self.segments().get(offset)
     }
 }
