@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
-use crate::memory::regions::sparse::Sparse;
-use crate::memory::segmented::Segmented;
+use crate::memory::regions::sparse::{Segment, Sparse};
+use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::error::Error;
 pub use self::padding::Padding;
@@ -59,6 +59,14 @@ impl Extent for Image {
 impl Completion for Image {
     fn identified(&self) -> u64 {
         self.regions.identified()
+    }
+}
+
+impl Segmented for Image {
+    type Segment = Segment<Region>;
+
+    fn segments(&self) -> Segments<'_, Self::Segment> {
+        self.regions.segments()
     }
 }
 

@@ -13,7 +13,7 @@ use crate::data::parse::Parse;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::Segmented;
+use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::header::{
     CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, OptionalHeader,
@@ -80,6 +80,14 @@ impl Extent for Headers {
 impl Completion for Headers {
     fn identified(&self) -> u64 {
         self.headers.identified()
+    }
+}
+
+impl Segmented for Headers {
+    type Segment = Segment<Header>;
+
+    fn segments(&self) -> Segments<'_, Self::Segment> {
+        self.headers.segments()
     }
 }
 
