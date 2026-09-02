@@ -38,8 +38,10 @@ impl Section {
     }
 
     /// Gets an iterator over the block segments.
-    pub fn blocks(&self) -> Segments<'_, Segment<Block>> {
-        self.blocks.segments()
+    pub fn blocks(&self) -> impl Iterator<Item = &Block> {
+        self.blocks
+            .segments()
+            .flat_map(|segment| segment.segment().as_identified())
     }
 }
 
@@ -52,6 +54,14 @@ impl Extent for Section {
 impl Completion for Section {
     fn identified(&self) -> u64 {
         self.blocks.identified()
+    }
+}
+
+impl Segmented for Section {
+    type Segment = Segment<Block>;
+
+    fn segments(&self) -> Segments<'_, Self::Segment> {
+        self.blocks.segments()
     }
 }
 
