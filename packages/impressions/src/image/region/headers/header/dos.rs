@@ -2,7 +2,7 @@ use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
-use crate::image::Error;
+use crate::image::region::headers::Error;
 use crate::memory::Extent;
 
 /// The signature indicating the start of the DOS headers.

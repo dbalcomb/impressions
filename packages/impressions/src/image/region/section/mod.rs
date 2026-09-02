@@ -2,6 +2,8 @@
 
 pub mod block;
 
+mod error;
+
 use std::fmt::{self, Debug};
 
 use bytes::{Buf, TryGetError};
@@ -10,13 +12,14 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
-use crate::image::Error;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
 
 use self::block::Block;
+
+pub use self::error::Error;
 
 use super::headers::{SectionCharacteristics, SectionHeader};
 
