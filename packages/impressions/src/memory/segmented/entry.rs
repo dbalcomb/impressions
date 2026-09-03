@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::memory::Extent;
 
 /// A reference to a segment in a segmented region of memory.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SegmentRef<'a, T> {
     segment: &'a T,
     index: usize,
@@ -71,6 +71,17 @@ where
         let end = start + self.segment().size();
 
         (offset as u64) >= start && (offset as u64) < end
+    }
+}
+
+impl<T> Clone for SegmentRef<'_, T> {
+    fn clone(&self) -> Self {
+        Self {
+            segment: self.segment,
+            index: self.index,
+            start_offset: self.start_offset,
+            offset: self.offset,
+        }
     }
 }
 

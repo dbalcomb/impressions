@@ -6,7 +6,7 @@ use crate::memory::Extent;
 use super::SegmentRef;
 
 /// An iterator over the segments of a segmented region of memory.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Segments<'a, T> {
     segments: Enumerate<SliceIter<'a, T>>,
     next_offset: u64,
@@ -60,6 +60,16 @@ where
 
         self.skip_while(move |segment| !segment.contains_offset(offset))
             .take_while(move |segment| u64::from(segment.start_offset()) < end)
+    }
+}
+
+impl<T> Clone for Segments<'_, T> {
+    fn clone(&self) -> Self {
+        Self {
+            segments: self.segments.clone(),
+            next_offset: self.next_offset,
+            next_back_offset: self.next_back_offset,
+        }
     }
 }
 
