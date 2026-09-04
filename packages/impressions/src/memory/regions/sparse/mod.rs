@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::regions::uninitialized::Uninitialized;
-use crate::memory::segmented::{Segmented, SegmentsIter};
+use crate::memory::segmented::{Segmented, Segments};
 use crate::memory::{Extent, Slice};
 
 pub use self::error::Error;
@@ -61,7 +61,7 @@ where
             .filter(|&end| end <= total_size)
             .ok_or(Error::OutOfBounds(offset, total_size))?;
 
-        let mut selected = self.segments().select(offset, region.size());
+        let mut selected = self.segments().into_iter().select(offset, region.size());
 
         let first = if region.size() == 0 {
             self.get(offset)
@@ -127,8 +127,8 @@ where
 {
     type Segment = Segment<T>;
 
-    fn segments(&self) -> SegmentsIter<'_, Segment<T>> {
-        SegmentsIter::new(&self.0)
+    fn segments(&self) -> Segments<'_, Segment<T>> {
+        Segments::new(&self.0)
     }
 }
 
@@ -375,6 +375,7 @@ mod tests {
 
         let start_indices = region
             .segments()
+            .into_iter()
             .select(5, 5)
             .map(|entry| entry.index())
             .collect::<Vec<_>>();
@@ -383,6 +384,7 @@ mod tests {
 
         let crossing_indices = region
             .segments()
+            .into_iter()
             .select(4, 2)
             .map(|entry| entry.index())
             .collect::<Vec<_>>();

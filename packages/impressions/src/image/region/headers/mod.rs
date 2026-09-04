@@ -15,7 +15,7 @@ use crate::image::Padding;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, SegmentsIter};
+use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::error::Error;
 pub use self::header::{
@@ -37,6 +37,7 @@ impl Headers {
     pub fn dos(&self) -> &DosHeader {
         self.headers
             .segments()
+            .into_iter()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_dos)
             .next()
@@ -47,6 +48,7 @@ impl Headers {
     pub fn coff(&self) -> &CoffHeader {
         self.headers
             .segments()
+            .into_iter()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_coff)
             .next()
@@ -57,6 +59,7 @@ impl Headers {
     pub fn optional(&self) -> &OptionalHeader {
         self.headers
             .segments()
+            .into_iter()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_optional)
             .next()
@@ -67,6 +70,7 @@ impl Headers {
     pub fn sections(&self) -> impl Iterator<Item = &SectionHeader> {
         self.headers
             .segments()
+            .into_iter()
             .flat_map(|entry| entry.segment().as_identified())
             .flat_map(Header::as_section)
     }
@@ -87,7 +91,7 @@ impl Completion for Headers {
 impl Segmented for Headers {
     type Segment = Segment<Header>;
 
-    fn segments(&self) -> SegmentsIter<'_, Self::Segment> {
+    fn segments(&self) -> Segments<'_, Self::Segment> {
         self.headers.segments()
     }
 }
