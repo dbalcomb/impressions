@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::segmented::{Segmented, SegmentsIter};
 use crate::memory::{Extent, Slice};
 
 pub use self::error::Error;
@@ -122,8 +122,8 @@ where
 {
     type Segment = Segment<T>;
 
-    fn segments(&self) -> Segments<'_, Segment<T>> {
-        Segments::new(&self.0)
+    fn segments(&self) -> SegmentsIter<'_, Segment<T>> {
+        SegmentsIter::new(&self.0)
     }
 }
 

@@ -15,7 +15,7 @@ use crate::data::types::array_string::ArrayString;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::segmented::{Segmented, SegmentsIter};
 
 use self::block::Block;
 
@@ -63,7 +63,7 @@ impl Completion for Section {
 impl Segmented for Section {
     type Segment = Segment<Block>;
 
-    fn segments(&self) -> Segments<'_, Self::Segment> {
+    fn segments(&self) -> SegmentsIter<'_, Self::Segment> {
         self.blocks.segments()
     }
 }

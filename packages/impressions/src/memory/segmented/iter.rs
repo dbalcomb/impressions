@@ -7,13 +7,13 @@ use super::SegmentRef;
 
 /// An iterator over the segments of a segmented region of memory.
 #[derive(Debug)]
-pub struct Segments<'a, T> {
+pub struct SegmentsIter<'a, T> {
     segments: Enumerate<SliceIter<'a, T>>,
     next_offset: u64,
     next_back_offset: u64,
 }
 
-impl<'a, T> Segments<'a, T>
+impl<'a, T> SegmentsIter<'a, T>
 where
     T: Extent,
 {
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<'a, T> Segments<'a, T>
+impl<'a, T> SegmentsIter<'a, T>
 where
     T: Extent,
 {
@@ -50,7 +50,7 @@ where
     }
 }
 
-impl<'a, T> Segments<'a, T>
+impl<'a, T> SegmentsIter<'a, T>
 where
     T: Extent,
 {
@@ -63,7 +63,7 @@ where
     }
 }
 
-impl<T> Clone for Segments<'_, T> {
+impl<T> Clone for SegmentsIter<'_, T> {
     fn clone(&self) -> Self {
         Self {
             segments: self.segments.clone(),
@@ -73,7 +73,7 @@ impl<T> Clone for Segments<'_, T> {
     }
 }
 
-impl<'a, T> Iterator for Segments<'a, T>
+impl<'a, T> Iterator for SegmentsIter<'a, T>
 where
     T: Extent,
 {
@@ -93,7 +93,7 @@ where
     }
 }
 
-impl<'a, T> DoubleEndedIterator for Segments<'a, T>
+impl<'a, T> DoubleEndedIterator for SegmentsIter<'a, T>
 where
     T: Extent,
 {
@@ -110,7 +110,7 @@ where
     }
 }
 
-impl<'a, T> ExactSizeIterator for Segments<'a, T>
+impl<'a, T> ExactSizeIterator for SegmentsIter<'a, T>
 where
     T: Extent,
 {
@@ -119,4 +119,4 @@ where
     }
 }
 
-impl<'a, T> FusedIterator for Segments<'a, T> where T: Extent {}
+impl<'a, T> FusedIterator for SegmentsIter<'a, T> where T: Extent {}
