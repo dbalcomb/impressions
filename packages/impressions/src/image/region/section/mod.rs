@@ -15,7 +15,7 @@ use crate::data::types::array_string::ArrayString;
 use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, SegmentsIter};
+use crate::memory::segmented::{Segmented, Segments};
 
 use self::block::Block;
 
@@ -44,6 +44,7 @@ impl Section {
     pub fn blocks(&self) -> impl Iterator<Item = &Block> {
         self.blocks
             .segments()
+            .into_iter()
             .flat_map(|segment| segment.segment().as_identified())
     }
 }
@@ -63,7 +64,7 @@ impl Completion for Section {
 impl Segmented for Section {
     type Segment = Segment<Block>;
 
-    fn segments(&self) -> SegmentsIter<'_, Self::Segment> {
+    fn segments(&self) -> Segments<'_, Self::Segment> {
         self.blocks.segments()
     }
 }

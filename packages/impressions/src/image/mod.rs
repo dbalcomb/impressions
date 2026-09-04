@@ -14,7 +14,7 @@ use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
 use crate::memory::regions::sparse::{Segment, Sparse};
-use crate::memory::segmented::{Segmented, SegmentsIter};
+use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::error::Error;
 pub use self::padding::Padding;
@@ -43,6 +43,7 @@ impl Image {
     pub fn sections(&self) -> impl Iterator<Item = &Section> {
         self.regions
             .segments()
+            .into_iter()
             .filter_map(|entry| entry.segment().as_occupied())
             .filter_map(Region::as_section)
     }
@@ -63,7 +64,7 @@ impl Completion for Image {
 impl Segmented for Image {
     type Segment = Segment<Region>;
 
-    fn segments(&self) -> SegmentsIter<'_, Self::Segment> {
+    fn segments(&self) -> Segments<'_, Self::Segment> {
         self.regions.segments()
     }
 }
