@@ -14,7 +14,7 @@ use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
 use crate::memory::regions::sparse::{Segment, Sparse};
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::segmented::{Segmented, SegmentsIter};
 
 pub use self::error::Error;
 pub use self::padding::Padding;
@@ -63,7 +63,7 @@ impl Completion for Image {
 impl Segmented for Image {
     type Segment = Segment<Region>;
 
-    fn segments(&self) -> Segments<'_, Self::Segment> {
+    fn segments(&self) -> SegmentsIter<'_, Self::Segment> {
         self.regions.segments()
     }
 }
