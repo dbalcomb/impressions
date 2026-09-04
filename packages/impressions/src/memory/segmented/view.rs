@@ -3,7 +3,7 @@ use crate::memory::Extent;
 use super::{SegmentRef, Segmented, SegmentsIter};
 
 /// A view over the segments of a segmented region of memory.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Segments<'a, T> {
     segments: &'a [T],
 }
