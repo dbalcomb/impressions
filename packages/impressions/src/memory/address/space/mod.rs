@@ -6,6 +6,8 @@ use std::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::memory::Extent;
+
 use super::Address;
 
 pub use self::error::Error;
@@ -210,6 +212,12 @@ impl AddressSpace {
     /// Checks whether the address space is adjacent to another.
     pub const fn is_adjacent_to(&self, other: Self) -> bool {
         self.is_adjacent_after(other) || self.is_adjacent_before(other)
+    }
+}
+
+impl Extent for AddressSpace {
+    fn size(&self) -> u64 {
+        self.size()
     }
 }
 
