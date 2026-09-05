@@ -8,30 +8,30 @@ use crate::memory::address::Address;
 pub struct SegmentRef<'a, T> {
     segment: &'a T,
     index: usize,
-    start_address: Address,
     address: Address,
+    offset: u32,
 }
 
 impl<'a, T> SegmentRef<'a, T> {
     /// Constructs a new segment reference.
-    pub(super) const fn new(segment: &'a T, index: usize, start_address: Address) -> Self {
+    pub(super) const fn new(segment: &'a T, index: usize, address: Address) -> Self {
         Self {
             segment,
             index,
-            start_address,
-            address: start_address,
+            address,
+            offset: 0,
         }
     }
 
-    /// Builds the segment reference with the given address.
-    pub(super) const fn with_address(mut self, address: Address) -> Self {
-        self.set_address(address);
+    /// Builds the segment reference with the given offset address.
+    pub(super) const fn with_offset_address(mut self, address: Address) -> Self {
+        self.set_offset_address(address);
         self
     }
 
-    /// Sets the address for the segment reference.
-    pub(super) const fn set_address(&mut self, address: Address) {
-        self.address = address;
+    /// Sets the offset address for the segment reference.
+    pub(super) const fn set_offset_address(&mut self, address: Address) {
+        self.offset = self.address.offset(address);
     }
 }
 
@@ -41,24 +41,27 @@ impl<'a, T> SegmentRef<'a, T> {
         self.segment
     }
 
-    /// Gets the index for the referenced segment.
+    /// Gets the index of the referenced segment.
     pub const fn index(&self) -> usize {
         self.index
     }
 
-    /// Gets the address for the referenced segment.
+    /// Gets the address of the referenced segment.
     pub const fn address(&self) -> Address {
         self.address
     }
 
-    /// Gets the start address for the referenced segment.
-    pub const fn start_address(&self) -> Address {
-        self.start_address
+    /// Gets the offset in the referenced segment.
+    pub const fn offset(&self) -> u32 {
+        self.offset
     }
 
-    /// Gets the relative address for the referenced segment.
-    pub const fn relative_address(&self) -> Address {
-        Address::new(self.address.offset(self.start_address))
+    /// Gets the offset address in the referenced segment.
+    ///
+    /// This method returns the address of the offset within the segment, which
+    /// may differ from the base address of the segment itself.
+    pub const fn offset_address(&self) -> Address {
+        Address::new(self.address.value() + self.offset)
     }
 }
 
@@ -68,7 +71,7 @@ where
 {
     /// Checks whether the given address is contained within the segment.
     pub fn contains_address(&self, address: Address) -> bool {
-        let start = self.start_address().value() as u64;
+        let start = self.address().value() as u64;
         let end = start + self.segment().size();
 
         (address.value() as u64) >= start && (address.value() as u64) < end
@@ -80,8 +83,8 @@ impl<T> Clone for SegmentRef<'_, T> {
         Self {
             segment: self.segment,
             index: self.index,
-            start_address: self.start_address,
             address: self.address,
+            offset: self.offset,
         }
     }
 }

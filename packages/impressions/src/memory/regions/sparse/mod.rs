@@ -92,16 +92,16 @@ where
         let first_vacant = first.as_vacant().expect("occupied segments were rejected");
         let last_vacant = last.as_vacant().expect("occupied segments were rejected");
 
-        let before = (address > first.start_address())
+        let before = (address > first.address())
             .then(|| {
                 first_vacant.slice(
                     Address::new(0),
-                    u64::from(address.value() - first.start_address().value()),
+                    u64::from(address.value() - first.address().value()),
                 )
             })
             .transpose()?;
 
-        let after_offset = end - u64::from(last.start_address().value());
+        let after_offset = end - u64::from(last.address().value());
         let after = (after_offset < last.size())
             .then(|| {
                 last_vacant.slice(
