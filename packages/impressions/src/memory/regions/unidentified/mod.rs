@@ -9,6 +9,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::address::Address;
 use crate::memory::{Extent, Slice, SliceBoundsError};
 
 use super::initialized::Initialized;
@@ -64,13 +65,13 @@ impl Unidentified {
 impl Slice for Unidentified {
     type Error = Error;
 
-    fn slice(&self, offset: u32, size: u64) -> Result<Self, Self::Error> {
-        let offset = offset as u64;
+    fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error> {
+        let offset = address.value() as u64;
         let region_size = self.size();
 
         if offset >= region_size || size > region_size - offset {
             return Err(Error::SliceBounds(SliceBoundsError {
-                offset: offset as u32,
+                address,
                 size,
                 region_size,
             }));
@@ -130,6 +131,7 @@ impl<'de> Deserialize<'de> for Unidentified {
 mod tests {
     use bytes::Bytes;
 
+    use crate::memory::address::Address;
     use crate::memory::{Extent, Slice};
 
     use super::{Error, Unidentified};
@@ -166,7 +168,7 @@ mod tests {
     fn slice_within_initialized_memory() {
         let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
 
-        let slice = region.slice(1, 2).unwrap();
+        let slice = region.slice(Address::new(1), 2).unwrap();
 
         assert_eq!(slice.initialized().bytes(), "bc");
         assert_eq!(slice.uninitialized().size(), 0);
@@ -177,7 +179,7 @@ mod tests {
     fn slice_within_uninitialized_memory() {
         let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
 
-        let slice = region.slice(5, 3).unwrap();
+        let slice = region.slice(Address::new(5), 3).unwrap();
 
         assert_eq!(slice.initialized().bytes(), "");
         assert_eq!(slice.uninitialized().size(), 3);
@@ -188,7 +190,7 @@ mod tests {
     fn slice_crossing_initialized_and_uninitialized_memory() {
         let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
 
-        let slice = region.slice(2, 6).unwrap();
+        let slice = region.slice(Address::new(2), 6).unwrap();
 
         assert_eq!(slice.initialized().bytes(), "cd");
         assert_eq!(slice.uninitialized().size(), 4);
@@ -199,7 +201,7 @@ mod tests {
     fn slice_including_initialized_boundary() {
         let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
 
-        let slice = region.slice(2, 4).unwrap();
+        let slice = region.slice(Address::new(2), 4).unwrap();
 
         assert_eq!(slice.initialized().bytes(), "cd");
         assert_eq!(slice.uninitialized().size(), 2);
@@ -210,6 +212,6 @@ mod tests {
     fn slice_rejects_empty_slice() {
         let region = Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap();
 
-        assert_eq!(region.slice(2, 0), Err(Error::Empty));
+        assert_eq!(region.slice(Address::new(2), 0), Err(Error::Empty));
     }
 }

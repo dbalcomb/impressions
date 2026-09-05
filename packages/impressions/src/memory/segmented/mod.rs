@@ -5,6 +5,7 @@ mod iter;
 mod view;
 
 use super::Extent;
+use super::address::Address;
 
 pub use self::entry::SegmentRef;
 pub use self::iter::SegmentsIter;
@@ -18,8 +19,8 @@ pub trait Segmented: Extent {
     /// Gets an iterator over the segments.
     fn segments(&self) -> Segments<'_, Self::Segment>;
 
-    /// Gets the segment at the given offset.
-    fn get(&self, offset: u32) -> Option<SegmentRef<'_, Self::Segment>> {
-        self.segments().get(offset)
+    /// Gets the segment at the given address.
+    fn get(&self, address: Address) -> Option<SegmentRef<'_, Self::Segment>> {
+        self.segments().get(address)
     }
 }

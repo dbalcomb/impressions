@@ -9,6 +9,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::address::Address;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
 use crate::memory::{Extent, Slice};
@@ -42,24 +43,24 @@ impl<T> Contiguous<T>
 where
     T: Extent,
 {
-    /// Identifies the segment at the given offset as the provided region.
-    pub fn identify(&mut self, offset: u32, region: T) -> Result<(), Error> {
+    /// Identifies the segment at the given address as the provided region.
+    pub fn identify(&mut self, address: Address, region: T) -> Result<(), Error> {
         let region_size = region.size();
         let total_size = self.size();
-        let end = u64::from(offset)
+        let end = u64::from(address.value())
             .checked_add(region_size)
             .filter(|&end| end <= total_size)
-            .ok_or(Error::OutOfBounds(offset, total_size))?;
+            .ok_or(Error::OutOfBounds(address, total_size))?;
 
-        let mut selected = self.segments().into_iter().select(offset, region.size());
+        let mut selected = self.segments().into_iter().select(address, region.size());
 
         let first = if region.size() == 0 {
-            self.get(offset)
-                .ok_or(Error::OutOfBounds(offset, self.size()))?
+            self.get(address)
+                .ok_or(Error::OutOfBounds(address, self.size()))?
         } else {
             selected
                 .next()
-                .ok_or(Error::OutOfBounds(offset, self.size()))?
+                .ok_or(Error::OutOfBounds(address, self.size()))?
         };
 
         if first.is_identified() {
@@ -86,13 +87,23 @@ where
             .as_unidentified()
             .expect("identified segments were rejected");
 
-        let before = (offset > first.start_offset())
-            .then(|| first_unidentified.slice(0, u64::from(offset - first.start_offset())))
+        let before = (address > first.start_address())
+            .then(|| {
+                first_unidentified.slice(
+                    Address::new(0),
+                    u64::from(address.value() - first.start_address().value()),
+                )
+            })
             .transpose()?;
 
-        let after_offset = end - u64::from(last.start_offset());
+        let after_offset = end - u64::from(last.start_address().value());
         let after = (after_offset < last.size())
-            .then(|| last_unidentified.slice(after_offset as u32, last.size() - after_offset))
+            .then(|| {
+                last_unidentified.slice(
+                    Address::new(after_offset as u32),
+                    last.size() - after_offset,
+                )
+            })
             .transpose()?;
 
         let replacement = before
@@ -195,6 +206,7 @@ mod tests {
     use bytes::Bytes;
 
     use crate::memory::Extent;
+    use crate::memory::address::Address;
     use crate::memory::regions::unidentified::Unidentified;
     use crate::memory::segmented::Segmented;
 
@@ -225,7 +237,7 @@ mod tests {
     fn identify_splits_single_unidentified_segment() {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
 
-        region.identify(3, Node(4)).unwrap();
+        region.identify(Address::new(3), Node(4)).unwrap();
 
         assert_eq!(
             region,
@@ -241,7 +253,7 @@ mod tests {
     fn identify_at_segment_start_omits_empty_prefix() {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
 
-        region.identify(0, Node(3)).unwrap();
+        region.identify(Address::new(0), Node(3)).unwrap();
 
         assert_eq!(
             region,
@@ -256,7 +268,7 @@ mod tests {
     fn identify_at_segment_end_omits_empty_suffix() {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
 
-        region.identify(7, Node(3)).unwrap();
+        region.identify(Address::new(7), Node(3)).unwrap();
 
         assert_eq!(
             region,
@@ -271,7 +283,7 @@ mod tests {
     fn identify_replaces_entire_unidentified_segment() {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
 
-        region.identify(0, Node(10)).unwrap();
+        region.identify(Address::new(0), Node(10)).unwrap();
 
         assert_eq!(region, contiguous([Segment::identified(Node(10))]));
     }
@@ -284,7 +296,7 @@ mod tests {
             Segment::unidentified(unidentified(b"cccccccccc", 0)),
         ]);
 
-        region.identify(5, Node(20)).unwrap();
+        region.identify(Address::new(5), Node(20)).unwrap();
 
         assert_eq!(
             region,
@@ -304,7 +316,7 @@ mod tests {
             Segment::unidentified(unidentified(b"cccccccccc", 0)),
         ]);
 
-        region.identify(10, Node(10)).unwrap();
+        region.identify(Address::new(10), Node(10)).unwrap();
 
         assert_eq!(
             region,
@@ -320,12 +332,12 @@ mod tests {
     fn identify_rejects_range_that_overlaps_identified_segment() {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
 
-        region.identify(3, Node(4)).unwrap();
+        region.identify(Address::new(3), Node(4)).unwrap();
 
         let original = region.clone();
 
         assert_eq!(
-            region.identify(2, Node(3)),
+            region.identify(Address::new(2), Node(3)),
             Err(Error::AlreadyIdentified(1)),
         );
         assert_eq!(region, original);
@@ -337,8 +349,8 @@ mod tests {
         let original = region.clone();
 
         assert_eq!(
-            region.identify(10, Node(1)),
-            Err(Error::OutOfBounds(10, 10)),
+            region.identify(Address::new(10), Node(1)),
+            Err(Error::OutOfBounds(Address::new(10), 10)),
         );
         assert_eq!(region, original);
     }
@@ -348,7 +360,10 @@ mod tests {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
         let original = region.clone();
 
-        assert_eq!(region.identify(8, Node(3)), Err(Error::OutOfBounds(8, 10)));
+        assert_eq!(
+            region.identify(Address::new(8), Node(3)),
+            Err(Error::OutOfBounds(Address::new(8), 10))
+        );
         assert_eq!(region, original);
     }
 
@@ -356,7 +371,7 @@ mod tests {
     fn identify_allows_empty_region_at_addressable_offset() {
         let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
 
-        region.identify(3, Node(0)).unwrap();
+        region.identify(Address::new(3), Node(0)).unwrap();
 
         assert_eq!(
             region,
@@ -373,7 +388,7 @@ mod tests {
         let mut region =
             Contiguous::unidentified(Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap());
 
-        region.identify(2, Node(5)).unwrap();
+        region.identify(Address::new(2), Node(5)).unwrap();
 
         assert_eq!(
             region,
@@ -389,7 +404,7 @@ mod tests {
     fn identify_can_start_in_uninitialized_memory() {
         let mut region = Contiguous::unidentified(unidentified(b"abcd", 6));
 
-        region.identify(6, Node(2)).unwrap();
+        region.identify(Address::new(6), Node(2)).unwrap();
 
         assert_eq!(
             region,
@@ -414,7 +429,7 @@ mod tests {
         let start_indices = region
             .segments()
             .into_iter()
-            .select(5, 5)
+            .select(Address::new(5), 5)
             .map(|entry| entry.index())
             .collect::<Vec<_>>();
 
@@ -423,7 +438,7 @@ mod tests {
         let crossing_indices = region
             .segments()
             .into_iter()
-            .select(4, 2)
+            .select(Address::new(4), 2)
             .map(|entry| entry.index())
             .collect::<Vec<_>>();
 

@@ -2,6 +2,7 @@ use std::iter::{Enumerate, FusedIterator};
 use std::slice::Iter as SliceIter;
 
 use crate::memory::Extent;
+use crate::memory::address::Address;
 
 use super::SegmentRef;
 
@@ -31,22 +32,22 @@ impl<'a, T> SegmentsIter<'a, T>
 where
     T: Extent,
 {
-    /// Gets the segment at the given offset.
+    /// Gets the segment at the given address.
     ///
-    /// This method searches for the segment that contains the given offset and
+    /// This method searches for the segment that contains the given address and
     /// stops iterating once it has been found.
-    pub fn get(&mut self, offset: u32) -> Option<SegmentRef<'a, T>> {
-        self.find(|segment| segment.contains_offset(offset))
-            .map(|segment| segment.with_offset(offset))
+    pub fn get(&mut self, address: Address) -> Option<SegmentRef<'a, T>> {
+        self.find(|segment| segment.contains_address(address))
+            .map(|segment| segment.with_address(address))
     }
 
-    /// Gets the segment at the given offset, starting from the back.
+    /// Gets the segment at the given address, starting from the back.
     ///
-    /// This method searches for the segment that contains the given offset and
+    /// This method searches for the segment that contains the given address and
     /// stops iterating once it has been found.
-    pub fn get_back(&mut self, offset: u32) -> Option<SegmentRef<'a, T>> {
-        self.rfind(|segment| segment.contains_offset(offset))
-            .map(|segment| segment.with_offset(offset))
+    pub fn get_back(&mut self, address: Address) -> Option<SegmentRef<'a, T>> {
+        self.rfind(|segment| segment.contains_address(address))
+            .map(|segment| segment.with_address(address))
     }
 }
 
@@ -54,12 +55,12 @@ impl<'a, T> SegmentsIter<'a, T>
 where
     T: Extent,
 {
-    /// Selects the segments that overlap with the given offset and size.
-    pub fn select(self, offset: u32, size: u64) -> impl Iterator<Item = SegmentRef<'a, T>> {
-        let end = u64::from(offset).saturating_add(size);
+    /// Selects the segments that overlap with the given address and size.
+    pub fn select(self, address: Address, size: u64) -> impl Iterator<Item = SegmentRef<'a, T>> {
+        let end = u64::from(address.value()).saturating_add(size);
 
-        self.skip_while(move |segment| !segment.contains_offset(offset))
-            .take_while(move |segment| u64::from(segment.start_offset()) < end)
+        self.skip_while(move |segment| !segment.contains_address(address))
+            .take_while(move |segment| u64::from(segment.start_address().value()) < end)
     }
 }
 
@@ -85,7 +86,7 @@ where
 
         self.next_offset += segment.size();
 
-        Some(SegmentRef::new(segment, index, offset as u32))
+        Some(SegmentRef::new(segment, index, Address::new(offset as u32)))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -105,7 +106,7 @@ where
         Some(SegmentRef::new(
             segment,
             index,
-            self.next_back_offset as u32,
+            Address::new(self.next_back_offset as u32),
         ))
     }
 }

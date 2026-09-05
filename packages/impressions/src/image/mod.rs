@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::Extent;
+use crate::memory::address::Address;
 use crate::memory::regions::sparse::{Segment, Sparse};
 use crate::memory::segmented::{Segmented, Segments};
 
@@ -33,7 +34,7 @@ impl Image {
     /// Gets the mapped image headers.
     pub fn headers(&self) -> &Headers {
         self.regions
-            .get(0)
+            .get(Address::MIN)
             .and_then(|entry| entry.segment().as_occupied())
             .and_then(Region::as_headers)
             .expect("an image always has headers at RVA 0")
@@ -83,14 +84,14 @@ impl Parse for Image {
             buffer.advance(section_header.file_offset() - position);
 
             regions.insert(
-                section_header.section_address().value(),
+                section_header.section_address(),
                 Region::section(Section::parse_with(&mut buffer, section_header)?),
             )?;
 
             position = section_header.file_offset() + section_header.file_size();
         }
 
-        regions.insert(0, Region::headers(headers))?;
+        regions.insert(Address::MIN, Region::headers(headers))?;
 
         Ok(Self { regions })
     }
