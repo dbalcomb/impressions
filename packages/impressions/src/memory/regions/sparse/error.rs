@@ -1,3 +1,5 @@
+use crate::memory::address::Address;
+
 /// The sparse region error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
@@ -9,9 +11,9 @@ pub enum Error {
     #[error("the segment at index {0} has no addressable offset")]
     UnaddressableSegment(usize),
 
-    /// The offset is out of bounds.
-    #[error("the offset {0} is out of bounds for size {1}")]
-    OutOfBounds(u32, u64),
+    /// The address is out of bounds.
+    #[error("the address {0} is out of bounds for size {1}")]
+    OutOfBounds(Address, u64),
 
     /// The segment at the given index is already occupied.
     #[error("the segment at index {0} is already occupied")]

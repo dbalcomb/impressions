@@ -9,6 +9,7 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::address::Address;
 use crate::memory::{Extent, Slice, SliceBoundsError};
 
 pub use self::error::Error;
@@ -47,13 +48,13 @@ impl Initialized {
 impl Slice for Initialized {
     type Error = Error;
 
-    fn slice(&self, offset: u32, size: u64) -> Result<Self, Self::Error> {
-        let offset = offset as u64;
+    fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error> {
+        let offset = address.value() as u64;
         let region_size = self.size();
 
         if offset >= region_size || size > region_size - offset {
             return Err(Error::SliceBounds(SliceBoundsError {
-                offset: offset as u32,
+                address,
                 size,
                 region_size,
             }));
@@ -131,6 +132,7 @@ impl From<Initialized> for Bytes {
 mod tests {
     use bytes::Bytes;
 
+    use crate::memory::address::Address;
     use crate::memory::{Extent, Slice, SliceBoundsError};
 
     use super::{Error, Initialized};
@@ -163,7 +165,7 @@ mod tests {
     #[test]
     fn slice_returns_requested_bytes() {
         let region = Initialized::new(Bytes::from_static(b"abcdefghij")).unwrap();
-        let slice = region.slice(3, 4).unwrap();
+        let slice = region.slice(Address::new(3), 4).unwrap();
 
         assert_eq!(slice.bytes(), "defg");
         assert_eq!(slice.size(), 4);
@@ -173,17 +175,17 @@ mod tests {
     fn slice_allows_empty_slice_at_addressable_offset() {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
-        assert_eq!(region.slice(2, 0), Ok(Initialized::empty()));
+        assert_eq!(region.slice(Address::new(2), 0), Ok(Initialized::empty()));
     }
 
     #[test]
-    fn slice_rejects_offset_at_exclusive_end() {
+    fn slice_rejects_address_at_exclusive_end() {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
         assert_eq!(
-            region.slice(4, 0),
+            region.slice(Address::new(4), 0),
             Err(Error::SliceBounds(SliceBoundsError {
-                offset: 4,
+                address: Address::new(4),
                 size: 0,
                 region_size: 4,
             })),
@@ -195,9 +197,9 @@ mod tests {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
         assert_eq!(
-            region.slice(3, 2),
+            region.slice(Address::new(3), 2),
             Err(Error::SliceBounds(SliceBoundsError {
-                offset: 3,
+                address: Address::new(3),
                 size: 2,
                 region_size: 4,
             })),
