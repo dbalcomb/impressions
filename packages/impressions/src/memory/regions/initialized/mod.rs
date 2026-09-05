@@ -80,28 +80,35 @@ impl Completion for Initialized {
 
 impl Debug for Initialized {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let split = self.0.len() > 8;
-        let prefix = self.0.iter().take(if split { 4 } else { 8 });
+        let bytes = std::fmt::from_fn(|f| {
+            let split = self.0.len() > 8;
+            let prefix = self.0.iter().take(if split { 4 } else { 8 });
 
-        write!(f, "[")?;
+            write!(f, "[")?;
 
-        for (index, byte) in prefix.enumerate() {
-            if index > 0 {
-                write!(f, " ")?;
+            for (index, byte) in prefix.enumerate() {
+                if index > 0 {
+                    write!(f, " ")?;
+                }
+
+                write!(f, "{byte:02x}")?;
             }
 
-            write!(f, "{byte:02x}")?;
-        }
+            if split {
+                write!(f, " ...")?;
 
-        if split {
-            write!(f, " ...")?;
-
-            for byte in self.0.iter().rev().take(4).rev() {
-                write!(f, " {byte:02x}")?;
+                for byte in self.0.iter().rev().take(4).rev() {
+                    write!(f, " {byte:02x}")?;
+                }
             }
-        }
 
-        write!(f, "] ({})", self.0.len())
+            write!(f, "]")
+        });
+
+        f.debug_struct("Initialized")
+            .field("size", &self.0.len())
+            .field("bytes", &bytes)
+            .finish()
     }
 }
 
