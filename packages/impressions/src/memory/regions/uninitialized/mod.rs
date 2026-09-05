@@ -2,6 +2,8 @@
 
 mod error;
 
+use std::fmt::{self, Debug};
+
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
@@ -12,7 +14,7 @@ use crate::memory::{Extent, Slice, SliceBoundsError};
 pub use self::error::Error;
 
 /// A region of uninitialized memory.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Default, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Uninitialized(u64);
@@ -61,6 +63,14 @@ impl Extent for Uninitialized {
 impl Completion for Uninitialized {
     fn identified(&self) -> u64 {
         0
+    }
+}
+
+impl Debug for Uninitialized {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Uninitialized")
+            .field("size", &self.0)
+            .finish()
     }
 }
 
