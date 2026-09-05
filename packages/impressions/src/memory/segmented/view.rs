@@ -49,7 +49,7 @@ where
             && let Some(end_address) = address.checked_add(size as u32)
             && let Some(end) = iter.get(end_address)
         {
-            if end_address == end.start_address() {
+            if end_address == end.address() {
                 return Self {
                     segments: &self.segments[start.index()..end.index()],
                 };
@@ -177,8 +177,8 @@ mod tests {
         let segment = subview.get(Address::new(0)).unwrap();
 
         assert_eq!(segment.index(), 0);
-        assert_eq!(segment.start_address(), Address::new(0));
         assert_eq!(segment.address(), Address::new(0));
+        assert_eq!(segment.offset_address(), Address::new(0));
         assert_eq!(subview.size(), 5);
     }
 
@@ -190,7 +190,7 @@ mod tests {
             .range(Address::new(1), 5);
         let entries = subview
             .into_iter()
-            .map(|segment| (segment.index(), segment.start_address()))
+            .map(|segment| (segment.index(), segment.address()))
             .collect::<Vec<_>>();
 
         assert_eq!(entries, [(0, Address::new(0)), (1, Address::new(5))]);
