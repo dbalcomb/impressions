@@ -14,7 +14,7 @@ use crate::memory::{Extent, Slice, SliceBoundsError};
 pub use self::error::Error;
 
 /// A region of uninitialized memory.
-#[derive(Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Uninitialized(u64);
@@ -22,16 +22,15 @@ pub struct Uninitialized(u64);
 impl Uninitialized {
     /// Constructs a new uninitialized region.
     pub const fn new(size: u64) -> Result<Self, Error> {
+        if size == 0 {
+            return Err(Error::Empty);
+        }
+
         if size > u32::MAX as u64 + 1 {
             return Err(Error::SizeTooLarge(size));
         }
 
         Ok(Self(size))
-    }
-
-    /// Constructs a new empty uninitialized region.
-    pub const fn empty() -> Self {
-        Self(0)
     }
 }
 
@@ -39,6 +38,10 @@ impl Slice for Uninitialized {
     type Error = Error;
 
     fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error> {
+        if size == 0 {
+            return Err(Error::Empty);
+        }
+
         let offset = address.value() as u64;
         let region_size = self.size();
 
@@ -92,7 +95,6 @@ mod tests {
 
     #[test]
     fn size_valid() {
-        assert_eq!(Uninitialized::new(0), Ok(Uninitialized(0)));
         assert_eq!(Uninitialized::new(1), Ok(Uninitialized(1)));
         assert_eq!(
             Uninitialized::new(u32::MAX as u64),
@@ -106,6 +108,7 @@ mod tests {
 
     #[test]
     fn size_invalid() {
+        assert_eq!(Uninitialized::new(0), Err(Error::Empty));
         assert_eq!(
             Uninitialized::new(u32::MAX as u64 + 2),
             Err(Error::SizeTooLarge(u32::MAX as u64 + 2))
@@ -135,12 +138,12 @@ mod tests {
     }
 
     #[test]
-    fn slice_allows_empty_slice_at_addressable_offset() {
+    fn slice_rejects_empty_slice() {
         let region = Uninitialized::new(10).unwrap();
 
-        assert_eq!(region.slice(Address::new(0), 0), Ok(Uninitialized::empty()));
-        assert_eq!(region.slice(Address::new(5), 0), Ok(Uninitialized::empty()));
-        assert_eq!(region.slice(Address::new(9), 0), Ok(Uninitialized::empty()));
+        assert_eq!(region.slice(Address::new(0), 0), Err(Error::Empty));
+        assert_eq!(region.slice(Address::new(5), 0), Err(Error::Empty));
+        assert_eq!(region.slice(Address::new(9), 0), Err(Error::Empty));
     }
 
     #[test]
@@ -148,10 +151,10 @@ mod tests {
         let region = Uninitialized::new(10).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(10), 0),
+            region.slice(Address::new(10), 1),
             Err(Error::SliceBounds(SliceBoundsError {
                 address: Address::new(10),
-                size: 0,
+                size: 1,
                 region_size: 10,
             })),
         );
@@ -162,10 +165,10 @@ mod tests {
         let region = Uninitialized::new(10).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(11), 0),
+            region.slice(Address::new(11), 1),
             Err(Error::SliceBounds(SliceBoundsError {
                 address: Address::new(11),
-                size: 0,
+                size: 1,
                 region_size: 10,
             })),
         );

@@ -4,6 +4,7 @@ pub mod block;
 
 mod error;
 
+use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 
 use bytes::{Buf, TryGetError};
@@ -87,20 +88,29 @@ impl Parse for Section {
 
         let name = *section.name();
         let characteristics = section.characteristics();
-        let blocks = if section.section_size() >= section.file_size() as u64 {
-            let bytes = buffer.copy_to_bytes(section.file_size());
+        let blocks = match section.section_size().cmp(&(section.file_size() as u64)) {
+            Ordering::Less => {
+                let bytes = buffer.copy_to_bytes(section.section_size() as usize);
+                let padding = section.file_size() as u64 - section.section_size();
 
-            Contiguous::unidentified(Unidentified::new(
-                bytes,
-                section.section_size() - section.file_size() as u64,
-            )?)
-        } else {
-            let bytes = buffer.copy_to_bytes(section.section_size() as usize);
-            let padding = section.file_size() as u64 - section.section_size();
+                buffer.advance(padding as usize);
 
-            buffer.advance(padding as usize);
+                Contiguous::unidentified(Unidentified::try_from_initialized_bytes(bytes)?)
+            }
+            Ordering::Equal => {
+                let bytes = buffer.copy_to_bytes(section.file_size());
 
-            Contiguous::unidentified(Unidentified::new(bytes, 0)?)
+                Contiguous::unidentified(Unidentified::try_from_initialized_bytes(bytes)?)
+            }
+            Ordering::Greater => {
+                let bytes = buffer.copy_to_bytes(section.file_size());
+
+                Contiguous::unidentified(
+                    Unidentified::try_from_initialized_bytes(bytes)?.with_uninitialized_size(
+                        section.section_size() - section.file_size() as u64,
+                    )?,
+                )
+            }
         };
 
         Ok(Self {

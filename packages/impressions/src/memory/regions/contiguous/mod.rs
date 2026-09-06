@@ -221,12 +221,19 @@ mod tests {
         }
     }
 
-    fn unidentified(bytes: &'static [u8], uninitialized: u64) -> Unidentified {
-        Unidentified::new(Bytes::from_static(bytes), uninitialized).unwrap()
+    fn initialized(bytes: &'static [u8]) -> Unidentified {
+        Unidentified::try_from_initialized_bytes(Bytes::from_static(bytes)).unwrap()
     }
 
     fn uninitialized(size: u64) -> Unidentified {
-        Unidentified::new(Bytes::new(), size).unwrap()
+        Unidentified::try_from_uninitialized_size(size).unwrap()
+    }
+
+    fn both(bytes: &'static [u8], size: u64) -> Unidentified {
+        Unidentified::try_from_initialized_bytes(Bytes::from_static(bytes))
+            .unwrap()
+            .with_uninitialized_size(size)
+            .unwrap()
     }
 
     fn contiguous(segments: impl IntoIterator<Item = Segment<Node>>) -> Contiguous<Node> {
@@ -235,23 +242,23 @@ mod tests {
 
     #[test]
     fn identify_splits_single_unidentified_segment() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
         region.identify(Address::new(3), Node(4)).unwrap();
 
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"012", 0)),
+                Segment::unidentified(initialized(b"012")),
                 Segment::identified(Node(4)),
-                Segment::unidentified(unidentified(b"789", 0)),
+                Segment::unidentified(initialized(b"789")),
             ]),
         );
     }
 
     #[test]
     fn identify_at_segment_start_omits_empty_prefix() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
         region.identify(Address::new(0), Node(3)).unwrap();
 
@@ -259,21 +266,21 @@ mod tests {
             region,
             contiguous([
                 Segment::identified(Node(3)),
-                Segment::unidentified(unidentified(b"3456789", 0)),
+                Segment::unidentified(initialized(b"3456789")),
             ]),
         );
     }
 
     #[test]
     fn identify_at_segment_end_omits_empty_suffix() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
         region.identify(Address::new(7), Node(3)).unwrap();
 
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"0123456", 0)),
+                Segment::unidentified(initialized(b"0123456")),
                 Segment::identified(Node(3)),
             ]),
         );
@@ -281,7 +288,7 @@ mod tests {
 
     #[test]
     fn identify_replaces_entire_unidentified_segment() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
         region.identify(Address::new(0), Node(10)).unwrap();
 
@@ -291,9 +298,9 @@ mod tests {
     #[test]
     fn identify_replaces_multiple_unidentified_segments() {
         let mut region = contiguous([
-            Segment::unidentified(unidentified(b"aaaaaaaaaa", 0)),
-            Segment::unidentified(unidentified(b"bbbbbbbbbb", 0)),
-            Segment::unidentified(unidentified(b"cccccccccc", 0)),
+            Segment::unidentified(initialized(b"aaaaaaaaaa")),
+            Segment::unidentified(initialized(b"bbbbbbbbbb")),
+            Segment::unidentified(initialized(b"cccccccccc")),
         ]);
 
         region.identify(Address::new(5), Node(20)).unwrap();
@@ -301,9 +308,9 @@ mod tests {
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"aaaaa", 0)),
+                Segment::unidentified(initialized(b"aaaaa")),
                 Segment::identified(Node(20)),
-                Segment::unidentified(unidentified(b"ccccc", 0)),
+                Segment::unidentified(initialized(b"ccccc")),
             ]),
         );
     }
@@ -311,9 +318,9 @@ mod tests {
     #[test]
     fn identify_across_exact_segment_boundaries_omits_outer_empty_segments() {
         let mut region = contiguous([
-            Segment::unidentified(unidentified(b"aaaaaaaaaa", 0)),
-            Segment::unidentified(unidentified(b"bbbbbbbbbb", 0)),
-            Segment::unidentified(unidentified(b"cccccccccc", 0)),
+            Segment::unidentified(initialized(b"aaaaaaaaaa")),
+            Segment::unidentified(initialized(b"bbbbbbbbbb")),
+            Segment::unidentified(initialized(b"cccccccccc")),
         ]);
 
         region.identify(Address::new(10), Node(10)).unwrap();
@@ -321,16 +328,16 @@ mod tests {
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"aaaaaaaaaa", 0)),
+                Segment::unidentified(initialized(b"aaaaaaaaaa")),
                 Segment::identified(Node(10)),
-                Segment::unidentified(unidentified(b"cccccccccc", 0)),
+                Segment::unidentified(initialized(b"cccccccccc")),
             ]),
         );
     }
 
     #[test]
     fn identify_rejects_range_that_overlaps_identified_segment() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
         region.identify(Address::new(3), Node(4)).unwrap();
 
@@ -345,7 +352,7 @@ mod tests {
 
     #[test]
     fn identify_rejects_out_of_bounds_start() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
         let original = region.clone();
 
         assert_eq!(
@@ -356,8 +363,8 @@ mod tests {
     }
 
     #[test]
-    fn identify_rejects_arange_that_extends_past_region() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+    fn identify_rejects_range_that_extends_past_region() {
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
         let original = region.clone();
 
         assert_eq!(
@@ -369,31 +376,30 @@ mod tests {
 
     #[test]
     fn identify_allows_empty_region_at_addressable_offset() {
-        let mut region = Contiguous::unidentified(unidentified(b"0123456789", 0));
+        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
         region.identify(Address::new(3), Node(0)).unwrap();
 
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"012", 0)),
+                Segment::unidentified(initialized(b"012")),
                 Segment::identified(Node(0)),
-                Segment::unidentified(unidentified(b"3456789", 0)),
+                Segment::unidentified(initialized(b"3456789")),
             ]),
         );
     }
 
     #[test]
     fn identify_preserves_uninitialized_memory() {
-        let mut region =
-            Contiguous::unidentified(Unidentified::new(Bytes::from_static(b"abcd"), 6).unwrap());
+        let mut region = Contiguous::unidentified(both(b"abcd", 6));
 
         region.identify(Address::new(2), Node(5)).unwrap();
 
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"ab", 0)),
+                Segment::unidentified(initialized(b"ab")),
                 Segment::identified(Node(5)),
                 Segment::unidentified(uninitialized(3)),
             ]),
@@ -402,14 +408,14 @@ mod tests {
 
     #[test]
     fn identify_can_start_in_uninitialized_memory() {
-        let mut region = Contiguous::unidentified(unidentified(b"abcd", 6));
+        let mut region = Contiguous::unidentified(both(b"abcd", 6));
 
         region.identify(Address::new(6), Node(2)).unwrap();
 
         assert_eq!(
             region,
             contiguous([
-                Segment::unidentified(unidentified(b"abcd", 2)),
+                Segment::unidentified(both(b"abcd", 2)),
                 Segment::identified(Node(2)),
                 Segment::unidentified(uninitialized(2)),
             ]),
@@ -419,11 +425,11 @@ mod tests {
     #[test]
     fn segments_select_skips_empty_markers_at_range_boundaries() {
         let region = contiguous([
-            Segment::unidentified(unidentified(b"aaaaa", 0)),
+            Segment::unidentified(initialized(b"aaaaa")),
             Segment::identified(Node(0)),
-            Segment::unidentified(unidentified(b"bbbbb", 0)),
+            Segment::unidentified(initialized(b"bbbbb")),
             Segment::identified(Node(0)),
-            Segment::unidentified(unidentified(b"ccccc", 0)),
+            Segment::unidentified(initialized(b"ccccc")),
         ]);
 
         let start_indices = region

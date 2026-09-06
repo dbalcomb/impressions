@@ -15,7 +15,7 @@ use crate::memory::{Extent, Slice, SliceBoundsError};
 pub use self::error::Error;
 
 /// A region of initialized memory.
-#[derive(Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Initialized(Bytes);
@@ -25,16 +25,15 @@ impl Initialized {
     pub fn new(bytes: Bytes) -> Result<Self, Error> {
         let size = bytes.len() as u64;
 
+        if size == 0 {
+            return Err(Error::Empty);
+        }
+
         if size > u32::MAX as u64 + 1 {
             return Err(Error::SizeTooLarge(size));
         }
 
         Ok(Self(bytes))
-    }
-
-    /// Constructs an empty initialized memory region.
-    pub const fn empty() -> Self {
-        Self(Bytes::new())
     }
 }
 
@@ -49,6 +48,10 @@ impl Slice for Initialized {
     type Error = Error;
 
     fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error> {
+        if size == 0 {
+            return Err(Error::Empty);
+        }
+
         let offset = address.value() as u64;
         let region_size = self.size();
 
@@ -62,7 +65,7 @@ impl Slice for Initialized {
 
         let end = offset + size;
 
-        Ok(Self(self.0.slice(offset as usize..end as usize)))
+        Self::new(self.0.slice(offset as usize..end as usize))
     }
 }
 
@@ -154,19 +157,8 @@ mod tests {
     }
 
     #[test]
-    fn new_allows_empty_bytes() {
-        let region = Initialized::new(Bytes::new()).unwrap();
-
-        assert_eq!(region, Initialized::empty());
-        assert_eq!(region.size(), 0);
-    }
-
-    #[test]
-    fn empty_has_no_bytes_or_extent() {
-        let region = Initialized::empty();
-
-        assert_eq!(region.bytes(), "");
-        assert_eq!(region.size(), 0);
+    fn new_rejects_empty_bytes() {
+        assert_eq!(Initialized::new(Bytes::new()), Err(Error::Empty));
     }
 
     #[test]
@@ -179,10 +171,10 @@ mod tests {
     }
 
     #[test]
-    fn slice_allows_empty_slice_at_addressable_offset() {
+    fn slice_rejects_empty_slice() {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
-        assert_eq!(region.slice(Address::new(2), 0), Ok(Initialized::empty()));
+        assert_eq!(region.slice(Address::new(2), 0), Err(Error::Empty));
     }
 
     #[test]
@@ -190,10 +182,10 @@ mod tests {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(4), 0),
+            region.slice(Address::new(4), 1),
             Err(Error::SliceBounds(SliceBoundsError {
                 address: Address::new(4),
-                size: 0,
+                size: 1,
                 region_size: 4,
             })),
         );
