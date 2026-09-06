@@ -9,6 +9,14 @@ pub enum Error {
     #[error("the region size {0} exceeds maximum {max}", max = u32::MAX as u64 + 1)]
     SizeTooLarge(u64),
 
+    /// The uninitialized region is not the last segment.
+    #[error("the uninitialized region is not the last segment")]
+    UninitializedNotLast,
+
+    /// The uninitialized region is already present.
+    #[error("the uninitialized region is already present")]
+    UninitializedAlreadyPresent,
+
     /// The requested slice is outside the unidentified region.
     #[error(transparent)]
     SliceBounds(#[from] crate::memory::SliceBoundsError),

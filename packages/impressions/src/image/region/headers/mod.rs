@@ -112,7 +112,9 @@ impl Parse for Headers {
         }
 
         let stub = if offset > 0 {
-            Some(Unidentified::new(buffer.copy_to_bytes(offset), 0)?)
+            Some(Unidentified::try_from_initialized_bytes(
+                buffer.copy_to_bytes(offset),
+            )?)
         } else {
             None
         };
