@@ -1,3 +1,5 @@
+use std::fmt::{self, Debug};
+
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
@@ -9,7 +11,7 @@ use crate::memory::{Extent, Slice, SliceBoundsError};
 /// This represents a region of bytes that has been identified as padding. This
 /// may be found between sections, code, or data. Each region of padding has a
 /// byte value to indicate what values have been analysed.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Padding {
     size: u64,
     value: u8,
@@ -57,6 +59,15 @@ impl Slice for Padding {
         }
 
         Ok(Self::new(size, self.value()))
+    }
+}
+
+impl Debug for Padding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Padding")
+            .field("size", &self.size)
+            .field("value", &format_args!("{:02x}", self.value))
+            .finish()
     }
 }
 
