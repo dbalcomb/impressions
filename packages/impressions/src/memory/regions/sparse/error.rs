@@ -4,8 +4,8 @@ use crate::memory::extent::Size;
 /// The sparse region error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    /// A problem was encountered with a size value.
-    #[error("size error")]
+    /// An invalid size was specified for the sparse region.
+    #[error("invalid size")]
     Size(#[from] crate::memory::extent::Error),
 
     /// The address is out of bounds.

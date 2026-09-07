@@ -9,8 +9,8 @@ pub enum Error {
     #[error("the uninitialized region is already present")]
     UninitializedAlreadyPresent,
 
-    /// A problem was encountered with a size value.
-    #[error("size error")]
+    /// An invalid size was specified for the unidentified region.
+    #[error("invalid size")]
     Size(#[from] crate::memory::extent::Error),
 
     /// The requested slice is outside the unidentified region.

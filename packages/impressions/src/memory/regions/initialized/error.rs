@@ -1,8 +1,8 @@
 /// The initialized region error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    /// A problem was encountered with a size value.
-    #[error("size error")]
+    /// An invalid size was specified for the initialized region.
+    #[error("invalid size")]
     Size(#[from] crate::memory::extent::Error),
 
     /// The requested slice is outside the initialized region.

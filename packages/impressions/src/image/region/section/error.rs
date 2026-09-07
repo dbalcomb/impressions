@@ -9,7 +9,7 @@ pub enum Error {
     #[error("unidentified region error")]
     Unidentified(#[from] crate::memory::regions::unidentified::Error),
 
-    /// A problem was encountered with a size value.
-    #[error("size error")]
+    /// An invalid size was specified for the section.
+    #[error("invalid size")]
     Size(#[from] crate::memory::extent::Error),
 }
