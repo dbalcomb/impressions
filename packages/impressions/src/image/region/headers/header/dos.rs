@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 /// The signature indicating the start of the DOS headers.
 const DOS_SIGNATURE: u16 = 0x5A4D;

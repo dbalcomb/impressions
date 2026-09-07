@@ -11,7 +11,7 @@ pub enum Error {
 
     /// A problem was encountered with a size value.
     #[error("size error")]
-    Size(#[from] crate::memory::SizeError),
+    Size(#[from] crate::memory::extent::Error),
 
     /// The requested slice is outside the unidentified region.
     #[error(transparent)]

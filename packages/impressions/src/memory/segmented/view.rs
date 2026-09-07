@@ -1,5 +1,5 @@
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 use super::{SegmentRef, Segmented, SegmentsIter};
 
@@ -127,7 +127,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::memory::address::Address;
-    use crate::memory::{Extent, Size};
+    use crate::memory::extent::{Extent, Size};
 
     use super::Segments;
 

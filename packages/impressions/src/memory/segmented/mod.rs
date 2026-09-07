@@ -4,8 +4,8 @@ mod entry;
 mod iter;
 mod view;
 
-use super::Extent;
 use super::address::Address;
+use super::extent::Extent;
 
 pub use self::entry::SegmentRef;
 pub use self::iter::SegmentsIter;

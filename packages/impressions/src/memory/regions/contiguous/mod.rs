@@ -9,10 +9,11 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::Slice;
 use crate::memory::address::Address;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Size, Slice};
 
 pub use self::error::Error;
 pub use self::segment::Segment;
@@ -192,8 +193,8 @@ mod tests {
     use bytes::Bytes;
 
     use crate::memory::address::Address;
+    use crate::memory::extent::{Extent, Size};
     use crate::memory::regions::unidentified::Unidentified;
-    use crate::memory::{Extent, Size};
 
     use super::{Contiguous, Error, Segment};
 

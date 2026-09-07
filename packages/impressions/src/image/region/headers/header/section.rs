@@ -7,7 +7,7 @@ use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 /// An image file Section header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

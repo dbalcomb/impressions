@@ -2,7 +2,7 @@ use std::iter::{Enumerate, FusedIterator};
 use std::slice::Iter as SliceIter;
 
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 use super::SegmentRef;
 

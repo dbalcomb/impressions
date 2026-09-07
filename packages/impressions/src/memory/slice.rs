@@ -1,5 +1,5 @@
-use super::Size;
 use super::address::Address;
+use super::extent::Size;
 
 /// Defines the ability to slice a region of memory.
 pub trait Slice: Sized {

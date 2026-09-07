@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 /// The signature of an x86 CPU.
 const COFF_MACHINE_X86: u16 = 0x14c;

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::image::Padding;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;

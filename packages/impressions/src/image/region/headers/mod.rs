@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::image::Padding;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Size};
 
 pub use self::error::Error;
 pub use self::header::{
@@ -191,8 +191,8 @@ mod tests {
     use bytes::{Buf, Bytes, BytesMut};
 
     use crate::data::parse::Parse;
-    use crate::memory::Extent;
     use crate::memory::address::Address;
+    use crate::memory::extent::Extent;
 
     use super::Headers;
 

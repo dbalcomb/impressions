@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size, Slice, SliceBoundsError};
+use crate::memory::extent::{Extent, Size};
+use crate::memory::{Slice, SliceBoundsError};
 
 pub use self::error::Error;
 
@@ -67,7 +68,8 @@ impl Debug for Uninitialized {
 #[cfg(test)]
 mod tests {
     use crate::memory::address::Address;
-    use crate::memory::{Size, Slice, SliceBoundsError};
+    use crate::memory::extent::Size;
+    use crate::memory::{Slice, SliceBoundsError};
 
     use super::{Error, Uninitialized};
 

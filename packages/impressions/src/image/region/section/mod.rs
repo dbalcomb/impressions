@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Size, SizeError};
 
 use self::block::Block;
 

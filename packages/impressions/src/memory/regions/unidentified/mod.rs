@@ -11,8 +11,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::Address;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Size, Slice, SliceBoundsError};
+use crate::memory::{Slice, SliceBoundsError};
 
 use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
@@ -215,8 +216,9 @@ impl TryFrom<Vec<Segment>> for Unidentified {
 mod tests {
     use bytes::Bytes;
 
+    use crate::memory::Slice;
     use crate::memory::address::Address;
-    use crate::memory::{Extent, Size, SizeError, Slice};
+    use crate::memory::extent::{Error as SizeError, Extent, Size};
 
     use super::{Error, Initialized, Segment, Unidentified, Uninitialized};
 

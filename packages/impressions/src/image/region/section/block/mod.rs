@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::image::Padding;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 /// A block of memory within a section.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

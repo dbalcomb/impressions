@@ -13,9 +13,9 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::address::Address;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::sparse::{Segment, Sparse};
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Size};
 
 pub use self::error::Error;
 pub use self::padding::Padding;

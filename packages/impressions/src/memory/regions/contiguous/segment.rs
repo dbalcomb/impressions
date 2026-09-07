@@ -3,8 +3,8 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::{Extent, Size};
 
 /// A segment in a contiguous region of memory.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-use crate::memory::Extent;
+use crate::memory::extent::Extent;
 
 /// Defines the ability to calculate the completion percentage of a region.
 ///

@@ -3,9 +3,9 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
-use crate::memory::{Extent, Size};
 
 /// A segment in an unidentified region of memory.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

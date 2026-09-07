@@ -8,7 +8,7 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 use self::headers::Headers;
 use self::section::Section;

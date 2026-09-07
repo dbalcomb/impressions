@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
-use crate::memory::Extent;
 use crate::memory::address::Address;
+use crate::memory::extent::Extent;
 
 /// A reference to a segment in a segmented region of memory.
 #[derive(Debug)]

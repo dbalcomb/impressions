@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 /// The signature of a 32-bit PE image file.
 const OPTIONAL_SIGNATURE: u16 = 0x10b;

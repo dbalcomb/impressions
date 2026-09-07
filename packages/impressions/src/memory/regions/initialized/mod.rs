@@ -10,7 +10,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size, Slice, SliceBoundsError};
+use crate::memory::extent::{Extent, Size};
+use crate::memory::{Slice, SliceBoundsError};
 
 pub use self::error::Error;
 
@@ -131,7 +132,8 @@ mod tests {
     use bytes::Bytes;
 
     use crate::memory::address::Address;
-    use crate::memory::{Extent, Size, SizeError, Slice, SliceBoundsError};
+    use crate::memory::extent::{Error as SizeError, Extent, Size};
+    use crate::memory::{Slice, SliceBoundsError};
 
     use super::{Error, Initialized};
 

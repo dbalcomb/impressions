@@ -6,7 +6,7 @@ use std::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::memory::{Extent, Size};
+use crate::memory::extent::{Extent, Size};
 
 use super::Address;
 

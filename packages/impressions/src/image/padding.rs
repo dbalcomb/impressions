@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::Address;
-use crate::memory::{Extent, Size, Slice, SliceBoundsError};
+use crate::memory::extent::{Extent, Size};
+use crate::memory::{Slice, SliceBoundsError};
 
 /// A region of padding.
 ///
@@ -74,7 +75,8 @@ impl Debug for Padding {
 #[cfg(test)]
 mod tests {
     use crate::memory::address::Address;
-    use crate::memory::{Extent, Size, Slice, SliceBoundsError};
+    use crate::memory::extent::{Extent, Size};
+    use crate::memory::{Slice, SliceBoundsError};
 
     use super::Padding;
 
