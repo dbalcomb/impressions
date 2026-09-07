@@ -12,6 +12,8 @@ use crate::data::parse::Parse;
 
 pub use self::space::{AddressSpace, Error as AddressSpaceError};
 
+use super::extent::Size;
+
 /// Represents an address in memory.
 ///
 /// An address is a 32-bit unsigned integer that can be used to access memory
@@ -57,7 +59,7 @@ impl Address {
     }
 
     /// Constructs an address space of the given size from this address.
-    pub const fn to_space(self, size: u64) -> Result<AddressSpace, AddressSpaceError> {
+    pub const fn to_space(self, size: Size) -> Result<AddressSpace, AddressSpaceError> {
         AddressSpace::with_size(self, size)
     }
 }
