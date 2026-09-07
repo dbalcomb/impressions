@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
-use crate::memory::Extent;
 use crate::memory::address::Address;
+use crate::memory::{Extent, Size};
 
 /// The signature of a 32-bit PE image file.
 const OPTIONAL_SIGNATURE: u16 = 0x10b;
@@ -140,8 +140,11 @@ impl OptionalHeader {
 }
 
 impl Extent for OptionalHeader {
-    fn size(&self) -> u64 {
-        96 + self.data_directories.size()
+    fn size(&self) -> Size {
+        Size::new(96)
+            .expect("valid size")
+            .checked_add_value(self.data_directories.size())
+            .expect("sum of sizes does not exceed maximum size")
     }
 }
 
@@ -285,11 +288,14 @@ impl DataDirectoryTable {
     pub const fn count(&self) -> usize {
         self.count as usize
     }
-}
 
-impl Extent for DataDirectoryTable {
-    fn size(&self) -> u64 {
-        self.table.iter().take(self.count()).map(Extent::size).sum()
+    /// Gets the total size of the data directory table.
+    pub fn size(&self) -> u32 {
+        self.table
+            .iter()
+            .take(self.count())
+            .map(|data_directory| data_directory.size().get() as u32)
+            .sum()
     }
 }
 
@@ -338,8 +344,8 @@ impl DataDirectory {
 }
 
 impl Extent for DataDirectory {
-    fn size(&self) -> u64 {
-        8
+    fn size(&self) -> Size {
+        Size::new(8).expect("valid size")
     }
 }
 

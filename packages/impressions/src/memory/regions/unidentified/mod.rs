@@ -12,7 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Slice, SliceBoundsError};
+use crate::memory::{Extent, Size, Slice, SliceBoundsError};
 
 use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
@@ -50,7 +50,9 @@ impl Unidentified {
 
     /// Constructs a new unidentified region from the given uninitialized size.
     pub fn try_from_uninitialized_size(size: u64) -> Result<Self, Error> {
-        Ok(Self::from_uninitialized(Uninitialized::new(size)?))
+        Ok(Self::from_uninitialized(Uninitialized::new(
+            size.try_into()?,
+        )))
     }
 
     /// Constructs a new unidentified region from an iterator of segments.
@@ -66,12 +68,7 @@ impl Unidentified {
             return Err(Error::UninitializedAlreadyPresent);
         }
 
-        let size = self.size() + uninitialized.size();
-
-        if size > u32::MAX as u64 + 1 {
-            return Err(Error::SizeTooLarge(size));
-        }
-
+        self.size().checked_add(uninitialized.size())?;
         self.0.push(Segment::Uninitialized(uninitialized));
 
         Ok(self)
@@ -79,7 +76,7 @@ impl Unidentified {
 
     /// Builds the unidentified region with the given uninitialized size.
     pub fn with_uninitialized_size(self, size: u64) -> Result<Self, Error> {
-        self.with_uninitialized(Uninitialized::new(size)?)
+        self.with_uninitialized(Uninitialized::new(size.try_into()?))
     }
 }
 
@@ -102,15 +99,11 @@ impl Unidentified {
 impl Slice for Unidentified {
     type Error = Error;
 
-    fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error> {
-        if size == 0 {
-            return Err(Error::Empty);
-        }
-
+    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error> {
         let start = u64::from(address.value());
         let region_size = self.size();
 
-        if start >= region_size || size > region_size - start {
+        if start >= region_size.get() || size.get() > region_size.get() - start {
             return Err(Error::SliceBounds(SliceBoundsError {
                 address,
                 size,
@@ -118,7 +111,7 @@ impl Slice for Unidentified {
             }));
         }
 
-        let end = start + size;
+        let end = start + size.get();
 
         let segments = self
             .segments()
@@ -126,7 +119,7 @@ impl Slice for Unidentified {
             .select(address, size)
             .map(|entry| {
                 let segment_start = u64::from(entry.address().value());
-                let segment_end = segment_start + entry.size();
+                let segment_end = segment_start + entry.size().get();
                 let slice_start = start.max(segment_start);
                 let slice_end = end.min(segment_end);
                 let slice_address = Address::new((slice_start - segment_start) as u32);
@@ -134,11 +127,11 @@ impl Slice for Unidentified {
 
                 match entry.segment() {
                     Segment::Initialized(initialized) => initialized
-                        .slice(slice_address, slice_size)
+                        .slice(slice_address, Size::new(slice_size).expect("valid size"))
                         .map(Segment::initialized)
                         .map_err(Error::from),
                     Segment::Uninitialized(uninitialized) => uninitialized
-                        .slice(slice_address, slice_size)
+                        .slice(slice_address, Size::new(slice_size).expect("valid size"))
                         .map(Segment::uninitialized)
                         .map_err(Error::from),
                 }
@@ -150,8 +143,9 @@ impl Slice for Unidentified {
 }
 
 impl Extent for Unidentified {
-    fn size(&self) -> u64 {
-        self.0.iter().map(Extent::size).sum()
+    fn size(&self) -> Size {
+        Size::try_sum(self.0.iter().map(Extent::size))
+            .expect("sum of sizes does not exceed maximum size")
     }
 }
 
@@ -203,15 +197,7 @@ impl TryFrom<Vec<Segment>> for Unidentified {
     type Error = Error;
 
     fn try_from(segments: Vec<Segment>) -> Result<Self, Self::Error> {
-        let size: u64 = segments.iter().map(Extent::size).sum();
-
-        if size == 0 {
-            return Err(Error::Empty);
-        }
-
-        if size > u32::MAX as u64 + 1 {
-            return Err(Error::SizeTooLarge(size));
-        }
+        Size::try_sum(segments.iter().map(Extent::size))?;
 
         if segments
             .iter()
@@ -230,19 +216,22 @@ mod tests {
     use bytes::Bytes;
 
     use crate::memory::address::Address;
-    use crate::memory::{Extent, Slice};
+    use crate::memory::{Extent, Size, SizeError, Slice};
 
     use super::{Error, Initialized, Segment, Unidentified, Uninitialized};
 
     #[test]
     fn construction_rejects_no_segments() {
-        assert_eq!(Unidentified::try_from(Vec::new()), Err(Error::Empty),);
+        assert_eq!(
+            Unidentified::try_from(Vec::new()),
+            Err(Error::Size(SizeError::Zero))
+        );
     }
 
     #[test]
     fn construction_rejects_uninitialized_segment_before_initialized_segment() {
         let segments = [
-            Segment::uninitialized(Uninitialized::new(1).unwrap()),
+            Segment::uninitialized(Uninitialized::new(Size::new(1).unwrap())),
             Segment::initialized(Initialized::new(Bytes::from_static(b"a")).unwrap()),
         ];
 
@@ -269,7 +258,9 @@ mod tests {
             .with_uninitialized_size(6)
             .unwrap();
 
-        let slice = region.slice(Address::new(1), 2).unwrap();
+        let slice = region
+            .slice(Address::new(1), Size::new(2).unwrap())
+            .unwrap();
 
         assert_eq!(slice.initialized().next().unwrap().bytes(), "bc");
         assert_eq!(slice.uninitialized(), None);
@@ -283,7 +274,9 @@ mod tests {
             .with_uninitialized_size(6)
             .unwrap();
 
-        let slice = region.slice(Address::new(5), 3).unwrap();
+        let slice = region
+            .slice(Address::new(5), Size::new(3).unwrap())
+            .unwrap();
 
         assert_eq!(slice.initialized().next(), None);
         assert_eq!(slice.uninitialized().unwrap().size(), 3);
@@ -297,7 +290,9 @@ mod tests {
             .with_uninitialized_size(6)
             .unwrap();
 
-        let slice = region.slice(Address::new(2), 6).unwrap();
+        let slice = region
+            .slice(Address::new(2), Size::new(6).unwrap())
+            .unwrap();
 
         assert_eq!(slice.initialized().next().unwrap().bytes(), "cd");
         assert_eq!(slice.uninitialized().unwrap().size(), 4);
@@ -305,21 +300,11 @@ mod tests {
     }
 
     #[test]
-    fn slice_rejects_empty_slice() {
-        let region = Unidentified::try_from_initialized_bytes(Bytes::from_static(b"abcd"))
-            .unwrap()
-            .with_uninitialized_size(6)
-            .unwrap();
-
-        assert_eq!(region.slice(Address::new(2), 0), Err(Error::Empty));
-    }
-
-    #[test]
     fn serde_multiple_initialized_segments_with_trailing_uninitialized_segment() {
         let region = Unidentified::try_from_iterator([
             Segment::initialized(Initialized::new(Bytes::from_static(b"ab")).unwrap()),
             Segment::initialized(Initialized::new(Bytes::from_static(b"cd")).unwrap()),
-            Segment::uninitialized(Uninitialized::new(2).unwrap()),
+            Segment::uninitialized(Uninitialized::new(Size::new(2).unwrap())),
         ])
         .unwrap();
 

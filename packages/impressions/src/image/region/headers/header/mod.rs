@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::image::Padding;
-use crate::memory::Extent;
+use crate::memory::{Extent, Size};
 
 pub use self::coff::CoffHeader;
 pub use self::dos::DosHeader;
@@ -95,10 +95,10 @@ impl Header {
 }
 
 impl Extent for Header {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         match self {
             Self::Dos(dos) => dos.size(),
-            Self::Signature => 4,
+            Self::Signature => Size::new(4).expect("valid size"),
             Self::Coff(coff) => coff.size(),
             Self::Optional(optional) => optional.size(),
             Self::Section(section) => section.size(),
@@ -109,7 +109,7 @@ impl Extent for Header {
 
 impl Completion for Header {
     fn identified(&self) -> u64 {
-        self.size()
+        self.size().get()
     }
 }
 

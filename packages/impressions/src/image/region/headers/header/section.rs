@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
-use crate::memory::Extent;
 use crate::memory::address::Address;
+use crate::memory::{Extent, Size};
 
 /// An image file Section header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,8 +99,8 @@ impl SectionHeader {
 }
 
 impl Extent for SectionHeader {
-    fn size(&self) -> u64 {
-        40
+    fn size(&self) -> Size {
+        Size::new(40).expect("valid size")
     }
 }
 

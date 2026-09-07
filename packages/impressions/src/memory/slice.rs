@@ -1,3 +1,4 @@
+use super::Size;
 use super::address::Address;
 
 /// Defines the ability to slice a region of memory.
@@ -6,7 +7,7 @@ pub trait Slice: Sized {
     type Error;
 
     /// Slices the region from the given address with the provided size.
-    fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error>;
+    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error>;
 }
 
 /// The requested slice is outside the source region.
@@ -16,6 +17,6 @@ pub trait Slice: Sized {
 )]
 pub struct SliceBoundsError {
     pub address: Address,
-    pub size: u64,
-    pub region_size: u64,
+    pub size: Size,
+    pub region_size: Size,
 }

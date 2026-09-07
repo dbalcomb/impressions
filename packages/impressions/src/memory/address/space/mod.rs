@@ -6,7 +6,7 @@ use std::ops::{Bound, RangeBounds};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::memory::Extent;
+use crate::memory::{Extent, Size};
 
 use super::Address;
 
@@ -106,13 +106,11 @@ impl AddressSpace {
     }
 
     /// Gets the size of this address space.
-    ///
-    /// # Implementation
-    ///
-    /// The size is represented as a `u64` as the maximum size of an address
-    /// space is `u32::MAX + 1`, which cannot be represented as a `u32`.
-    pub const fn size(&self) -> u64 {
-        (self.last().value() - self.first().value()) as u64 + 1
+    pub const fn size(&self) -> Size {
+        match Size::new((self.last().value() - self.first().value()) as u64 + 1) {
+            Ok(size) => size,
+            Err(_) => panic!("invalid address space size"),
+        }
     }
 }
 
@@ -216,7 +214,7 @@ impl AddressSpace {
 }
 
 impl Extent for AddressSpace {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         self.size()
     }
 }

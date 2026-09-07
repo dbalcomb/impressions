@@ -12,10 +12,10 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::image::Padding;
-use crate::memory::Extent;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::{Extent, Size};
 
 pub use self::error::Error;
 pub use self::header::{
@@ -77,8 +77,8 @@ impl Headers {
 }
 
 impl Extent for Headers {
-    fn size(&self) -> u64 {
-        self.optional().headers_size()
+    fn size(&self) -> Size {
+        Size::new(self.optional().headers_size()).expect("valid size")
     }
 }
 
@@ -102,7 +102,7 @@ impl Parse for Headers {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let dos = DosHeader::parse(&mut buffer)?;
-        let offset = dos.pe_headers_offset() as usize - dos.size() as usize;
+        let offset = dos.pe_headers_offset() as usize - dos.size().get() as usize;
 
         if offset > buffer.remaining() {
             return Err(Error::Parse(TryGetError {
@@ -133,9 +133,13 @@ impl Parse for Headers {
 
         let file_offset = dos.pe_headers_offset() as usize
             + 4
-            + coff.size() as usize
-            + optional.size() as usize
-            + sections.iter().map(Extent::size).sum::<u64>() as usize;
+            + coff.size().get() as usize
+            + optional.size().get() as usize
+            + sections
+                .iter()
+                .map(Extent::size)
+                .map(u64::from)
+                .sum::<u64>() as usize;
 
         let remaining = buffer
             .remaining()
@@ -144,7 +148,10 @@ impl Parse for Headers {
         buffer.advance(remaining);
 
         let padding = if remaining > 0 {
-            Some(Header::Padding(Padding::new(remaining as u64, 0)))
+            Some(Header::Padding(Padding::new(
+                Size::new(remaining as u64).expect("valid size"),
+                0,
+            )))
         } else {
             None
         };

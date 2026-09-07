@@ -1,5 +1,5 @@
-use crate::memory::Extent;
 use crate::memory::address::Address;
+use crate::memory::{Extent, Size};
 
 use super::{SegmentRef, Segmented, SegmentsIter};
 
@@ -15,6 +15,8 @@ where
 {
     /// Constructs a new view over the given segments.
     pub(in crate::memory) fn new(segments: &'a [T]) -> Self {
+        debug_assert!(!segments.is_empty());
+
         Self { segments }
     }
 }
@@ -34,35 +36,29 @@ where
     /// This method rebases the segments so that the first segment in the view
     /// has an index and address of 0. The returned view may include segments
     /// that overlap with the requested range, but do not fully fit within it.
-    pub fn range(&self, address: Address, size: u64) -> Self {
-        if size == 0 {
-            return Self { segments: &[] };
-        }
-
+    pub fn range(&self, address: Address, size: Size) -> Option<Self> {
         let mut iter = self.iter();
 
-        let Some(start) = iter.get(address) else {
-            return Self { segments: &[] };
-        };
+        let start = iter.get(address)?;
 
-        if size <= u32::MAX as u64
-            && let Some(end_address) = address.checked_add(size as u32)
+        if let Some(offset) = size.get_addressable()
+            && let Some(end_address) = address.checked_add(offset)
             && let Some(end) = iter.get(end_address)
         {
             if end_address == end.address() {
-                return Self {
+                return Some(Self {
                     segments: &self.segments[start.index()..end.index()],
-                };
+                });
             }
 
-            return Self {
+            return Some(Self {
                 segments: &self.segments[start.index()..=end.index()],
-            };
+            });
         }
 
-        Self {
+        Some(Self {
             segments: &self.segments[start.index()..],
-        }
+        })
     }
 
     /// Gets an iterator over the segments.
@@ -75,8 +71,9 @@ impl<'a, T> Extent for Segments<'a, T>
 where
     T: Extent,
 {
-    fn size(&self) -> u64 {
-        self.segments.iter().map(Extent::size).sum()
+    fn size(&self) -> Size {
+        Size::try_sum(self.segments.iter().map(Extent::size))
+            .expect("sum of sizes does not exceed maximum size")
     }
 }
 
@@ -129,16 +126,16 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::memory::Extent;
     use crate::memory::address::Address;
+    use crate::memory::{Extent, Size};
 
     use super::Segments;
 
     struct Node(u64);
 
     impl Extent for Node {
-        fn size(&self) -> u64 {
-            self.0
+        fn size(&self) -> Size {
+            Size::new(self.0).unwrap()
         }
     }
 
@@ -150,7 +147,8 @@ mod tests {
     fn subview_includes_segments_overlapping_requested_range() {
         let nodes = [Node(5), Node(5), Node(5)];
         let indices = segments(&nodes)
-            .range(Address::new(4), 2)
+            .range(Address::new(4), Size::new(2).unwrap())
+            .unwrap()
             .into_iter()
             .map(|segment| segment.index())
             .collect::<Vec<_>>();
@@ -162,7 +160,8 @@ mod tests {
     fn subview_excludes_segment_at_exclusive_end() {
         let nodes = [Node(5), Node(5), Node(5)];
         let indices = segments(&nodes)
-            .range(Address::new(0), 5)
+            .range(Address::new(0), Size::new(5).unwrap())
+            .unwrap()
             .into_iter()
             .map(|segment| segment.index())
             .collect::<Vec<_>>();
@@ -173,7 +172,9 @@ mod tests {
     #[test]
     fn subview_rebases_address_and_index() {
         let nodes = [Node(5), Node(5), Node(5)];
-        let subview = segments(&nodes).range(Address::new(5), 5);
+        let subview = segments(&nodes)
+            .range(Address::new(5), Size::new(5).unwrap())
+            .unwrap();
         let segment = subview.get(Address::new(0)).unwrap();
 
         assert_eq!(segment.index(), 0);
@@ -186,8 +187,10 @@ mod tests {
     fn nested_subviews_rebase_to_their_immediate_view() {
         let nodes = [Node(5), Node(5), Node(5)];
         let subview = segments(&nodes)
-            .range(Address::new(4), 11)
-            .range(Address::new(1), 5);
+            .range(Address::new(4), Size::new(11).unwrap())
+            .unwrap()
+            .range(Address::new(1), Size::new(5).unwrap())
+            .unwrap();
         let entries = subview
             .into_iter()
             .map(|segment| (segment.index(), segment.address()))
@@ -197,20 +200,10 @@ mod tests {
     }
 
     #[test]
-    fn subview_with_zero_size_is_empty() {
+    fn subview_outside_address_space_is_none() {
         let nodes = [Node(5), Node(5), Node(5)];
-        let subview = segments(&nodes).range(Address::new(5), 0);
+        let subview = segments(&nodes).range(Address::new(15), Size::new(1).unwrap());
 
-        assert_eq!(subview.size(), 0);
-        assert_eq!(subview.into_iter().count(), 0);
-    }
-
-    #[test]
-    fn subview_outside_address_space_is_empty() {
-        let nodes = [Node(5), Node(5), Node(5)];
-        let subview = segments(&nodes).range(Address::new(15), 1);
-
-        assert_eq!(subview.size(), 0);
-        assert_eq!(subview.into_iter().count(), 0);
+        assert!(subview.is_none());
     }
 }

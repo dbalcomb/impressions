@@ -3,8 +3,8 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Extent;
 use crate::memory::regions::unidentified::Unidentified;
+use crate::memory::{Extent, Size};
 
 /// A segment in a contiguous region of memory.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,7 +60,7 @@ impl<T> Extent for Segment<T>
 where
     T: Extent,
 {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         match self {
             Self::Identified(identified) => identified.size(),
             Self::Unidentified(unidentified) => unidentified.size(),

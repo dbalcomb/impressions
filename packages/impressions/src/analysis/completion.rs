@@ -11,6 +11,6 @@ pub trait Completion: Extent {
 
     /// Gets the analysis completion percentage of the region.
     fn completion(&self) -> f64 {
-        self.identified() as f64 / self.size() as f64 * 100.0
+        self.identified() as f64 / self.size().get() as f64 * 100.0
     }
 }

@@ -1,8 +1,8 @@
 use std::iter::{Enumerate, FusedIterator};
 use std::slice::Iter as SliceIter;
 
-use crate::memory::Extent;
 use crate::memory::address::Address;
+use crate::memory::{Extent, Size};
 
 use super::SegmentRef;
 
@@ -23,7 +23,7 @@ where
         Self {
             segments: segments.iter().enumerate(),
             next_offset: 0,
-            next_back_offset: segments.iter().map(Extent::size).sum(),
+            next_back_offset: segments.iter().map(Extent::size).map(u64::from).sum(),
         }
     }
 }
@@ -56,8 +56,8 @@ where
     T: Extent,
 {
     /// Selects the segments that overlap with the given address and size.
-    pub fn select(self, address: Address, size: u64) -> impl Iterator<Item = SegmentRef<'a, T>> {
-        let end = u64::from(address.value()).saturating_add(size);
+    pub fn select(self, address: Address, size: Size) -> impl Iterator<Item = SegmentRef<'a, T>> {
+        let end = u64::from(address.value()).saturating_add(size.get());
 
         self.skip_while(move |segment| !segment.contains_address(address))
             .take_while(move |segment| u64::from(segment.address().value()) < end)
@@ -84,7 +84,7 @@ where
         let (index, segment) = self.segments.next()?;
         let offset = self.next_offset;
 
-        self.next_offset += segment.size();
+        self.next_offset += segment.size().get();
 
         Some(SegmentRef::new(segment, index, Address::new(offset as u32)))
     }
@@ -101,7 +101,7 @@ where
     fn next_back(&mut self) -> Option<Self::Item> {
         let (index, segment) = self.segments.next_back()?;
 
-        self.next_back_offset -= segment.size();
+        self.next_back_offset -= segment.size().get();
 
         Some(SegmentRef::new(
             segment,

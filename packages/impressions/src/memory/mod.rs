@@ -7,5 +7,5 @@ pub mod segmented;
 mod extent;
 mod slice;
 
-pub use self::extent::Extent;
+pub use self::extent::{Error as SizeError, Extent, Size};
 pub use self::slice::{Slice, SliceBoundsError};
