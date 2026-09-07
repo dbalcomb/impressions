@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Extent;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::uninitialized::Uninitialized;
 
 /// A segment in a sparse region of memory.
@@ -60,7 +60,7 @@ impl<T> Extent for Segment<T>
 where
     T: Extent,
 {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         match self {
             Self::Occupied(occupied) => occupied.size(),
             Self::Vacant(vacant) => vacant.size(),
@@ -75,7 +75,7 @@ where
     fn identified(&self) -> u64 {
         match self {
             Self::Occupied(occupied) => occupied.identified(),
-            Self::Vacant(vacant) => vacant.size(),
+            Self::Vacant(vacant) => vacant.size().get(),
         }
     }
 }

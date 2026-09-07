@@ -9,17 +9,18 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::Slice;
 use crate::memory::address::Address;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Slice};
 
 pub use self::error::Error;
 pub use self::segment::Segment;
 
 /// A contiguous region of memory composed of identified and/or unidentified
 /// segments.
-#[derive(Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Contiguous<T>(Vec<Segment<T>>);
@@ -48,20 +49,15 @@ where
         let region_size = region.size();
         let total_size = self.size();
         let end = u64::from(address.value())
-            .checked_add(region_size)
-            .filter(|&end| end <= total_size)
+            .checked_add(region_size.get())
+            .filter(|&end| end <= total_size.get())
             .ok_or(Error::OutOfBounds(address, total_size))?;
 
         let mut selected = self.segments().into_iter().select(address, region.size());
 
-        let first = if region.size() == 0 {
-            self.get(address)
-                .ok_or(Error::OutOfBounds(address, self.size()))?
-        } else {
-            selected
-                .next()
-                .ok_or(Error::OutOfBounds(address, self.size()))?
-        };
+        let first = selected
+            .next()
+            .ok_or(Error::OutOfBounds(address, total_size))?;
 
         if first.is_identified() {
             return Err(Error::AlreadyIdentified(first.index()));
@@ -91,17 +87,18 @@ where
             .then(|| {
                 first_unidentified.slice(
                     Address::new(0),
-                    u64::from(address.value() - first.address().value()),
+                    Size::new(u64::from(address.value() - first.address().value()))
+                        .expect("valid size"),
                 )
             })
             .transpose()?;
 
         let after_offset = end - u64::from(last.address().value());
-        let after = (after_offset < last.size())
+        let after = (after_offset < last.size().get())
             .then(|| {
                 last_unidentified.slice(
                     Address::new(after_offset as u32),
-                    last.size() - after_offset,
+                    Size::new(last.size().get() - after_offset).expect("valid size"),
                 )
             })
             .transpose()?;
@@ -122,8 +119,9 @@ impl<T> Extent for Contiguous<T>
 where
     T: Extent,
 {
-    fn size(&self) -> u64 {
-        self.0.iter().map(Extent::size).sum()
+    fn size(&self) -> Size {
+        Size::try_sum(self.0.iter().map(Extent::size))
+            .expect("sum of sizes does not exceed maximum size")
     }
 }
 
@@ -172,18 +170,7 @@ where
     type Error = Error;
 
     fn try_from(segments: Vec<Segment<T>>) -> Result<Self, Self::Error> {
-        let size: u64 = segments.iter().map(Extent::size).sum();
-
-        if let Some(segment) = segments.last()
-            && segment.size() == 0
-            && size == u32::MAX as u64 + 1
-        {
-            return Err(Error::UnaddressableSegment(segments.len() - 1));
-        }
-
-        if size > u32::MAX as u64 + 1 {
-            return Err(Error::SizeTooLarge(size));
-        }
+        Size::try_sum(segments.iter().map(Extent::size))?;
 
         Ok(Self(segments))
     }
@@ -205,10 +192,9 @@ where
 mod tests {
     use bytes::Bytes;
 
-    use crate::memory::Extent;
     use crate::memory::address::Address;
+    use crate::memory::extent::{Extent, Size};
     use crate::memory::regions::unidentified::Unidentified;
-    use crate::memory::segmented::Segmented;
 
     use super::{Contiguous, Error, Segment};
 
@@ -216,8 +202,8 @@ mod tests {
     struct Node(u64);
 
     impl Extent for Node {
-        fn size(&self) -> u64 {
-            self.0
+        fn size(&self) -> Size {
+            Size::new(self.0).unwrap()
         }
     }
 
@@ -357,7 +343,7 @@ mod tests {
 
         assert_eq!(
             region.identify(Address::new(10), Node(1)),
-            Err(Error::OutOfBounds(Address::new(10), 10)),
+            Err(Error::OutOfBounds(Address::new(10), Size::new(10).unwrap())),
         );
         assert_eq!(region, original);
     }
@@ -369,25 +355,9 @@ mod tests {
 
         assert_eq!(
             region.identify(Address::new(8), Node(3)),
-            Err(Error::OutOfBounds(Address::new(8), 10))
+            Err(Error::OutOfBounds(Address::new(8), Size::new(10).unwrap()))
         );
         assert_eq!(region, original);
-    }
-
-    #[test]
-    fn identify_allows_empty_region_at_addressable_offset() {
-        let mut region = Contiguous::unidentified(initialized(b"0123456789"));
-
-        region.identify(Address::new(3), Node(0)).unwrap();
-
-        assert_eq!(
-            region,
-            contiguous([
-                Segment::unidentified(initialized(b"012")),
-                Segment::identified(Node(0)),
-                Segment::unidentified(initialized(b"3456789")),
-            ]),
-        );
     }
 
     #[test]
@@ -420,34 +390,5 @@ mod tests {
                 Segment::unidentified(uninitialized(2)),
             ]),
         );
-    }
-
-    #[test]
-    fn segments_select_skips_empty_markers_at_range_boundaries() {
-        let region = contiguous([
-            Segment::unidentified(initialized(b"aaaaa")),
-            Segment::identified(Node(0)),
-            Segment::unidentified(initialized(b"bbbbb")),
-            Segment::identified(Node(0)),
-            Segment::unidentified(initialized(b"ccccc")),
-        ]);
-
-        let start_indices = region
-            .segments()
-            .into_iter()
-            .select(Address::new(5), 5)
-            .map(|entry| entry.index())
-            .collect::<Vec<_>>();
-
-        assert_eq!(start_indices, [2]);
-
-        let crossing_indices = region
-            .segments()
-            .into_iter()
-            .select(Address::new(4), 2)
-            .map(|entry| entry.index())
-            .collect::<Vec<_>>();
-
-        assert_eq!(crossing_indices, [0, 1, 2]);
     }
 }

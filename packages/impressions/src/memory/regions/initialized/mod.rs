@@ -10,7 +10,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::Address;
-use crate::memory::{Extent, Slice, SliceBoundsError};
+use crate::memory::extent::{Extent, Size};
+use crate::memory::{Slice, SliceBoundsError};
 
 pub use self::error::Error;
 
@@ -23,15 +24,7 @@ pub struct Initialized(Bytes);
 impl Initialized {
     /// Constructs a new initialized memory region.
     pub fn new(bytes: Bytes) -> Result<Self, Error> {
-        let size = bytes.len() as u64;
-
-        if size == 0 {
-            return Err(Error::Empty);
-        }
-
-        if size > u32::MAX as u64 + 1 {
-            return Err(Error::SizeTooLarge(size));
-        }
+        Size::new(bytes.len() as u64)?;
 
         Ok(Self(bytes))
     }
@@ -47,15 +40,11 @@ impl Initialized {
 impl Slice for Initialized {
     type Error = Error;
 
-    fn slice(&self, address: Address, size: u64) -> Result<Self, Self::Error> {
-        if size == 0 {
-            return Err(Error::Empty);
-        }
-
+    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error> {
         let offset = address.value() as u64;
         let region_size = self.size();
 
-        if offset >= region_size || size > region_size - offset {
+        if offset >= region_size.get() || size.get() > region_size.get() - offset {
             return Err(Error::SliceBounds(SliceBoundsError {
                 address,
                 size,
@@ -63,15 +52,15 @@ impl Slice for Initialized {
             }));
         }
 
-        let end = offset + size;
+        let end = offset + size.get();
 
         Self::new(self.0.slice(offset as usize..end as usize))
     }
 }
 
 impl Extent for Initialized {
-    fn size(&self) -> u64 {
-        self.0.len() as u64
+    fn size(&self) -> Size {
+        Size::new(self.0.len() as u64).expect("valid size")
     }
 }
 
@@ -143,7 +132,8 @@ mod tests {
     use bytes::Bytes;
 
     use crate::memory::address::Address;
-    use crate::memory::{Extent, Slice, SliceBoundsError};
+    use crate::memory::extent::{Error as SizeError, Extent, Size};
+    use crate::memory::{Slice, SliceBoundsError};
 
     use super::{Error, Initialized};
 
@@ -158,23 +148,21 @@ mod tests {
 
     #[test]
     fn new_rejects_empty_bytes() {
-        assert_eq!(Initialized::new(Bytes::new()), Err(Error::Empty));
+        assert_eq!(
+            Initialized::new(Bytes::new()),
+            Err(Error::Size(SizeError::Zero))
+        );
     }
 
     #[test]
     fn slice_returns_requested_bytes() {
         let region = Initialized::new(Bytes::from_static(b"abcdefghij")).unwrap();
-        let slice = region.slice(Address::new(3), 4).unwrap();
+        let slice = region
+            .slice(Address::new(3), Size::new(4).unwrap())
+            .unwrap();
 
         assert_eq!(slice.bytes(), "defg");
         assert_eq!(slice.size(), 4);
-    }
-
-    #[test]
-    fn slice_rejects_empty_slice() {
-        let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
-
-        assert_eq!(region.slice(Address::new(2), 0), Err(Error::Empty));
     }
 
     #[test]
@@ -182,11 +170,11 @@ mod tests {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(4), 1),
+            region.slice(Address::new(4), Size::new(1).unwrap()),
             Err(Error::SliceBounds(SliceBoundsError {
                 address: Address::new(4),
-                size: 1,
-                region_size: 4,
+                size: Size::new(1).unwrap(),
+                region_size: Size::new(4).unwrap(),
             })),
         );
     }
@@ -196,11 +184,11 @@ mod tests {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(3), 2),
+            region.slice(Address::new(3), Size::new(2).unwrap()),
             Err(Error::SliceBounds(SliceBoundsError {
                 address: Address::new(3),
-                size: 2,
-                region_size: 4,
+                size: Size::new(2).unwrap(),
+                region_size: Size::new(4).unwrap(),
             })),
         );
     }

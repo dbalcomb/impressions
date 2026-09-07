@@ -1,14 +1,6 @@
 /// The unidentified region error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    /// The region cannot be empty.
-    #[error("the region cannot be empty")]
-    Empty,
-
-    /// The size of the unidentified region exceeds the maximum region size.
-    #[error("the region size {0} exceeds maximum {max}", max = u32::MAX as u64 + 1)]
-    SizeTooLarge(u64),
-
     /// The uninitialized region is not the last segment.
     #[error("the uninitialized region is not the last segment")]
     UninitializedNotLast,
@@ -16,6 +8,10 @@ pub enum Error {
     /// The uninitialized region is already present.
     #[error("the uninitialized region is already present")]
     UninitializedAlreadyPresent,
+
+    /// An invalid size was specified for the unidentified region.
+    #[error("invalid size")]
+    Size(#[from] crate::memory::extent::Error),
 
     /// The requested slice is outside the unidentified region.
     #[error(transparent)]

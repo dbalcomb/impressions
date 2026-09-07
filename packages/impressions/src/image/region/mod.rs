@@ -8,7 +8,7 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Extent;
+use crate::memory::extent::{Extent, Size};
 
 use self::headers::Headers;
 use self::section::Section;
@@ -64,7 +64,7 @@ impl Region {
 }
 
 impl Extent for Region {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         match self {
             Self::Headers(headers) => headers.size(),
             Self::Section(section) => section.size(),

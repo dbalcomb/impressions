@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
-use crate::memory::Extent;
+use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
@@ -51,7 +51,7 @@ impl Section {
 }
 
 impl Extent for Section {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         self.blocks.size()
     }
 }
@@ -76,7 +76,7 @@ impl Parse for Section {
 
     fn parse_with(mut buffer: impl Buf, section: Self::Context<'_>) -> Result<Self, Self::Error> {
         if section.section_size() == 0 {
-            return Err(Error::EmptySection);
+            return Err(Error::Size(SizeError::Zero));
         }
 
         if buffer.remaining() < section.file_size() {

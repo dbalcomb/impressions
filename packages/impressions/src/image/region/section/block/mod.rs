@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::image::Padding;
-use crate::memory::Extent;
+use crate::memory::extent::{Extent, Size};
 
 /// A block of memory within a section.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,7 +18,7 @@ pub enum Block {
 
 impl Block {
     /// Constructs a new padding block.
-    pub fn padding(size: u64, value: u8) -> Self {
+    pub fn padding(size: Size, value: u8) -> Self {
         Self::Padding(Padding::new(size, value))
     }
 }
@@ -40,7 +40,7 @@ impl Block {
 }
 
 impl Extent for Block {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         match self {
             Self::Padding(padding) => padding.size(),
         }

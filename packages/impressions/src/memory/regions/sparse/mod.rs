@@ -9,35 +9,35 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::Slice;
 use crate::memory::address::Address;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::uninitialized::Uninitialized;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Extent, Slice};
 
 pub use self::error::Error;
 pub use self::segment::Segment;
 
 /// A sparse region of memory composed of occupied and/or vacant segments.
-#[derive(Clone, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Sparse<T>(Vec<Segment<T>>);
 
 impl<T> Sparse<T> {
     /// Constructs a new sparse region with the given size.
-    pub fn new(size: u64) -> Result<Self, Error> {
-        match size {
-            0 => Ok(Self(Vec::new())),
-            size => Ok(Self::vacant(Uninitialized::new(size)?)),
-        }
+    pub fn new(size: Size) -> Self {
+        Self::vacant(Uninitialized::new(size))
     }
 
     /// Constructs a new sparse region from an uninitialized region.
     pub fn vacant(uninitialized: Uninitialized) -> Self {
-        match uninitialized.size() {
-            0 => Self(Vec::new()),
-            _ => Self(vec![Segment::Vacant(uninitialized)]),
-        }
+        Self(vec![Segment::Vacant(uninitialized)])
+    }
+
+    /// Constructs a new sparse region with the given size value.
+    pub fn from_size_value(size: u64) -> Result<Self, Error> {
+        Ok(Self::new(Size::new(size)?))
     }
 
     /// Constructs a new sparse region from an iterator of segments.
@@ -58,20 +58,15 @@ where
         let region_size = region.size();
         let total_size = self.size();
         let end = u64::from(address.value())
-            .checked_add(region_size)
-            .filter(|&end| end <= total_size)
+            .checked_add(region_size.get())
+            .filter(|&end| end <= total_size.get())
             .ok_or(Error::OutOfBounds(address, total_size))?;
 
         let mut selected = self.segments().into_iter().select(address, region.size());
 
-        let first = if region.size() == 0 {
-            self.get(address)
-                .ok_or(Error::OutOfBounds(address, self.size()))?
-        } else {
-            selected
-                .next()
-                .ok_or(Error::OutOfBounds(address, self.size()))?
-        };
+        let first = selected
+            .next()
+            .ok_or(Error::OutOfBounds(address, total_size))?;
 
         if first.is_occupied() {
             return Err(Error::AlreadyOccupied(first.index()));
@@ -96,17 +91,18 @@ where
             .then(|| {
                 first_vacant.slice(
                     Address::new(0),
-                    u64::from(address.value() - first.address().value()),
+                    Size::new(u64::from(address.value() - first.address().value()))
+                        .expect("valid size"),
                 )
             })
             .transpose()?;
 
         let after_offset = end - u64::from(last.address().value());
-        let after = (after_offset < last.size())
+        let after = (after_offset < last.size().get())
             .then(|| {
                 last_vacant.slice(
                     Address::new(after_offset as u32),
-                    last.size() - after_offset,
+                    Size::new(last.size().get() - after_offset).expect("valid size"),
                 )
             })
             .transpose()?;
@@ -127,8 +123,9 @@ impl<T> Extent for Sparse<T>
 where
     T: Extent,
 {
-    fn size(&self) -> u64 {
-        self.0.iter().map(Extent::size).sum()
+    fn size(&self) -> Size {
+        Size::try_sum(self.0.iter().map(Extent::size))
+            .expect("sum of sizes does not exceed maximum size")
     }
 }
 
@@ -176,21 +173,8 @@ where
 {
     type Error = Error;
 
-    fn try_from(mut segments: Vec<Segment<T>>) -> Result<Self, Self::Error> {
-        let size: u64 = segments.iter().map(Extent::size).sum();
-
-        segments.retain(|segment| segment.is_occupied() || segment.size() > 0);
-
-        if let Some(segment) = segments.last()
-            && segment.size() == 0
-            && size == u32::MAX as u64 + 1
-        {
-            return Err(Error::UnaddressableSegment(segments.len() - 1));
-        }
-
-        if size > u32::MAX as u64 + 1 {
-            return Err(Error::SizeTooLarge(size));
-        }
+    fn try_from(segments: Vec<Segment<T>>) -> Result<Self, Self::Error> {
+        Size::try_sum(segments.iter().map(Extent::size))?;
 
         Ok(Self(segments))
     }
@@ -210,10 +194,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::memory::Extent;
     use crate::memory::address::Address;
+    use crate::memory::extent::{Extent, Size};
     use crate::memory::regions::uninitialized::Uninitialized;
-    use crate::memory::segmented::Segmented;
 
     use super::{Error, Segment, Sparse};
 
@@ -221,13 +204,13 @@ mod tests {
     struct Node(u64);
 
     impl Extent for Node {
-        fn size(&self) -> u64 {
-            self.0
+        fn size(&self) -> Size {
+            Size::new(self.0).unwrap()
         }
     }
 
     fn uninitialized(size: u64) -> Uninitialized {
-        Uninitialized::new(size).unwrap()
+        Uninitialized::new(Size::new(size).unwrap())
     }
 
     fn sparse(segments: impl IntoIterator<Item = Segment<Node>>) -> Sparse<Node> {
@@ -236,7 +219,7 @@ mod tests {
 
     #[test]
     fn insert_splits_single_vacant_segment() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
 
         region.insert(Address::new(3), Node(4)).unwrap();
 
@@ -252,7 +235,7 @@ mod tests {
 
     #[test]
     fn insert_at_segment_start_omits_empty_prefix() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
 
         region.insert(Address::new(0), Node(3)).unwrap();
 
@@ -267,7 +250,7 @@ mod tests {
 
     #[test]
     fn insert_at_segment_end_omits_empty_suffix() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
 
         region.insert(Address::new(7), Node(3)).unwrap();
 
@@ -282,7 +265,7 @@ mod tests {
 
     #[test]
     fn insert_replaces_entire_vacant_segment() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
 
         region.insert(Address::new(0), Node(10)).unwrap();
 
@@ -331,7 +314,7 @@ mod tests {
 
     #[test]
     fn insert_rejects_range_that_overlaps_occupied_segment() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
 
         region.insert(Address::new(3), Node(4)).unwrap();
 
@@ -346,70 +329,25 @@ mod tests {
 
     #[test]
     fn insert_rejects_out_of_bounds_start() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
         let original = region.clone();
 
         assert_eq!(
             region.insert(Address::new(10), Node(1)),
-            Err(Error::OutOfBounds(Address::new(10), 10)),
+            Err(Error::OutOfBounds(Address::new(10), Size::new(10).unwrap())),
         );
         assert_eq!(region, original);
     }
 
     #[test]
     fn insert_rejects_arange_that_extends_past_region() {
-        let mut region = Sparse::new(10).unwrap();
+        let mut region = Sparse::new(Size::new(10).unwrap());
         let original = region.clone();
 
         assert_eq!(
             region.insert(Address::new(8), Node(3)),
-            Err(Error::OutOfBounds(Address::new(8), 10))
+            Err(Error::OutOfBounds(Address::new(8), Size::new(10).unwrap()))
         );
         assert_eq!(region, original);
-    }
-
-    #[test]
-    fn insert_allows_empty_region_at_addressable_offset() {
-        let mut region = Sparse::new(10).unwrap();
-
-        region.insert(Address::new(3), Node(0)).unwrap();
-
-        assert_eq!(
-            region,
-            sparse([
-                Segment::vacant(uninitialized(3)),
-                Segment::occupied(Node(0)),
-                Segment::vacant(uninitialized(7)),
-            ]),
-        );
-    }
-
-    #[test]
-    fn segments_select_skips_empty_markers_at_range_boundaries() {
-        let region = sparse([
-            Segment::vacant(uninitialized(5)),
-            Segment::occupied(Node(0)),
-            Segment::vacant(uninitialized(5)),
-            Segment::occupied(Node(0)),
-            Segment::vacant(uninitialized(5)),
-        ]);
-
-        let start_indices = region
-            .segments()
-            .into_iter()
-            .select(Address::new(5), 5)
-            .map(|entry| entry.index())
-            .collect::<Vec<_>>();
-
-        assert_eq!(start_indices, [2]);
-
-        let crossing_indices = region
-            .segments()
-            .into_iter()
-            .select(Address::new(4), 2)
-            .map(|entry| entry.index())
-            .collect::<Vec<_>>();
-
-        assert_eq!(crossing_indices, [0, 1, 2]);
     }
 }

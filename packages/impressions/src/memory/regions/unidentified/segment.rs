@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Extent;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
 
@@ -58,7 +58,7 @@ impl Segment {
 }
 
 impl Extent for Segment {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         match self {
             Self::Initialized(initialized) => initialized.size(),
             Self::Uninitialized(uninitialized) => uninitialized.size(),

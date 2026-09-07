@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
-use crate::memory::Extent;
 use crate::memory::address::Address;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::sparse::{Segment, Sparse};
 use crate::memory::segmented::{Segmented, Segments};
 
@@ -51,7 +51,7 @@ impl Image {
 }
 
 impl Extent for Image {
-    fn size(&self) -> u64 {
+    fn size(&self) -> Size {
         self.regions.size()
     }
 }
@@ -77,8 +77,8 @@ impl Parse for Image {
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
 
-        let mut regions = Sparse::new(headers.optional().image_size())?;
-        let mut position = headers.size() as usize;
+        let mut regions = Sparse::from_size_value(headers.optional().image_size())?;
+        let mut position = headers.size().get() as usize;
 
         for section_header in headers.sections() {
             buffer.advance(section_header.file_offset() - position);
