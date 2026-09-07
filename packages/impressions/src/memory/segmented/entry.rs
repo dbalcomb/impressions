@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use crate::memory::address::Address;
+use crate::memory::address::{Address, AddressSpace};
 use crate::memory::extent::Extent;
 
 /// A reference to a segment in a segmented region of memory.
@@ -69,12 +69,11 @@ impl<T> SegmentRef<'_, T>
 where
     T: Extent,
 {
-    /// Checks whether the given address is contained within the segment.
-    pub fn contains_address(&self, address: Address) -> bool {
-        let start = self.address().value() as u64;
-        let end = start + self.segment().size().get();
-
-        (address.value() as u64) >= start && (address.value() as u64) < end
+    /// Gets the address space of the referenced segment.
+    pub fn address_space(&self) -> AddressSpace {
+        self.address()
+            .to_space(self.segment.size())
+            .expect("valid address space")
     }
 }
 

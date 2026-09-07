@@ -37,7 +37,7 @@ where
     /// This method searches for the segment that contains the given address and
     /// stops iterating once it has been found.
     pub fn get(&mut self, address: Address) -> Option<SegmentRef<'a, T>> {
-        self.find(|segment| segment.contains_address(address))
+        self.find(|segment| segment.address_space().contains(address))
             .map(|segment| segment.with_offset_address(address))
     }
 
@@ -46,7 +46,7 @@ where
     /// This method searches for the segment that contains the given address and
     /// stops iterating once it has been found.
     pub fn get_back(&mut self, address: Address) -> Option<SegmentRef<'a, T>> {
-        self.rfind(|segment| segment.contains_address(address))
+        self.rfind(|segment| segment.address_space().contains(address))
             .map(|segment| segment.with_offset_address(address))
     }
 }
@@ -59,7 +59,7 @@ where
     pub fn select(self, address: Address, size: Size) -> impl Iterator<Item = SegmentRef<'a, T>> {
         let end = u64::from(address.value()).saturating_add(size.get());
 
-        self.skip_while(move |segment| !segment.contains_address(address))
+        self.skip_while(move |segment| !segment.address_space().contains(address))
             .take_while(move |segment| u64::from(segment.address().value()) < end)
     }
 }
