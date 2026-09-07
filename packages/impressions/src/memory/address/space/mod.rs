@@ -45,12 +45,8 @@ impl AddressSpace {
     ///
     /// This constructor errors if the given size is zero or would exceed the
     /// maximum address space.
-    pub const fn with_size(address: Address, size: u64) -> Result<Self, Error> {
-        if size == 0 || size > u32::MAX as u64 + 1 {
-            return Err(Error::Invalid);
-        }
-
-        match address.checked_add((size - 1) as u32) {
+    pub const fn with_size(address: Address, size: Size) -> Result<Self, Error> {
+        match address.checked_add((size.get() - 1) as u32) {
             Some(last) => Ok(Self(RangeInclusive {
                 start: address,
                 last,
@@ -245,10 +241,10 @@ impl TryFrom<(Address, Address)> for AddressSpace {
     }
 }
 
-impl TryFrom<(Address, u64)> for AddressSpace {
+impl TryFrom<(Address, Size)> for AddressSpace {
     type Error = Error;
 
-    fn try_from((address, size): (Address, u64)) -> Result<Self, Self::Error> {
+    fn try_from((address, size): (Address, Size)) -> Result<Self, Self::Error> {
         Self::with_size(address, size)
     }
 }
@@ -322,6 +318,8 @@ impl<'de> Deserialize<'de> for AddressSpace {
 
 #[cfg(test)]
 mod tests {
+    use crate::memory::extent::Size;
+
     use super::{Address, AddressSpace, Error};
 
     #[test]
@@ -344,36 +342,31 @@ mod tests {
 
     #[test]
     fn test_with_size() {
-        let address = AddressSpace::with_size(0.into(), 1).unwrap();
+        let address = AddressSpace::with_size(0.into(), Size::new(1).unwrap()).unwrap();
 
         assert_eq!(address.first(), Address::new(0));
         assert_eq!(address.last(), Address::new(0));
 
-        let address = AddressSpace::with_size(0.into(), 100).unwrap();
+        let address = AddressSpace::with_size(0.into(), Size::new(100).unwrap()).unwrap();
 
         assert_eq!(address.first(), Address::new(0));
         assert_eq!(address.last(), Address::new(99));
 
-        let address = AddressSpace::with_size(10.into(), 100).unwrap();
+        let address = AddressSpace::with_size(10.into(), Size::new(100).unwrap()).unwrap();
 
         assert_eq!(address.first(), Address::new(10));
         assert_eq!(address.last(), Address::new(109));
 
-        let address = AddressSpace::with_size(0.into(), u32::MAX as u64).unwrap();
+        let address =
+            AddressSpace::with_size(0.into(), Size::MAX.checked_sub_value(1).unwrap()).unwrap();
 
         assert_eq!(address.first(), Address::new(0));
         assert_eq!(address.last(), Address::new(u32::MAX - 1));
 
-        let address = AddressSpace::with_size(0.into(), u32::MAX as u64 + 1).unwrap();
+        let address = AddressSpace::with_size(0.into(), Size::MAX).unwrap();
 
         assert_eq!(address.first(), Address::new(0));
         assert_eq!(address.last(), Address::new(u32::MAX));
-
-        assert_eq!(AddressSpace::with_size(10.into(), 0), Err(Error::Invalid));
-        assert_eq!(
-            AddressSpace::with_size(10.into(), u32::MAX as u64),
-            Err(Error::Invalid)
-        );
     }
 
     #[test]
