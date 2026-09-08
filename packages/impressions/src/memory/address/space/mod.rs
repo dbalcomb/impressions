@@ -228,6 +228,10 @@ impl Extent for AddressSpace {
     fn size(&self) -> Size {
         self.size()
     }
+
+    fn address_space(&self) -> AddressSpace {
+        *self
+    }
 }
 
 impl Sub for AddressSpace {
