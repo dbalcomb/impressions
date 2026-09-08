@@ -1,8 +1,11 @@
+//! Memory address space representation and manipulation.
+
 mod error;
+mod subtraction;
 
 use core::range::RangeInclusive;
 use std::fmt::{self, Debug, Display};
-use std::ops::{Bound, RangeBounds};
+use std::ops::{Bound, RangeBounds, Sub};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -11,6 +14,7 @@ use crate::memory::extent::{Extent, Size};
 use super::Address;
 
 pub use self::error::Error;
+pub use self::subtraction::{Subtraction, SubtractionIter};
 
 /// Represents an address space in memory.
 ///
@@ -171,6 +175,11 @@ impl AddressSpace {
         Self(RangeInclusive { start, last })
     }
 
+    /// Subtracts the given address space from this address space.
+    pub const fn subtract(self, other: Self) -> Subtraction {
+        Subtraction::new(self, other)
+    }
+
     /// Checks whether the address space is adjacent before another.
     pub const fn is_adjacent_before(&self, other: Self) -> bool {
         match self.next() {
@@ -203,6 +212,14 @@ impl AddressSpace {
 impl Extent for AddressSpace {
     fn size(&self) -> Size {
         self.size()
+    }
+}
+
+impl Sub for AddressSpace {
+    type Output = Subtraction;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.subtract(rhs)
     }
 }
 

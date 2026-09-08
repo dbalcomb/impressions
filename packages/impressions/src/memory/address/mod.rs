@@ -1,6 +1,6 @@
 //! Memory address representation and manipulation.
 
-mod space;
+pub mod space;
 
 use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Sub};
@@ -10,9 +10,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 
-pub use self::space::{AddressSpace, Error as AddressSpaceError};
-
 use super::extent::Size;
+
+use self::space::Error;
+
+pub use self::space::AddressSpace;
 
 /// Represents an address in memory.
 ///
@@ -59,7 +61,7 @@ impl Address {
     }
 
     /// Constructs an address space of the given size from this address.
-    pub const fn to_space(self, size: Size) -> Result<AddressSpace, AddressSpaceError> {
+    pub const fn to_space(self, size: Size) -> Result<AddressSpace, Error> {
         AddressSpace::with_size(self, size)
     }
 }
