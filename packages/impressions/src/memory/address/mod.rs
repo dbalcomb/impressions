@@ -77,6 +77,18 @@ impl Address {
 }
 
 impl Address {
+    /// Gets the next address.
+    pub const fn next(self) -> Option<Self> {
+        self.checked_add(1)
+    }
+
+    /// Gets the previous address.
+    pub const fn prev(self) -> Option<Self> {
+        self.checked_sub(1)
+    }
+}
+
+impl Address {
     /// Adds the given offset, returning `None` if overflow occurred.
     pub const fn checked_add(self, offset: u32) -> Option<Self> {
         match self.0.checked_add(offset) {
