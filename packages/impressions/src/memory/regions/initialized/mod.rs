@@ -9,9 +9,9 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::Address;
+use crate::memory::address::AddressSpace;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::{Slice, SliceBoundsError};
+use crate::memory::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
 
@@ -40,21 +40,17 @@ impl Initialized {
 impl Slice for Initialized {
     type Error = Error;
 
-    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error> {
-        let offset = address.value() as u64;
-        let region_size = self.size();
+    fn slice(&self, address_space: AddressSpace) -> Result<Self, Self::Error> {
+        let region_address_space = self.address_space();
 
-        if offset >= region_size.get() || size.get() > region_size.get() - offset {
-            return Err(Error::SliceBounds(SliceBoundsError {
-                address,
-                size,
-                region_size,
-            }));
+        if !region_address_space.includes(address_space) {
+            return Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region_address_space,
+            )));
         }
 
-        let end = offset + size.get();
-
-        Self::new(self.0.slice(offset as usize..end as usize))
+        Self::new(self.0.slice(address_space.to_index_range()))
     }
 }
 
@@ -133,7 +129,7 @@ mod tests {
 
     use crate::memory::address::Address;
     use crate::memory::extent::{Error as SizeError, Extent, Size};
-    use crate::memory::{Slice, SliceBoundsError};
+    use crate::memory::slice::{Error as SliceError, Slice};
 
     use super::{Error, Initialized};
 
@@ -158,7 +154,7 @@ mod tests {
     fn slice_returns_requested_bytes() {
         let region = Initialized::new(Bytes::from_static(b"abcdefghij")).unwrap();
         let slice = region
-            .slice(Address::new(3), Size::new(4).unwrap())
+            .slice(Address::new(3).to_space(Size::new(4).unwrap()).unwrap())
             .unwrap();
 
         assert_eq!(slice.bytes(), "defg");
@@ -168,28 +164,28 @@ mod tests {
     #[test]
     fn slice_rejects_address_at_exclusive_end() {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
+        let address_space = Address::new(4).to_space(Size::new(1).unwrap()).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(4), Size::new(1).unwrap()),
-            Err(Error::SliceBounds(SliceBoundsError {
-                address: Address::new(4),
-                size: Size::new(1).unwrap(),
-                region_size: Size::new(4).unwrap(),
-            })),
+            region.slice(address_space),
+            Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region.address_space(),
+            ))),
         );
     }
 
     #[test]
     fn slice_rejects_slice_past_end() {
         let region = Initialized::new(Bytes::from_static(b"abcd")).unwrap();
+        let address_space = Address::new(3).to_space(Size::new(2).unwrap()).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(3), Size::new(2).unwrap()),
-            Err(Error::SliceBounds(SliceBoundsError {
-                address: Address::new(3),
-                size: Size::new(2).unwrap(),
-                region_size: Size::new(4).unwrap(),
-            })),
+            region.slice(address_space),
+            Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region.address_space(),
+            ))),
         );
     }
 }

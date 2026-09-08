@@ -1,8 +1,8 @@
 use std::iter::{Enumerate, FusedIterator};
 use std::slice::Iter as SliceIter;
 
-use crate::memory::address::Address;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::address::{Address, AddressSpace};
+use crate::memory::extent::Extent;
 
 use super::SegmentRef;
 
@@ -55,12 +55,10 @@ impl<'a, T> SegmentsIter<'a, T>
 where
     T: Extent,
 {
-    /// Selects the segments that overlap with the given address and size.
-    pub fn select(self, address: Address, size: Size) -> impl Iterator<Item = SegmentRef<'a, T>> {
-        let end = u64::from(address.value()).saturating_add(size.get());
-
-        self.skip_while(move |segment| !segment.address_space().contains(address))
-            .take_while(move |segment| u64::from(segment.address().value()) < end)
+    /// Selects the segments that overlap with the given address space.
+    pub fn select(self, address_space: AddressSpace) -> impl Iterator<Item = SegmentRef<'a, T>> {
+        self.skip_while(move |segment| !segment.address_space().contains(address_space.first()))
+            .take_while(move |segment| segment.address() <= address_space.last())
     }
 }
 

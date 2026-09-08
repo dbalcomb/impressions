@@ -5,7 +5,7 @@ pub enum Error {
     #[error("invalid size")]
     Size(#[from] crate::memory::extent::Error),
 
-    /// The requested slice is outside the initialized region.
-    #[error(transparent)]
-    SliceBounds(#[from] crate::memory::SliceBoundsError),
+    /// The requested slice is invalid.
+    #[error("invalid slice")]
+    Slice(#[from] crate::memory::slice::Error),
 }

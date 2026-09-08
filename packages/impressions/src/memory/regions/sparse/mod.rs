@@ -4,12 +4,12 @@ mod error;
 mod segment;
 
 use std::fmt::{self, Debug};
+use std::iter::once;
 
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Slice;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::uninitialized::Uninitialized;
@@ -55,65 +55,52 @@ where
 {
     /// Inserts a region into a vacant space.
     pub fn insert(&mut self, address: Address, region: T) -> Result<(), Error> {
-        let region_size = region.size();
-        let total_size = self.size();
-        let end = u64::from(address.value())
-            .checked_add(region_size.get())
-            .filter(|&end| end <= total_size.get())
-            .ok_or(Error::OutOfBounds(address, total_size))?;
+        let address_space = self.address_space();
+        let region_address_space = address.to_space(region.size())?;
 
-        let mut selected = self.segments().into_iter().select(address, region.size());
+        if !self.address_space().includes(region_address_space) {
+            return Err(Error::OutOfBounds(region_address_space, address_space));
+        }
+
+        let mut selected = self.segments().into_iter().select(region_address_space);
 
         let first = selected
             .next()
-            .ok_or(Error::OutOfBounds(address, total_size))?;
+            .expect("a contained address space starts in a segment");
 
         if first.is_occupied() {
             return Err(Error::AlreadyOccupied(first.index()));
         }
 
-        let mut last = None;
+        let mut last = first.clone();
 
-        for entry in selected {
-            if entry.is_occupied() {
-                return Err(Error::AlreadyOccupied(entry.index()));
+        for segment in selected {
+            if segment.is_occupied() {
+                return Err(Error::AlreadyOccupied(segment.index()));
             }
 
-            last = Some(entry);
+            last = segment;
         }
 
-        let last = last.as_ref().unwrap_or(&first);
+        let before = first
+            .address_space()
+            .subtract(region_address_space)
+            .before()
+            .map(|address_space| Segment::vacant(Uninitialized::new(address_space.size())));
 
-        let first_vacant = first.as_vacant().expect("occupied segments were rejected");
-        let last_vacant = last.as_vacant().expect("occupied segments were rejected");
+        let after = last
+            .address_space()
+            .subtract(region_address_space)
+            .after()
+            .map(|address_space| Segment::vacant(Uninitialized::new(address_space.size())));
 
-        let before = (address > first.address())
-            .then(|| {
-                first_vacant.slice(
-                    Address::new(0),
-                    Size::new(u64::from(address.value() - first.address().value()))
-                        .expect("valid size"),
-                )
-            })
-            .transpose()?;
-
-        let after_offset = end - u64::from(last.address().value());
-        let after = (after_offset < last.size().get())
-            .then(|| {
-                last_vacant.slice(
-                    Address::new(after_offset as u32),
-                    Size::new(last.size().get() - after_offset).expect("valid size"),
-                )
-            })
-            .transpose()?;
-
-        let replacement = before
-            .into_iter()
-            .map(Segment::vacant)
-            .chain(std::iter::once(Segment::occupied(region)))
-            .chain(after.into_iter().map(Segment::vacant));
-
-        self.0.splice(first.index()..=last.index(), replacement);
+        self.0.splice(
+            first.index()..=last.index(),
+            before
+                .into_iter()
+                .chain(once(Segment::occupied(region)))
+                .chain(after),
+        );
 
         Ok(())
     }
@@ -194,7 +181,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::memory::address::Address;
+    use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
     use crate::memory::regions::uninitialized::Uninitialized;
 
@@ -334,7 +321,10 @@ mod tests {
 
         assert_eq!(
             region.insert(Address::new(10), Node(1)),
-            Err(Error::OutOfBounds(Address::new(10), Size::new(10).unwrap())),
+            Err(Error::OutOfBounds(
+                AddressSpace::new(Address::new(10), Address::new(10)).unwrap(),
+                AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
+            )),
         );
         assert_eq!(region, original);
     }
@@ -346,7 +336,10 @@ mod tests {
 
         assert_eq!(
             region.insert(Address::new(8), Node(3)),
-            Err(Error::OutOfBounds(Address::new(8), Size::new(10).unwrap()))
+            Err(Error::OutOfBounds(
+                AddressSpace::new(Address::new(8), Address::new(10)).unwrap(),
+                AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
+            ))
         );
         assert_eq!(region, original);
     }

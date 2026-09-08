@@ -4,16 +4,17 @@ mod error;
 mod segment;
 
 use std::fmt::{self, Debug};
+use std::iter::once;
 
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::Slice;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::slice::Slice;
 
 pub use self::error::Error;
 pub use self::segment::Segment;
@@ -46,34 +47,32 @@ where
 {
     /// Identifies the segment at the given address as the provided region.
     pub fn identify(&mut self, address: Address, region: T) -> Result<(), Error> {
-        let region_size = region.size();
-        let total_size = self.size();
-        let end = u64::from(address.value())
-            .checked_add(region_size.get())
-            .filter(|&end| end <= total_size.get())
-            .ok_or(Error::OutOfBounds(address, total_size))?;
+        let address_space = self.address_space();
+        let region_address_space = address.to_space(region.size())?;
 
-        let mut selected = self.segments().into_iter().select(address, region.size());
+        if !address_space.includes(region_address_space) {
+            return Err(Error::OutOfBounds(region_address_space, address_space));
+        }
+
+        let mut selected = self.segments().into_iter().select(region_address_space);
 
         let first = selected
             .next()
-            .ok_or(Error::OutOfBounds(address, total_size))?;
+            .expect("a contained address space starts in a segment");
 
         if first.is_identified() {
             return Err(Error::AlreadyIdentified(first.index()));
         }
 
-        let mut last = None;
+        let mut last = first.clone();
 
-        for entry in selected {
-            if entry.is_identified() {
-                return Err(Error::AlreadyIdentified(entry.index()));
+        for segment in selected {
+            if segment.is_identified() {
+                return Err(Error::AlreadyIdentified(segment.index()));
             }
 
-            last = Some(entry);
+            last = segment;
         }
-
-        let last = last.as_ref().unwrap_or(&first);
 
         let first_unidentified = first
             .as_unidentified()
@@ -83,33 +82,43 @@ where
             .as_unidentified()
             .expect("identified segments were rejected");
 
-        let before = (address > first.address())
-            .then(|| {
-                first_unidentified.slice(
-                    Address::new(0),
-                    Size::new(u64::from(address.value() - first.address().value()))
-                        .expect("valid size"),
-                )
+        let first_address_space = first.address_space();
+        let before = first_address_space
+            .subtract(region_address_space)
+            .before()
+            .map(|address_space| {
+                first_unidentified
+                    .slice(address_space.size().to_address_space())
+                    .map(Segment::unidentified)
             })
             .transpose()?;
 
-        let after_offset = end - u64::from(last.address().value());
-        let after = (after_offset < last.size().get())
-            .then(|| {
-                last_unidentified.slice(
-                    Address::new(after_offset as u32),
-                    Size::new(last.size().get() - after_offset).expect("valid size"),
-                )
+        let last_address_space = last.address_space();
+        let after = last_address_space
+            .subtract(region_address_space)
+            .after()
+            .map(|address_space| {
+                let offset = last_address_space
+                    .get_offset_at(address_space.first())
+                    .expect("subtraction result is within the final segment");
+
+                let local_address_space = Address::new(offset)
+                    .to_space(address_space.size())
+                    .expect("a subspace of a valid address space is valid");
+
+                last_unidentified
+                    .slice(local_address_space)
+                    .map(Segment::unidentified)
             })
             .transpose()?;
 
-        let replacement = before
-            .into_iter()
-            .map(Segment::unidentified)
-            .chain(std::iter::once(Segment::identified(region)))
-            .chain(after.into_iter().map(Segment::unidentified));
-
-        self.0.splice(first.index()..=last.index(), replacement);
+        self.0.splice(
+            first.index()..=last.index(),
+            before
+                .into_iter()
+                .chain(once(Segment::identified(region)))
+                .chain(after),
+        );
 
         Ok(())
     }
@@ -192,7 +201,7 @@ where
 mod tests {
     use bytes::Bytes;
 
-    use crate::memory::address::Address;
+    use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
     use crate::memory::regions::unidentified::Unidentified;
 
@@ -343,7 +352,10 @@ mod tests {
 
         assert_eq!(
             region.identify(Address::new(10), Node(1)),
-            Err(Error::OutOfBounds(Address::new(10), Size::new(10).unwrap())),
+            Err(Error::OutOfBounds(
+                AddressSpace::new(Address::new(10), Address::new(10)).unwrap(),
+                AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
+            )),
         );
         assert_eq!(region, original);
     }
@@ -355,7 +367,10 @@ mod tests {
 
         assert_eq!(
             region.identify(Address::new(8), Node(3)),
-            Err(Error::OutOfBounds(Address::new(8), Size::new(10).unwrap()))
+            Err(Error::OutOfBounds(
+                AddressSpace::new(Address::new(8), Address::new(10)).unwrap(),
+                AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
+            ))
         );
         assert_eq!(region, original);
     }

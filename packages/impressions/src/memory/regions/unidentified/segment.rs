@@ -3,9 +3,13 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::address::AddressSpace;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
+use crate::memory::slice::Slice;
+
+use super::Error;
 
 /// A segment in an unidentified region of memory.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +58,21 @@ impl Segment {
     /// Checks whether the segment is uninitialized.
     pub const fn is_uninitialized(&self) -> bool {
         matches!(self, Self::Uninitialized(_))
+    }
+}
+
+impl Slice for Segment {
+    type Error = Error;
+
+    fn slice(&self, address_space: AddressSpace) -> Result<Self, Self::Error> {
+        match self {
+            Self::Initialized(initialized) => {
+                Ok(Self::Initialized(initialized.slice(address_space)?))
+            }
+            Self::Uninitialized(uninitialized) => {
+                Ok(Self::Uninitialized(uninitialized.slice(address_space)?))
+            }
+        }
     }
 }
 

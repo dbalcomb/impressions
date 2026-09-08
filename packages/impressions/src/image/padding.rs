@@ -3,9 +3,9 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::Address;
+use crate::memory::address::AddressSpace;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::{Slice, SliceBoundsError};
+use crate::memory::slice::{Error as SliceError, Slice};
 
 /// A region of padding.
 ///
@@ -45,21 +45,16 @@ impl Completion for Padding {
 }
 
 impl Slice for Padding {
-    type Error = SliceBoundsError;
+    type Error = SliceError;
 
-    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error> {
-        let offset = address.value() as u64;
-        let region_size = self.size();
+    fn slice(&self, address_space: AddressSpace) -> Result<Self, Self::Error> {
+        let region_address_space = self.address_space();
 
-        if offset >= region_size.get() || size.get() > region_size.get() - offset {
-            return Err(SliceBoundsError {
-                address,
-                size,
-                region_size,
-            });
+        if !region_address_space.includes(address_space) {
+            return Err(SliceError::OutOfBounds(address_space, region_address_space));
         }
 
-        Ok(Self::new(size, self.value()))
+        Ok(Self::new(address_space.size(), self.value()))
     }
 }
 
@@ -76,7 +71,7 @@ impl Debug for Padding {
 mod tests {
     use crate::memory::address::Address;
     use crate::memory::extent::{Extent, Size};
-    use crate::memory::{Slice, SliceBoundsError};
+    use crate::memory::slice::{Error as SliceError, Slice};
 
     use super::Padding;
 
@@ -84,7 +79,7 @@ mod tests {
     fn slice_preserves_padding_value() {
         let padding = Padding::new(Size::new(10).unwrap(), 0xcc);
         let slice = padding
-            .slice(Address::new(3), Size::new(4).unwrap())
+            .slice(Address::new(3).to_space(Size::new(4).unwrap()).unwrap())
             .unwrap();
 
         assert_eq!(slice.size(), 4);
@@ -94,28 +89,28 @@ mod tests {
     #[test]
     fn slice_rejects_address_at_exclusive_end() {
         let padding = Padding::new(Size::new(10).unwrap(), 0xcc);
+        let address_space = Address::new(10).to_space(Size::new(1).unwrap()).unwrap();
 
         assert_eq!(
-            padding.slice(Address::new(10), Size::new(1).unwrap()),
-            Err(SliceBoundsError {
-                address: Address::new(10),
-                size: Size::new(1).unwrap(),
-                region_size: Size::new(10).unwrap(),
-            }),
+            padding.slice(address_space),
+            Err(SliceError::OutOfBounds(
+                address_space,
+                padding.address_space(),
+            )),
         );
     }
 
     #[test]
     fn slice_rejects_range_that_extends_past_end() {
         let padding = Padding::new(Size::new(10).unwrap(), 0xcc);
+        let address_space = Address::new(8).to_space(Size::new(3).unwrap()).unwrap();
 
         assert_eq!(
-            padding.slice(Address::new(8), Size::new(3).unwrap()),
-            Err(SliceBoundsError {
-                address: Address::new(8),
-                size: Size::new(3).unwrap(),
-                region_size: Size::new(10).unwrap(),
-            }),
+            padding.slice(address_space),
+            Err(SliceError::OutOfBounds(
+                address_space,
+                padding.address_space(),
+            )),
         );
     }
 }
