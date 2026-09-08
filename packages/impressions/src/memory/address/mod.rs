@@ -65,6 +65,18 @@ impl Address {
 }
 
 impl Address {
+    /// Gets the minimum of two addresses.
+    pub const fn min(self, other: Self) -> Self {
+        if self.0 < other.0 { self } else { other }
+    }
+
+    /// Gets the maximum of two addresses.
+    pub const fn max(self, other: Self) -> Self {
+        if self.0 > other.0 { self } else { other }
+    }
+}
+
+impl Address {
     /// Adds the given offset, returning `None` if overflow occurred.
     pub const fn checked_add(self, offset: u32) -> Option<Self> {
         match self.0.checked_add(offset) {

@@ -150,19 +150,11 @@ impl AddressSpace {
 
     /// Computes the intersection of the address spaces.
     pub const fn intersection(&self, other: Self) -> Option<Self> {
-        let lf = self.first().value();
-        let rf = other.first().value();
-        let first = if lf > rf { lf } else { rf };
+        let start = self.first().max(other.first());
+        let last = self.last().min(other.last());
 
-        let ll = self.last().value();
-        let rl = other.last().value();
-        let last = if ll < rl { ll } else { rl };
-
-        if first <= last {
-            Some(Self(RangeInclusive {
-                start: Address::new(first),
-                last: Address::new(last),
-            }))
+        if start.value() <= last.value() {
+            Some(Self(RangeInclusive { start, last }))
         } else {
             None
         }
@@ -173,18 +165,10 @@ impl AddressSpace {
     /// This method constructs the smallest address space that contains both
     /// input address spaces.
     pub const fn union(&self, other: Self) -> Self {
-        let lf = self.first().value();
-        let rf = other.first().value();
-        let first = if lf < rf { lf } else { rf };
+        let start = self.first().min(other.first());
+        let last = self.last().max(other.last());
 
-        let ll = self.last().value();
-        let rl = other.last().value();
-        let last = if ll > rl { ll } else { rl };
-
-        Self(RangeInclusive {
-            start: Address::new(first),
-            last: Address::new(last),
-        })
+        Self(RangeInclusive { start, last })
     }
 
     /// Checks whether the address space is adjacent before another.
