@@ -193,6 +193,13 @@ impl AddressSpace {
     }
 }
 
+impl AddressSpace {
+    /// Rebases this address space to begin at the given address.
+    pub const fn rebase(self, address: Address) -> Result<Self, Error> {
+        Self::with_size(address, self.size())
+    }
+}
+
 impl Extent for AddressSpace {
     fn size(&self) -> Size {
         self.size()
