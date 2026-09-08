@@ -4,6 +4,8 @@ use std::num::NonZeroU32;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::memory::address::{Address, AddressSpace};
+
 use super::Error;
 
 /// Represents the size of a memory region.
@@ -112,6 +114,16 @@ impl Size {
         }
 
         Self::new(total)
+    }
+}
+
+impl Size {
+    /// Constructs an address space from the minimum address to the size.
+    pub const fn to_address_space(self) -> AddressSpace {
+        match AddressSpace::with_size(Address::MIN, self) {
+            Ok(address_space) => address_space,
+            Err(_) => panic!("invalid address space"),
+        }
     }
 }
 
