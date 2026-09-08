@@ -1,5 +1,6 @@
 use crate::memory::address::AddressSpace;
 
+/// The slice error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
     /// The requested slice is outside the source region.
