@@ -11,7 +11,7 @@ pub enum Error {
 
     /// An invalid section name was detected.
     #[error("invalid section name")]
-    InvalidSectionName(crate::data::types::array_string::Error),
+    InvalidSectionName(#[source] crate::data::types::array_string::Error),
 
     /// A problem was encountered parsing the image.
     #[error("parse error")]
