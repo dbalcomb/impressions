@@ -10,10 +10,10 @@ use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::Address;
+use crate::memory::address::{Address, AddressSpace};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::{Slice, SliceBoundsError};
+use crate::memory::slice::{Error as SliceError, Slice};
 
 use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
@@ -100,42 +100,38 @@ impl Unidentified {
 impl Slice for Unidentified {
     type Error = Error;
 
-    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error> {
-        let start = u64::from(address.value());
-        let region_size = self.size();
+    fn slice(&self, address_space: AddressSpace) -> Result<Self, Self::Error> {
+        let region_address_space = self.address_space();
 
-        if start >= region_size.get() || size.get() > region_size.get() - start {
-            return Err(Error::SliceBounds(SliceBoundsError {
-                address,
-                size,
-                region_size,
-            }));
+        if !region_address_space.includes(address_space) {
+            return Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region_address_space,
+            )));
         }
-
-        let end = start + size.get();
 
         let segments = self
             .segments()
             .into_iter()
-            .select(address, size)
-            .map(|entry| {
-                let segment_start = u64::from(entry.address().value());
-                let segment_end = segment_start + entry.size().get();
-                let slice_start = start.max(segment_start);
-                let slice_end = end.min(segment_end);
-                let slice_address = Address::new((slice_start - segment_start) as u32);
-                let slice_size = slice_end - slice_start;
+            .select(address_space)
+            .map(|segment| {
+                let segment_address_space = segment.address_space();
 
-                match entry.segment() {
-                    Segment::Initialized(initialized) => initialized
-                        .slice(slice_address, Size::new(slice_size).expect("valid size"))
-                        .map(Segment::initialized)
-                        .map_err(Error::from),
-                    Segment::Uninitialized(uninitialized) => uninitialized
-                        .slice(slice_address, Size::new(slice_size).expect("valid size"))
-                        .map(Segment::uninitialized)
-                        .map_err(Error::from),
-                }
+                let slice_address_space = segment_address_space
+                    .intersection(address_space)
+                    .expect("selected segments intersect the requested address space");
+
+                let local_start = Address::new(
+                    segment_address_space
+                        .get_offset_at(slice_address_space.first())
+                        .expect("intersection begins within its segment"),
+                );
+
+                let local_address_space = slice_address_space
+                    .rebase(local_start)
+                    .expect("a subspace of a valid segment fits in its local address space");
+
+                segment.segment().slice(local_address_space)
             })
             .collect::<Result<Vec<_>, Error>>()?;
 
@@ -216,9 +212,9 @@ impl TryFrom<Vec<Segment>> for Unidentified {
 mod tests {
     use bytes::Bytes;
 
-    use crate::memory::Slice;
     use crate::memory::address::Address;
     use crate::memory::extent::{Error as SizeError, Extent, Size};
+    use crate::memory::slice::Slice;
 
     use super::{Error, Initialized, Segment, Unidentified, Uninitialized};
 
@@ -261,7 +257,7 @@ mod tests {
             .unwrap();
 
         let slice = region
-            .slice(Address::new(1), Size::new(2).unwrap())
+            .slice(Address::new(1).to_space(Size::new(2).unwrap()).unwrap())
             .unwrap();
 
         assert_eq!(slice.initialized().next().unwrap().bytes(), "bc");
@@ -277,7 +273,7 @@ mod tests {
             .unwrap();
 
         let slice = region
-            .slice(Address::new(5), Size::new(3).unwrap())
+            .slice(Address::new(5).to_space(Size::new(3).unwrap()).unwrap())
             .unwrap();
 
         assert_eq!(slice.initialized().next(), None);
@@ -293,7 +289,7 @@ mod tests {
             .unwrap();
 
         let slice = region
-            .slice(Address::new(2), Size::new(6).unwrap())
+            .slice(Address::new(2).to_space(Size::new(6).unwrap()).unwrap())
             .unwrap();
 
         assert_eq!(slice.initialized().next().unwrap().bytes(), "cd");

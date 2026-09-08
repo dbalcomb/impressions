@@ -7,9 +7,9 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::memory::address::Address;
+use crate::memory::address::AddressSpace;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::{Slice, SliceBoundsError};
+use crate::memory::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
 
@@ -29,19 +29,17 @@ impl Uninitialized {
 impl Slice for Uninitialized {
     type Error = Error;
 
-    fn slice(&self, address: Address, size: Size) -> Result<Self, Self::Error> {
-        let offset = address.value() as u64;
-        let region_size = self.size();
+    fn slice(&self, address_space: AddressSpace) -> Result<Self, Self::Error> {
+        let region_address_space = self.address_space();
 
-        if offset >= region_size.get() || size.get() > region_size.get() - offset {
-            return Err(Error::SliceBounds(SliceBoundsError {
-                address,
-                size,
-                region_size,
-            }));
+        if !region_address_space.includes(address_space) {
+            return Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region_address_space,
+            )));
         }
 
-        Ok(Self::new(size))
+        Ok(Self::new(address_space.size()))
     }
 }
 
@@ -67,9 +65,9 @@ impl Debug for Uninitialized {
 
 #[cfg(test)]
 mod tests {
-    use crate::memory::address::Address;
-    use crate::memory::extent::Size;
-    use crate::memory::{Slice, SliceBoundsError};
+    use crate::memory::address::{Address, AddressSpace};
+    use crate::memory::extent::{Extent, Size};
+    use crate::memory::slice::{Error as SliceError, Slice};
 
     use super::{Error, Uninitialized};
 
@@ -82,15 +80,15 @@ mod tests {
         let region = Uninitialized::new(size(10));
 
         assert_eq!(
-            region.slice(Address::new(0), size(10)),
+            region.slice(Address::new(0).to_space(size(10)).unwrap()),
             Ok(Uninitialized::new(size(10)))
         );
         assert_eq!(
-            region.slice(Address::new(3), size(4)),
+            region.slice(Address::new(3).to_space(size(4)).unwrap()),
             Ok(Uninitialized::new(size(4)))
         );
         assert_eq!(
-            region.slice(Address::new(9), size(1)),
+            region.slice(Address::new(9).to_space(size(1)).unwrap()),
             Ok(Uninitialized::new(size(1)))
         );
     }
@@ -98,61 +96,57 @@ mod tests {
     #[test]
     fn slice_rejects_address_at_exclusive_end() {
         let region = Uninitialized::new(size(10));
+        let address_space = Address::new(10).to_space(size(1)).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(10), size(1)),
-            Err(Error::SliceBounds(SliceBoundsError {
-                address: Address::new(10),
-                size: size(1),
-                region_size: size(10),
-            })),
+            region.slice(address_space),
+            Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region.address_space(),
+            ))),
         );
     }
 
     #[test]
     fn slice_rejects_address_past_end() {
         let region = Uninitialized::new(size(10));
+        let address_space = Address::new(11).to_space(size(1)).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(11), size(1)),
-            Err(Error::SliceBounds(SliceBoundsError {
-                address: Address::new(11),
-                size: size(1),
-                region_size: size(10),
-            })),
+            region.slice(address_space),
+            Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region.address_space(),
+            ))),
         );
     }
 
     #[test]
     fn slice_rejects_size_past_end() {
         let region = Uninitialized::new(size(10));
+        let address_space = Address::new(8).to_space(size(3)).unwrap();
 
         assert_eq!(
-            region.slice(Address::new(8), size(3)),
-            Err(Error::SliceBounds(SliceBoundsError {
-                address: Address::new(8),
-                size: size(3),
-                region_size: size(10),
-            })),
+            region.slice(address_space),
+            Err(Error::Slice(SliceError::OutOfBounds(
+                address_space,
+                region.address_space(),
+            ))),
         );
     }
 
     #[test]
     fn slice_supports_full_address_space() {
-        let region = Uninitialized::new(size(u32::MAX as u64 + 1));
+        let region = Uninitialized::new(Size::MAX);
 
         assert_eq!(
-            region.slice(Address::new(u32::MAX), size(1)),
+            region.slice(Address::new(u32::MAX).to_space(size(1)).unwrap()),
             Ok(Uninitialized::new(size(1))),
         );
 
         assert_eq!(
-            region.slice(Address::new(u32::MAX), size(2)),
-            Err(Error::SliceBounds(SliceBoundsError {
-                address: Address::new(u32::MAX),
-                size: size(2),
-                region_size: size(u32::MAX as u64 + 1),
-            })),
+            region.slice(AddressSpace::default()),
+            Ok(Uninitialized::new(Size::MAX)),
         );
     }
 }
