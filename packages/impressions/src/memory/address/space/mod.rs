@@ -93,12 +93,12 @@ impl AddressSpace {
 
     /// Gets the previous address before this address space.
     pub const fn prev(&self) -> Option<Address> {
-        self.first().checked_sub(1)
+        self.first().prev()
     }
 
     /// Gets the next address after this address space.
     pub const fn next(&self) -> Option<Address> {
-        self.last().checked_add(1)
+        self.last().next()
     }
 
     /// Gets the size of this address space.
