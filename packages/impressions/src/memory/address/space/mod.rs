@@ -209,6 +209,21 @@ impl AddressSpace {
     }
 }
 
+impl AddressSpace {
+    /// Converts the address space into a range.
+    pub const fn to_range(self) -> impl RangeBounds<Address> {
+        self.0
+    }
+
+    /// Converts the address space into a range for indexing and slicing.
+    pub const fn to_index_range(self) -> impl RangeBounds<usize> {
+        let first = self.first().value() as usize;
+        let last = self.last().value() as usize;
+
+        first..=last
+    }
+}
+
 impl Extent for AddressSpace {
     fn size(&self) -> Size {
         self.size()
