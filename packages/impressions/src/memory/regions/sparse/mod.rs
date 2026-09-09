@@ -1,5 +1,6 @@
 //! A sparse region of memory.
 
+mod cursor;
 mod error;
 mod segment;
 
@@ -15,6 +16,7 @@ use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::uninitialized::Uninitialized;
 use crate::memory::segmented::{Segmented, Segments};
 
+pub use self::cursor::SegmentCursor;
 pub use self::error::Error;
 pub use self::segment::Segment;
 

@@ -1,5 +1,6 @@
 //! A region of unidentified bytes.
 
+mod cursor;
 mod error;
 mod segment;
 
@@ -11,13 +12,15 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::{Address, AddressSpace};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::segmented::{Segmented, Segments, SegmentsCursor};
 use crate::memory::slice::{Error as SliceError, Slice};
 
 use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
 
+pub use self::cursor::SegmentCursor;
 pub use self::error::Error;
 pub use self::segment::Segment;
 
@@ -175,6 +178,17 @@ impl<'de> Deserialize<'de> for Unidentified {
         D: Deserializer<'de>,
     {
         Self::try_from(<Vec<Segment>>::deserialize(deserializer)?).map_err(D::Error::custom)
+    }
+}
+
+impl AsCursor for Unidentified {
+    #[rustfmt::skip]
+    type Cursor<'a> = SegmentsCursor<'a, Segment>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SegmentsCursor::new(self.segments())
     }
 }
 

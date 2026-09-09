@@ -3,8 +3,11 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::uninitialized::Uninitialized;
+
+use super::SegmentCursor;
 
 /// A segment in a sparse region of memory.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,6 +91,23 @@ where
         match self {
             Self::Occupied(occupied) => Debug::fmt(occupied, f),
             Self::Vacant(vacant) => Debug::fmt(vacant, f),
+        }
+    }
+}
+
+impl<T> AsCursor for Segment<T>
+where
+    T: AsCursor,
+{
+    #[rustfmt::skip]
+    type Cursor<'a> = SegmentCursor<'a, T>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        match self {
+            Self::Occupied(occupied) => SegmentCursor::Occupied(occupied.cursor()),
+            Self::Vacant(vacant) => SegmentCursor::Vacant(vacant.cursor()),
         }
     }
 }

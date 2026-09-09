@@ -10,6 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::slice::{Error as SliceError, Slice};
 
@@ -106,6 +107,17 @@ impl<'de> Deserialize<'de> for Initialized {
         D: Deserializer<'de>,
     {
         Self::new(Bytes::deserialize(deserializer)?).map_err(D::Error::custom)
+    }
+}
+
+impl AsCursor for Initialized {
+    #[rustfmt::skip]
+    type Cursor<'a> = SimpleCursor<'a, Self>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }
 

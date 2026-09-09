@@ -1,4 +1,5 @@
 mod coff;
+mod cursor;
 mod dos;
 mod optional;
 mod section;
@@ -9,9 +10,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::image::Padding;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 
 pub use self::coff::CoffHeader;
+pub use self::cursor::HeaderCursor;
 pub use self::dos::DosHeader;
 pub use self::optional::{DataDirectory, DataDirectoryTable, OptionalHeader};
 pub use self::section::{SectionCharacteristics, SectionHeader};
@@ -123,5 +126,16 @@ impl Debug for Header {
             Self::Section(section) => Debug::fmt(section, f),
             Self::Padding(padding) => Debug::fmt(padding, f),
         }
+    }
+}
+
+impl AsCursor for Header {
+    #[rustfmt::skip]
+    type Cursor<'a> = HeaderCursor<'a>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        HeaderCursor::new(self)
     }
 }

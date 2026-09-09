@@ -4,12 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
 use crate::memory::slice::Slice;
 
-use super::Error;
+use super::{Error, SegmentCursor};
 
 /// A segment in an unidentified region of memory.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,6 +100,22 @@ impl Debug for Segment {
         match self {
             Self::Initialized(initialized) => Debug::fmt(initialized, f),
             Self::Uninitialized(uninitialized) => Debug::fmt(uninitialized, f),
+        }
+    }
+}
+
+impl AsCursor for Segment {
+    #[rustfmt::skip]
+    type Cursor<'a> = SegmentCursor<'a>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        match self {
+            Self::Initialized(initialized) => SegmentCursor::Initialized(initialized.cursor()),
+            Self::Uninitialized(uninitialized) => {
+                SegmentCursor::Uninitialized(uninitialized.cursor())
+            }
         }
     }
 }

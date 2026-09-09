@@ -1,5 +1,6 @@
 //! A contiguous region of memory.
 
+mod cursor;
 mod error;
 mod segment;
 
@@ -16,6 +17,7 @@ use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
 use crate::memory::slice::Slice;
 
+pub use self::cursor::SegmentCursor;
 pub use self::error::Error;
 pub use self::segment::Segment;
 
