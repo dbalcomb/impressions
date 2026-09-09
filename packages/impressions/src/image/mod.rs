@@ -76,8 +76,12 @@ impl Parse for Image {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
+        let optional = headers.optional();
+        let image_size = Size::new(optional.image_size())?;
 
-        let mut regions = Sparse::from_size_value(headers.optional().image_size())?;
+        optional.image_address().to_space(image_size)?;
+
+        let mut regions = Sparse::new(image_size);
         let mut position = headers.size().get() as usize;
 
         for section_header in headers.sections() {
