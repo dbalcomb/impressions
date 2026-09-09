@@ -1,6 +1,14 @@
 /// The image file error.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
+    /// The image size is invalid.
+    #[error("invalid image size")]
+    Size(#[from] crate::memory::extent::Error),
+
+    /// The image virtual address space is invalid.
+    #[error("invalid image address space")]
+    AddressSpace(#[from] crate::memory::address::space::Error),
+
     /// A problem was encountered with the image headers.
     #[error("headers region error")]
     Headers(#[from] crate::image::region::headers::Error),
