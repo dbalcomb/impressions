@@ -16,4 +16,8 @@ pub enum Error {
     /// A problem was encountered decoding the analysis.
     #[error("Decode error")]
     Decode(#[from] rmp_serde::decode::Error),
+
+    /// A problem was encountered with the cursor.
+    #[error("cursor error")]
+    Cursor(#[from] crate::memory::cursor::Error),
 }

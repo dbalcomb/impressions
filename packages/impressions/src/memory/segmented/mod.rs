@@ -1,5 +1,6 @@
 //! A memory region that is segmented into multiple sub-regions.
 
+mod cursor;
 mod entry;
 mod iter;
 mod view;
@@ -7,6 +8,7 @@ mod view;
 use super::address::Address;
 use super::extent::Extent;
 
+pub use self::cursor::SegmentsCursor;
 pub use self::entry::SegmentRef;
 pub use self::iter::SegmentsIter;
 pub use self::view::Segments;

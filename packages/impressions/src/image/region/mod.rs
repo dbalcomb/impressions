@@ -3,15 +3,20 @@
 pub mod headers;
 pub mod section;
 
+mod cursor;
+
 use std::fmt::{self, Debug};
 
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 
 use self::headers::Headers;
 use self::section::Section;
+
+pub use self::cursor::RegionCursor;
 
 /// A mapped region in a PE image.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,5 +92,16 @@ impl Debug for Region {
             Self::Headers(headers) => Debug::fmt(headers, f),
             Self::Section(section) => Debug::fmt(section, f),
         }
+    }
+}
+
+impl AsCursor for Region {
+    #[rustfmt::skip]
+    type Cursor<'a> = RegionCursor<'a>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        RegionCursor::new(self)
     }
 }

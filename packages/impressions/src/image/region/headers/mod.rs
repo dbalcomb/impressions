@@ -1,5 +1,6 @@
 //! The image file headers.
 
+mod cursor;
 mod error;
 mod header;
 
@@ -12,14 +13,16 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::image::Padding;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
 
+pub use self::cursor::HeadersCursor;
 pub use self::error::Error;
 pub use self::header::{
-    CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, OptionalHeader,
+    CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, HeaderCursor, OptionalHeader,
     SectionCharacteristics, SectionHeader,
 };
 
@@ -183,6 +186,17 @@ impl Debug for Headers {
             .field("completion", &completion)
             .field("headers", &self.headers)
             .finish()
+    }
+}
+
+impl AsCursor for Headers {
+    #[rustfmt::skip]
+    type Cursor<'a> = HeadersCursor<'a>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        HeadersCursor::new(self)
     }
 }
 

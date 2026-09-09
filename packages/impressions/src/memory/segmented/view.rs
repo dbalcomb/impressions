@@ -1,7 +1,8 @@
 use crate::memory::address::{Address, AddressSpace};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 
-use super::{SegmentRef, Segmented, SegmentsIter};
+use super::{SegmentRef, Segmented, SegmentsCursor, SegmentsIter};
 
 /// A view over the segments of a segmented region of memory.
 #[derive(Debug, PartialEq, Eq)]
@@ -96,6 +97,20 @@ impl<'a, T> Clone for Segments<'a, T> {
         Self {
             segments: self.segments,
         }
+    }
+}
+
+impl<'a, T> AsCursor for Segments<'a, T>
+where
+    T: Extent + AsCursor,
+{
+    #[rustfmt::skip]
+    type Cursor<'b> = SegmentsCursor<'a, T>
+    where
+        Self: 'b;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SegmentsCursor::new(self.clone())
     }
 }
 

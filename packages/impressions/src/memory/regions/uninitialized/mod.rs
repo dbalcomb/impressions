@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::slice::{Error as SliceError, Slice};
 
@@ -60,6 +61,17 @@ impl Debug for Uninitialized {
         f.debug_struct("Uninitialized")
             .field("size", &self.0)
             .finish()
+    }
+}
+
+impl AsCursor for Uninitialized {
+    #[rustfmt::skip]
+    type Cursor<'a> = SimpleCursor<'a, Self>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }
 

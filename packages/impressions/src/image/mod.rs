@@ -1,5 +1,6 @@
 //! The 32-bit Portable Executable (PE) image file.
 
+mod cursor;
 mod error;
 mod padding;
 
@@ -13,10 +14,12 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::memory::address::Address;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::sparse::{Segment, Sparse};
 use crate::memory::segmented::{Segmented, Segments};
 
+pub use self::cursor::ImageCursor;
 pub use self::error::Error;
 pub use self::padding::Padding;
 
@@ -98,6 +101,17 @@ impl Parse for Image {
         regions.insert(Address::MIN, Region::headers(headers))?;
 
         Ok(Self { regions })
+    }
+}
+
+impl AsCursor for Image {
+    #[rustfmt::skip]
+    type Cursor<'a> = ImageCursor<'a>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        ImageCursor::new(self)
     }
 }
 

@@ -2,6 +2,7 @@
 
 pub mod block;
 
+mod cursor;
 mod error;
 
 use std::cmp::Ordering;
@@ -13,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
@@ -20,6 +22,7 @@ use crate::memory::segmented::{Segmented, Segments};
 
 use self::block::Block;
 
+pub use self::cursor::SectionCursor;
 pub use self::error::Error;
 
 use super::headers::{SectionCharacteristics, SectionHeader};
@@ -131,5 +134,16 @@ impl Debug for Section {
             .field("characteristics", &self.characteristics)
             .field("blocks", &self.blocks)
             .finish()
+    }
+}
+
+impl AsCursor for Section {
+    #[rustfmt::skip]
+    type Cursor<'a> = SectionCursor<'a>
+    where
+        Self: 'a;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SectionCursor::new(self)
     }
 }
