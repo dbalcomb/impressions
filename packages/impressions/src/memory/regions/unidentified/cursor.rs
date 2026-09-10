@@ -11,6 +11,24 @@ pub enum SegmentCursor<'a> {
     Uninitialized(SimpleCursor<'a, Uninitialized>),
 }
 
+impl<'a> SegmentCursor<'a> {
+    /// Gets the segment cursor as an initialized cursor.
+    pub const fn as_initialized(&self) -> Option<&SimpleCursor<'a, Initialized>> {
+        match self {
+            Self::Initialized(initialized) => Some(initialized),
+            Self::Uninitialized(_) => None,
+        }
+    }
+
+    /// Gets the segment cursor as an uninitialized cursor.
+    pub const fn as_uninitialized(&self) -> Option<&SimpleCursor<'a, Uninitialized>> {
+        match self {
+            Self::Uninitialized(uninitialized) => Some(uninitialized),
+            Self::Initialized(_) => None,
+        }
+    }
+}
+
 impl<'a> Cursor for SegmentCursor<'a> {
     type Error = Error;
 

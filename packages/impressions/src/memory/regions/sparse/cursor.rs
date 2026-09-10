@@ -12,6 +12,27 @@ where
     Vacant(SimpleCursor<'a, Uninitialized>),
 }
 
+impl<'a, T> SegmentCursor<'a, T>
+where
+    T: AsCursor,
+{
+    /// Gets the segment cursor as an occupied cursor.
+    pub const fn as_occupied(&self) -> Option<&T::Cursor<'a>> {
+        match self {
+            Self::Occupied(occupied) => Some(occupied),
+            Self::Vacant(_) => None,
+        }
+    }
+
+    /// Gets the segment cursor as a vacant cursor.
+    pub const fn as_vacant(&self) -> Option<&SimpleCursor<'a, Uninitialized>> {
+        match self {
+            Self::Vacant(vacant) => Some(vacant),
+            Self::Occupied(_) => None,
+        }
+    }
+}
+
 impl<'a, T> Cursor for SegmentCursor<'a, T>
 where
     T: AsCursor,

@@ -44,6 +44,11 @@ where
         &self.segments
     }
 
+    /// Gets the segment at the cursor position.
+    pub const fn segment(&self) -> &'a T {
+        self.segment.segment()
+    }
+
     /// Gets the inner cursor.
     pub const fn cursor(&self) -> &T::Cursor<'a> {
         &self.cursor
