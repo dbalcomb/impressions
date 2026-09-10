@@ -64,7 +64,7 @@ impl fmt::Write for Output<'_, '_> {
                     Status::Identified if self.inspector.depth == 0 => {
                         write!(writer, "\x1b[1m{}  >\x1b[0m  ", self.inspector.address)?;
                     }
-                    Status::Identified if self.inspector.depth > 0 => {
+                    Status::Identified if self.inspector.depth > 1 => {
                         write!(writer, "\x1b[32m{}\x1b[0m     ", self.inspector.address)?;
                     }
                     Status::Identified => {
