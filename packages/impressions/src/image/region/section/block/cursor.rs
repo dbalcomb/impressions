@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
+use crate::memory::inspect::{self, Inspect};
 
 use super::Block;
 
@@ -36,6 +37,12 @@ impl<'a> Cursor for BlockCursor<'a> {
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
         self.0.step()
+    }
+}
+
+impl Inspect for BlockCursor<'_> {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        self.0.inspect(inspector)
     }
 }
 

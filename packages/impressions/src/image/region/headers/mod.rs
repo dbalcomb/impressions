@@ -15,6 +15,7 @@ use crate::data::parse::Parse;
 use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
@@ -175,6 +176,12 @@ impl Parse for Headers {
         Ok(Self {
             headers: Contiguous::try_from_iterator(headers)?,
         })
+    }
+}
+
+impl Inspect for Headers {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.identified(), "Headers")
     }
 }
 

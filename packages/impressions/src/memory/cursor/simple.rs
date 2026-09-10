@@ -1,4 +1,5 @@
 use crate::memory::extent::Extent;
+use crate::memory::inspect::{self, Inspect};
 
 use super::{Cursor, Error, Position};
 
@@ -65,6 +66,15 @@ where
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
         self.next()
+    }
+}
+
+impl<T> Inspect for SimpleCursor<'_, T>
+where
+    T: Extent + Inspect,
+{
+    fn inspect(&self, _: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        Ok(())
     }
 }
 

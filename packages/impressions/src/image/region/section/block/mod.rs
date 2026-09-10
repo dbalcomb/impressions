@@ -10,6 +10,7 @@ use crate::analysis::Completion;
 use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 pub use self::cursor::BlockCursor;
 
@@ -56,6 +57,14 @@ impl Completion for Block {
     fn identified(&self) -> u64 {
         match self {
             Self::Padding(padding) => padding.identified(),
+        }
+    }
+}
+
+impl Inspect for Block {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Padding(padding) => padding.inspect(inspector),
         }
     }
 }

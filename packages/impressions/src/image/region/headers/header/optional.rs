@@ -5,6 +5,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 /// The signature of a 32-bit PE image file.
 const OPTIONAL_SIGNATURE: u16 = 0x10b;
@@ -145,6 +146,12 @@ impl Extent for OptionalHeader {
             .expect("valid size")
             .checked_add_value(self.data_directories.size())
             .expect("sum of sizes does not exceed maximum size")
+    }
+}
+
+impl Inspect for OptionalHeader {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.identified(), "Optional Header")
     }
 }
 

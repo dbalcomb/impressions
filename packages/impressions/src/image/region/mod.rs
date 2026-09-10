@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 use self::headers::Headers;
 use self::section::Section;
@@ -82,6 +83,15 @@ impl Completion for Region {
         match self {
             Self::Headers(headers) => headers.identified(),
             Self::Section(section) => section.identified(),
+        }
+    }
+}
+
+impl Inspect for Region {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Headers(headers) => headers.inspect(inspector),
+            Self::Section(section) => section.inspect(inspector),
         }
     }
 }

@@ -12,6 +12,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
@@ -64,6 +65,33 @@ impl Extent for Initialized {
 impl Completion for Initialized {
     fn identified(&self) -> u64 {
         0
+    }
+}
+
+impl Inspect for Initialized {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        let mut output = inspector.unidentified();
+
+        let split = self.0.len() > 8;
+        let prefix = self.0.iter().take(if split { 4 } else { 8 });
+
+        for (index, byte) in prefix.enumerate() {
+            if index > 0 {
+                write!(output, " ")?;
+            }
+
+            write!(output, "{byte:02x}")?;
+        }
+
+        if split {
+            write!(output, " ...")?;
+
+            for byte in self.0.iter().rev().take(4).rev() {
+                write!(output, " {byte:02x}")?;
+            }
+        }
+
+        writeln!(output)
     }
 }
 

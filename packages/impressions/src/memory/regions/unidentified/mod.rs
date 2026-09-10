@@ -14,6 +14,7 @@ use crate::analysis::Completion;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::segmented::{Segmented, Segments, SegmentsCursor};
 use crate::memory::slice::{Error as SliceError, Slice};
 
@@ -160,6 +161,12 @@ impl Segmented for Unidentified {
 
     fn segments(&self) -> Segments<'_, Self::Segment> {
         Segments::new(&self.0)
+    }
+}
+
+impl Inspect for Unidentified {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.unidentified(), "Unidentified")
     }
 }
 

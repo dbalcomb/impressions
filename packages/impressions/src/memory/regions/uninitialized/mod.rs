@@ -10,6 +10,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
@@ -53,6 +54,12 @@ impl Extent for Uninitialized {
 impl Completion for Uninitialized {
     fn identified(&self) -> u64 {
         0
+    }
+}
+
+impl Inspect for Uninitialized {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.unidentified(), "00 ...")
     }
 }
 

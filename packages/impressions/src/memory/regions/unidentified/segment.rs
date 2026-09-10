@@ -6,6 +6,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
 use crate::memory::slice::Slice;
@@ -91,6 +92,15 @@ impl Completion for Segment {
         match self {
             Self::Initialized(initialized) => initialized.identified(),
             Self::Uninitialized(uninitialized) => uninitialized.identified(),
+        }
+    }
+}
+
+impl Inspect for Segment {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Initialized(initialized) => initialized.inspect(inspector),
+            Self::Uninitialized(uninitialized) => uninitialized.inspect(inspector),
         }
     }
 }

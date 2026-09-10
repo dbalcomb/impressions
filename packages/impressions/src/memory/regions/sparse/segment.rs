@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::uninitialized::Uninitialized;
 
 use super::SegmentCursor;
@@ -79,6 +80,18 @@ where
         match self {
             Self::Occupied(occupied) => occupied.identified(),
             Self::Vacant(vacant) => vacant.size().get(),
+        }
+    }
+}
+
+impl<T> Inspect for Segment<T>
+where
+    T: Inspect,
+{
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Occupied(occupied) => occupied.inspect(inspector),
+            Self::Vacant(_) => writeln!(inspector.vacant()),
         }
     }
 }

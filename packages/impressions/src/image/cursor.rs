@@ -2,6 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::address::Address;
 use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::sparse::Segment;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
@@ -122,6 +123,14 @@ impl<'a> Cursor for ImageCursor<'a> {
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
         self.0.step()
+    }
+}
+
+impl Inspect for ImageCursor<'_> {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        inspector.reset();
+
+        self.0.inspect(inspector)
     }
 }
 

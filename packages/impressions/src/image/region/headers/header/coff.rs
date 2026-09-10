@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 /// The signature of an x86 CPU.
 const COFF_MACHINE_X86: u16 = 0x14c;
@@ -50,6 +51,12 @@ impl CoffHeader {
 impl Extent for CoffHeader {
     fn size(&self) -> Size {
         Size::new(20).expect("valid size")
+    }
+}
+
+impl Inspect for CoffHeader {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.identified(), "COFF Header")
     }
 }
 

@@ -12,6 +12,7 @@ use crate::analysis::Completion;
 use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 pub use self::coff::CoffHeader;
 pub use self::cursor::HeaderCursor;
@@ -113,6 +114,19 @@ impl Extent for Header {
 impl Completion for Header {
     fn identified(&self) -> u64 {
         self.size().get()
+    }
+}
+
+impl Inspect for Header {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Dos(dos) => dos.inspect(inspector),
+            Self::Signature => writeln!(inspector.identified(), "Signature"),
+            Self::Coff(coff) => coff.inspect(inspector),
+            Self::Optional(optional) => optional.inspect(inspector),
+            Self::Section(section) => section.inspect(inspector),
+            Self::Padding(padding) => padding.inspect(inspector),
+        }
     }
 }
 

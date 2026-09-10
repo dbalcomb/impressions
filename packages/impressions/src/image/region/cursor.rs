@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
+use crate::memory::inspect::{self, Inspect};
 
 use super::Region;
 use super::headers::HeadersCursor;
@@ -76,6 +77,15 @@ impl<'a> Cursor for RegionCursor<'a> {
         match self {
             Self::Headers(headers) => headers.step(),
             Self::Section(section) => section.step(),
+        }
+    }
+}
+
+impl Inspect for RegionCursor<'_> {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Headers(headers) => headers.inspect(inspector),
+            Self::Section(section) => section.inspect(inspector),
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
 
@@ -65,6 +66,12 @@ impl<'a> Cursor for SegmentCursor<'a> {
             Self::Initialized(initialized) => initialized.step(),
             Self::Uninitialized(uninitialized) => uninitialized.step(),
         }
+    }
+}
+
+impl Inspect for SegmentCursor<'_> {
+    fn inspect(&self, _: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        Ok(())
     }
 }
 

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 /// The signature indicating the start of the DOS headers.
 const DOS_SIGNATURE: u16 = 0x5A4D;
@@ -79,6 +80,12 @@ impl DosHeader {
 impl Extent for DosHeader {
     fn size(&self) -> Size {
         Size::new(64).expect("valid size")
+    }
+}
+
+impl Inspect for DosHeader {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.identified(), "DOS Header")
     }
 }
 
