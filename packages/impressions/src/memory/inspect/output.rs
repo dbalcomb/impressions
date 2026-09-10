@@ -62,16 +62,19 @@ impl fmt::Write for Output<'_, '_> {
 
                 match self.status {
                     Status::Identified if self.inspector.depth == 0 => {
-                        write!(writer, "{}  >  ", self.inspector.address)?;
+                        write!(writer, "\x1b[1m{}  >\x1b[0m  ", self.inspector.address)?;
+                    }
+                    Status::Identified if self.inspector.depth > 1 => {
+                        write!(writer, "\x1b[32m{}\x1b[0m     ", self.inspector.address)?;
                     }
                     Status::Identified => {
                         write!(writer, "{}     ", self.inspector.address)?;
                     }
                     Status::Unidentified => {
-                        write!(writer, "{}  ?  ", self.inspector.address)?;
+                        write!(writer, "\x1b[31m{}  ?\x1b[0m  ", self.inspector.address)?;
                     }
                     Status::Vacant => {
-                        write!(writer, "{}  :  ", self.inspector.address)?;
+                        write!(writer, "\x1b[2m{}  :\x1b[0m  ", self.inspector.address)?;
                     }
                 }
 
