@@ -8,6 +8,7 @@ use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 /// An image file Section header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -101,6 +102,12 @@ impl SectionHeader {
 impl Extent for SectionHeader {
     fn size(&self) -> Size {
         Size::new(40).expect("valid size")
+    }
+}
+
+impl Inspect for SectionHeader {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.identified(), "Section Header {}", self.name())
     }
 }
 

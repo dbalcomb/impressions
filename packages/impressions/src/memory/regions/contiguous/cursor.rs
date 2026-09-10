@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{AsCursor, Cursor, Position};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::unidentified::Segment;
 use crate::memory::segmented::SegmentsCursor;
 
@@ -72,6 +73,18 @@ where
         match self {
             Self::Identified(identified) => identified.step(),
             Self::Unidentified(unidentified) => unidentified.step().map_err(Into::into),
+        }
+    }
+}
+
+impl<'a, T> Inspect for SegmentCursor<'a, T>
+where
+    T: AsCursor<Cursor<'a>: Inspect>,
+{
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        match self {
+            Self::Identified(identified) => identified.inspect(inspector),
+            Self::Unidentified(unidentified) => unidentified.inspect(inspector),
         }
     }
 }

@@ -20,4 +20,8 @@ pub enum Error {
     /// A problem was encountered with the cursor.
     #[error("cursor error")]
     Cursor(#[from] crate::memory::cursor::Error),
+
+    /// A problem was encountered inspecting the image.
+    #[error("inspect error")]
+    Inspect(#[from] crate::memory::inspect::Error),
 }

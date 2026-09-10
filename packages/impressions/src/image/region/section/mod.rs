@@ -16,6 +16,7 @@ use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
@@ -121,6 +122,18 @@ impl Parse for Section {
             characteristics,
             blocks,
         })
+    }
+}
+
+impl Inspect for Section {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        let name = self.name();
+        let c = self.characteristics;
+        let r = if c.read() { "r" } else { "-" };
+        let w = if c.write() { "w" } else { "-" };
+        let x = if c.execute() { "x" } else { "-" };
+
+        writeln!(inspector.identified(), "Section {name:<8} [{r}{w}{x}]")
     }
 }
 

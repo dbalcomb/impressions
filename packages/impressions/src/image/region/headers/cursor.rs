@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::contiguous::Segment;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
@@ -51,6 +52,12 @@ impl<'a> Cursor for HeadersCursor<'a> {
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
         self.0.step()
+    }
+}
+
+impl Inspect for HeadersCursor<'_> {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        self.0.inspect(inspector)
     }
 }
 

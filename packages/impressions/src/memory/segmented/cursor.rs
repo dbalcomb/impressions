@@ -3,6 +3,7 @@ use std::fmt::{self, Debug};
 use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::extent::Extent;
+use crate::memory::inspect::{self, Inspect};
 
 use super::{SegmentRef, Segments};
 
@@ -205,6 +206,22 @@ where
             segment: self.segment.clone(),
             cursor: self.cursor.clone(),
         }
+    }
+}
+
+impl<'a, T> Inspect for SegmentsCursor<'a, T>
+where
+    T: AsCursor<Cursor<'a>: Inspect> + Extent + Inspect,
+{
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        if self.cursor().position() == Position::START {
+            self.segment.inspect(inspector)?;
+        }
+
+        inspector.nest();
+        self.cursor().inspect(inspector)?;
+
+        Ok(())
     }
 }
 
