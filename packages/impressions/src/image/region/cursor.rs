@@ -23,6 +23,24 @@ impl<'a> RegionCursor<'a> {
     }
 }
 
+impl<'a> RegionCursor<'a> {
+    /// Gets the region cursor as a headers cursor.
+    pub const fn as_headers(&self) -> Option<&HeadersCursor<'a>> {
+        match self {
+            Self::Headers(headers) => Some(headers),
+            Self::Section(_) => None,
+        }
+    }
+
+    /// Gets the region cursor as a section cursor.
+    pub const fn as_section(&self) -> Option<&SectionCursor<'a>> {
+        match self {
+            Self::Section(section) => Some(section),
+            Self::Headers(_) => None,
+        }
+    }
+}
+
 impl<'a> Cursor for RegionCursor<'a> {
     type Error = Error;
 

@@ -2,6 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position};
 use crate::memory::regions::contiguous::Segment;
+use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
 
 use super::{Header, Headers};
@@ -14,6 +15,18 @@ impl<'a> HeadersCursor<'a> {
     /// Constructs a new headers cursor.
     pub(super) fn new(headers: &'a Headers) -> Self {
         Self(SegmentsCursor::new(headers.segments()))
+    }
+}
+
+impl<'a> HeadersCursor<'a> {
+    /// Gets the header at the cursor position.
+    pub const fn header(&self) -> Option<&'a Header> {
+        self.0.segment().as_identified()
+    }
+
+    /// Gets the unidentified region at the cursor position.
+    pub const fn unidentified(&self) -> Option<&'a Unidentified> {
+        self.0.segment().as_unidentified()
     }
 }
 

@@ -13,6 +13,27 @@ where
     Unidentified(SegmentsCursor<'a, Segment>),
 }
 
+impl<'a, T> SegmentCursor<'a, T>
+where
+    T: AsCursor,
+{
+    /// Gets the segment cursor as an identified cursor.
+    pub const fn as_identified(&self) -> Option<&T::Cursor<'a>> {
+        match self {
+            Self::Identified(identified) => Some(identified),
+            Self::Unidentified(_) => None,
+        }
+    }
+
+    /// Gets the segment cursor as an unidentified cursor.
+    pub const fn as_unidentified(&self) -> Option<&SegmentsCursor<'a, Segment>> {
+        match self {
+            Self::Unidentified(unidentified) => Some(unidentified),
+            Self::Identified(_) => None,
+        }
+    }
+}
+
 impl<'a, T> Cursor for SegmentCursor<'a, T>
 where
     T: AsCursor,

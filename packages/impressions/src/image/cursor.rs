@@ -3,10 +3,14 @@ use std::fmt::{self, Debug};
 use crate::memory::address::Address;
 use crate::memory::cursor::{Cursor, Error, Position};
 use crate::memory::regions::sparse::Segment;
+use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
 
 use super::Image;
-use super::region::Region;
+use super::region::headers::{Header, Headers};
+use super::region::section::Section;
+use super::region::section::block::Block;
+use super::region::{Region, RegionCursor};
 
 /// A cursor over an image.
 #[derive(Clone)]
@@ -31,6 +35,69 @@ impl<'a> ImageCursor<'a> {
             .optional()
             .image_address()
             .checked_add(self.0.position().get_addressable()?)
+    }
+}
+
+impl<'a> ImageCursor<'a> {
+    /// Gets the region at the cursor position.
+    pub const fn region(&self) -> Option<&'a Region> {
+        self.0.segment().as_occupied()
+    }
+
+    /// Gets the headers at the cursor position.
+    pub const fn headers(&self) -> Option<&'a Headers> {
+        let Some(region) = self.region() else {
+            return None;
+        };
+
+        region.as_headers()
+    }
+
+    /// Gets the header at the cursor position.
+    pub const fn header(&self) -> Option<&'a Header> {
+        let Some(region) = self.0.cursor().as_occupied() else {
+            return None;
+        };
+
+        let Some(headers) = region.as_headers() else {
+            return None;
+        };
+
+        headers.header()
+    }
+
+    /// Gets the section at the cursor position.
+    pub const fn section(&self) -> Option<&'a Section> {
+        let Some(region) = self.region() else {
+            return None;
+        };
+
+        region.as_section()
+    }
+
+    /// Gets the block at the cursor position.
+    pub const fn block(&self) -> Option<&'a Block> {
+        let Some(region) = self.0.cursor().as_occupied() else {
+            return None;
+        };
+
+        let Some(section) = region.as_section() else {
+            return None;
+        };
+
+        section.block()
+    }
+
+    /// Gets the unidentified region at the cursor position.
+    pub const fn unidentified(&self) -> Option<&'a Unidentified> {
+        let Some(region) = self.0.cursor().as_occupied() else {
+            return None;
+        };
+
+        match region {
+            RegionCursor::Headers(headers) => headers.unidentified(),
+            RegionCursor::Section(section) => section.unidentified(),
+        }
     }
 }
 
