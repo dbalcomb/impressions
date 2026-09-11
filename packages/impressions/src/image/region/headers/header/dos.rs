@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
@@ -121,5 +122,13 @@ impl Parse for DosHeader {
             e_res2: array_init::try_array_init(|_| buffer.try_get_u16_le())?,
             e_lfanew: buffer.try_get_u32_le()?,
         })
+    }
+}
+
+impl AsCursor for DosHeader {
+    type Cursor<'a> = SimpleCursor<'a, Self>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }

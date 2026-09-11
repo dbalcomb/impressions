@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
@@ -198,6 +199,14 @@ impl Parse for OptionalHeader {
             loader_flags: buffer.try_get_u32_le()?,
             data_directories: DataDirectoryTable::parse(&mut buffer)?,
         })
+    }
+}
+
+impl AsCursor for OptionalHeader {
+    type Cursor<'a> = SimpleCursor<'a, Self>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }
 
