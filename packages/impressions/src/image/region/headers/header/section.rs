@@ -7,6 +7,7 @@ use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
@@ -128,6 +129,14 @@ impl Parse for SectionHeader {
             number_of_linenumbers: buffer.try_get_u16_le()?,
             characteristics: SectionCharacteristics::parse(&mut buffer)?,
         })
+    }
+}
+
+impl AsCursor for SectionHeader {
+    type Cursor<'a> = SimpleCursor<'a, Self>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }
 

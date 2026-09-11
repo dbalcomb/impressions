@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
@@ -57,6 +58,14 @@ impl Extent for CoffHeader {
 impl Inspect for CoffHeader {
     fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
         writeln!(inspector.identified(), "COFF Header")
+    }
+}
+
+impl AsCursor for CoffHeader {
+    type Cursor<'a> = SimpleCursor<'a, Self>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }
 

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
+use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 use crate::memory::slice::{Error as SliceError, Slice};
@@ -77,6 +78,14 @@ impl Debug for Padding {
             .field("size", &self.size)
             .field("value", &format_args!("{:02x}", self.value))
             .finish()
+    }
+}
+
+impl AsCursor for Padding {
+    type Cursor<'a> = SimpleCursor<'a, Self>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        SimpleCursor::new(self)
     }
 }
 
