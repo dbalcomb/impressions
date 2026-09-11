@@ -144,10 +144,7 @@ impl Debug for Header {
 }
 
 impl AsCursor for Header {
-    #[rustfmt::skip]
-    type Cursor<'a> = HeaderCursor<'a>
-    where
-        Self: 'a;
+    type Cursor<'a> = HeaderCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         HeaderCursor::new(self)

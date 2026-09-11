@@ -189,10 +189,7 @@ impl<'de> Deserialize<'de> for Unidentified {
 }
 
 impl AsCursor for Unidentified {
-    #[rustfmt::skip]
-    type Cursor<'a> = SegmentsCursor<'a, Segment>
-    where
-        Self: 'a;
+    type Cursor<'a> = SegmentsCursor<'a, Segment>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         SegmentsCursor::new(self.segments())

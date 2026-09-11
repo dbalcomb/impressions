@@ -151,10 +151,7 @@ impl Debug for Section {
 }
 
 impl AsCursor for Section {
-    #[rustfmt::skip]
-    type Cursor<'a> = SectionCursor<'a>
-    where
-        Self: 'a;
+    type Cursor<'a> = SectionCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         SectionCursor::new(self)
