@@ -139,10 +139,7 @@ impl<'de> Deserialize<'de> for Initialized {
 }
 
 impl AsCursor for Initialized {
-    #[rustfmt::skip]
-    type Cursor<'a> = SimpleCursor<'a, Self>
-    where
-        Self: 'a;
+    type Cursor<'a> = SimpleCursor<'a, Self>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         SimpleCursor::new(self)

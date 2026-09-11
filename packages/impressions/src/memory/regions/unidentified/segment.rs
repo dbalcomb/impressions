@@ -115,10 +115,7 @@ impl Debug for Segment {
 }
 
 impl AsCursor for Segment {
-    #[rustfmt::skip]
-    type Cursor<'a> = SegmentCursor<'a>
-    where
-        Self: 'a;
+    type Cursor<'a> = SegmentCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         match self {

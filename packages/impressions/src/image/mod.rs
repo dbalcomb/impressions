@@ -105,10 +105,7 @@ impl Parse for Image {
 }
 
 impl AsCursor for Image {
-    #[rustfmt::skip]
-    type Cursor<'a> = ImageCursor<'a>
-    where
-        Self: 'a;
+    type Cursor<'a> = ImageCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         ImageCursor::new(self)

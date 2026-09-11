@@ -78,10 +78,7 @@ impl Debug for Block {
 }
 
 impl AsCursor for Block {
-    #[rustfmt::skip]
-    type Cursor<'a> = BlockCursor<'a>
-    where
-        Self: 'a;
+    type Cursor<'a> = BlockCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         BlockCursor::new(self)

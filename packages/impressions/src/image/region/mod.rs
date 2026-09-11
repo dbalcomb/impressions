@@ -106,10 +106,7 @@ impl Debug for Region {
 }
 
 impl AsCursor for Region {
-    #[rustfmt::skip]
-    type Cursor<'a> = RegionCursor<'a>
-    where
-        Self: 'a;
+    type Cursor<'a> = RegionCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
         RegionCursor::new(self)
