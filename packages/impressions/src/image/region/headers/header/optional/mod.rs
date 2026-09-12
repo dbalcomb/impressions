@@ -1,3 +1,5 @@
+//! The Optional header of an image file.
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 

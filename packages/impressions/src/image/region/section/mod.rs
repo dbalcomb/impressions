@@ -26,7 +26,7 @@ use self::block::Block;
 pub use self::cursor::SectionCursor;
 pub use self::error::Error;
 
-use super::headers::{SectionCharacteristics, SectionHeader};
+use super::headers::header::section::{SectionCharacteristics, SectionHeader};
 
 /// A 32-bit Portable Executable (PE) image file section.
 ///

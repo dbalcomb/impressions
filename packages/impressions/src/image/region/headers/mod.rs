@@ -1,8 +1,9 @@
 //! The image file headers.
 
+pub mod header;
+
 mod cursor;
 mod error;
-mod header;
 
 use std::fmt::{self, Debug};
 use std::iter::once;
@@ -22,10 +23,12 @@ use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::cursor::HeadersCursor;
 pub use self::error::Error;
-pub use self::header::{
-    CoffHeader, DataDirectory, DataDirectoryTable, DosHeader, Header, HeaderCursor, OptionalHeader,
-    SectionCharacteristics, SectionHeader,
-};
+
+use self::header::Header;
+use self::header::coff::CoffHeader;
+use self::header::dos::DosHeader;
+use self::header::optional::OptionalHeader;
+use self::header::section::SectionHeader;
 
 /// The signature indicating the start of the PE headers.
 const PE_SIGNATURE: u32 = 0x4550;
