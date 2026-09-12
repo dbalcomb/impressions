@@ -85,7 +85,7 @@ impl Headers {
 
 impl Extent for Headers {
     fn size(&self) -> Size {
-        Size::new(self.optional().headers_size()).expect("valid size")
+        Size::new(self.optional().headers_size() as u64).expect("valid size")
     }
 }
 
@@ -270,7 +270,7 @@ mod tests {
         assert_eq!(headers.optional().image_size(), 18944000);
         assert_eq!(buffer, [1, 2, 3, 4].as_slice());
 
-        let data_directories = headers.optional().data_directories();
+        let data_directories = headers.optional().data_directories().unwrap();
         let import_table = data_directories.import_table().unwrap();
         let import_address_table = data_directories.import_address_table().unwrap();
         let resource_table = data_directories.resource_table().unwrap();

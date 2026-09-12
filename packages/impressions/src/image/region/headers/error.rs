@@ -9,6 +9,10 @@ pub enum Error {
     #[error("unsupported architecture")]
     UnsupportedArchitecture,
 
+    /// An unsupported data directory count was detected.
+    #[error("unsupported data directory count: {0}")]
+    UnsupportedDataDirectoryCount(u32),
+
     /// An invalid section name was detected.
     #[error("invalid section name")]
     InvalidSectionName(#[source] crate::data::types::array_string::Error),
