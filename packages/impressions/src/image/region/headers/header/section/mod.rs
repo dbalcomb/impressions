@@ -1,3 +1,5 @@
+//! The Section header of an image file.
+
 use std::fmt::{self, Debug};
 
 use bytes::Buf;

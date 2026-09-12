@@ -1,8 +1,11 @@
-mod coff;
+//! Header types for PE image files.
+
+pub mod coff;
+pub mod dos;
+pub mod optional;
+pub mod section;
+
 mod cursor;
-mod dos;
-mod optional;
-mod section;
 
 use std::fmt::{self, Debug};
 
@@ -14,11 +17,12 @@ use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
-pub use self::coff::CoffHeader;
 pub use self::cursor::HeaderCursor;
-pub use self::dos::DosHeader;
-pub use self::optional::{DataDirectory, DataDirectoryTable, OptionalHeader};
-pub use self::section::{SectionCharacteristics, SectionHeader};
+
+use self::coff::CoffHeader;
+use self::dos::DosHeader;
+use self::optional::OptionalHeader;
+use self::section::SectionHeader;
 
 /// A header in a PE image file.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

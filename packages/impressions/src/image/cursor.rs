@@ -8,7 +8,8 @@ use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
 
 use super::Image;
-use super::region::headers::{Header, Headers};
+use super::region::headers::Headers;
+use super::region::headers::header::Header;
 use super::region::section::Section;
 use super::region::section::block::Block;
 use super::region::{Region, RegionCursor};
