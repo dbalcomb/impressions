@@ -80,7 +80,7 @@ impl Parse for Image {
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let headers = Headers::parse(&mut buffer)?;
         let optional = headers.optional();
-        let image_size = Size::new(optional.image_size())?;
+        let image_size = Size::new(optional.image_size() as u64)?;
 
         optional.image_address().to_space(image_size)?;
 
