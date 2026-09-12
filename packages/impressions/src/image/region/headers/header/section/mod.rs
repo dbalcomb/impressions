@@ -1,6 +1,6 @@
 //! The Section header of an image file.
 
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Display};
 
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
@@ -238,6 +238,16 @@ impl Parse for SectionCharacteristics {
 
     fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self(buffer.try_get_u32_le()?))
+    }
+}
+
+impl Display for SectionCharacteristics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let r = if self.read() { "r" } else { "-" };
+        let w = if self.write() { "w" } else { "-" };
+        let x = if self.execute() { "x" } else { "-" };
+
+        write!(f, "{r}{w}{x}")
     }
 }
 
