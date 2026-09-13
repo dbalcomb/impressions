@@ -2,12 +2,18 @@
 
 pub mod directory;
 
+mod cursor;
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::segmented::{Segmented, Segments};
+
+pub use self::cursor::DataDirectoriesCursor;
 
 use self::directory::DataDirectory;
 
@@ -112,6 +118,14 @@ impl Extent for DataDirectories {
     }
 }
 
+impl Segmented for DataDirectories {
+    type Segment = DataDirectory;
+
+    fn segments(&self) -> Segments<'_, Self::Segment> {
+        Segments::new(&self.table[..self.count as usize])
+    }
+}
+
 impl Parse for DataDirectories {
     type Context<'a> = u32;
     type Error = Error;
@@ -128,5 +142,13 @@ impl Parse for DataDirectories {
                 false => Ok(DataDirectory::default()),
             })?,
         })
+    }
+}
+
+impl AsCursor for DataDirectories {
+    type Cursor<'a> = DataDirectoriesCursor<'a>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        DataDirectoriesCursor::new(self)
     }
 }

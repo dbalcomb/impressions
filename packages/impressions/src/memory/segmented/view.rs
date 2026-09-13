@@ -15,7 +15,7 @@ where
     T: Extent,
 {
     /// Constructs a new view over the given segments.
-    pub(in crate::memory) fn new(segments: &'a [T]) -> Self {
+    pub(crate) fn new(segments: &'a [T]) -> Self {
         debug_assert!(!segments.is_empty());
 
         Self { segments }

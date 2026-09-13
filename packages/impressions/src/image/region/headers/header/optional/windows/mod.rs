@@ -1,12 +1,19 @@
 //! The Windows-specific fields of the Optional header.
 
+mod cursor;
+mod field;
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+
+pub use self::cursor::WindowsFieldsCursor;
+pub use self::field::Field;
 
 /// The Windows-specific fields of the Optional header.
 ///
@@ -149,5 +156,13 @@ impl Parse for WindowsFields {
             loader_flags: buffer.try_get_u32_le()?,
             number_of_rva_and_sizes: buffer.try_get_u32_le()?,
         })
+    }
+}
+
+impl AsCursor for WindowsFields {
+    type Cursor<'a> = WindowsFieldsCursor<'a>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        WindowsFieldsCursor::new(self)
     }
 }

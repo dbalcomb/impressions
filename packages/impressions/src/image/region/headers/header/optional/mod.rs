@@ -4,19 +4,23 @@ pub mod directories;
 pub mod standard;
 pub mod windows;
 
+mod cursor;
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
-use crate::memory::cursor::{AsCursor, SimpleCursor};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
 use self::directories::DataDirectories;
 use self::standard::StandardFields;
 use self::windows::WindowsFields;
+
+pub use self::cursor::OptionalHeaderCursor;
 
 /// The image file Optional header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,9 +107,9 @@ impl Parse for OptionalHeader {
 }
 
 impl AsCursor for OptionalHeader {
-    type Cursor<'a> = SimpleCursor<'a, Self>;
+    type Cursor<'a> = OptionalHeaderCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
-        SimpleCursor::new(self)
+        OptionalHeaderCursor::new(self)
     }
 }
