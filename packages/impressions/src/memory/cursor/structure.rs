@@ -135,3 +135,155 @@ where
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use strum::EnumIter;
+
+    use crate::memory::address::{Address, AddressSpace};
+    use crate::memory::cursor::{Cursor, Position, StructCursor};
+    use crate::memory::extent::{Extent, Size};
+
+    #[derive(Debug, EnumIter, PartialEq, Eq)]
+    enum Field {
+        First,
+        Second,
+        Third,
+    }
+
+    impl Extent for Field {
+        fn size(&self) -> Size {
+            Size::new_valid(match self {
+                Self::First => 2,
+                Self::Second => 3,
+                Self::Third => 1,
+            })
+        }
+
+        fn address_space(&self) -> AddressSpace {
+            let start = match self {
+                Self::First => 0,
+                Self::Second => 4,
+                Self::Third => 7,
+            };
+
+            Address::new(start).to_space(self.size()).unwrap()
+        }
+    }
+
+    struct Structure;
+
+    impl Extent for Structure {
+        fn size(&self) -> Size {
+            Size::new_valid(8)
+        }
+    }
+
+    fn cursor() -> StructCursor<'static, Structure, Field> {
+        static STRUCTURE: Structure = Structure;
+
+        StructCursor::new(&STRUCTURE)
+    }
+
+    #[test]
+    fn starts_at_first_field() {
+        let cursor = cursor();
+
+        assert_eq!(cursor.position(), Position::START);
+        assert_eq!(cursor.field(), Some(Field::First));
+    }
+
+    #[test]
+    fn seek_identifies_field_from_any_byte_within_it() {
+        let mut cursor = cursor();
+
+        cursor.seek(Position::new(1)).unwrap();
+        assert_eq!(cursor.field(), Some(Field::First));
+
+        cursor.seek(Position::new(5)).unwrap();
+        assert_eq!(cursor.field(), Some(Field::Second));
+
+        cursor.seek(Position::new(7)).unwrap();
+        assert_eq!(cursor.field(), Some(Field::Third));
+    }
+
+    #[test]
+    fn seek_in_gap_has_no_active_field() {
+        let mut cursor = cursor();
+
+        cursor.seek(Position::new(2)).unwrap();
+        assert_eq!(cursor.field(), None);
+
+        cursor.seek(Position::new(3)).unwrap();
+        assert_eq!(cursor.field(), None);
+    }
+
+    #[test]
+    fn step_moves_to_following_field_boundary() {
+        let mut cursor = cursor();
+
+        assert_eq!(cursor.step().unwrap(), Some(Position::new(4)));
+        assert_eq!(cursor.field(), Some(Field::Second));
+
+        assert_eq!(cursor.step().unwrap(), Some(Position::new(7)));
+        assert_eq!(cursor.field(), Some(Field::Third));
+    }
+
+    #[test]
+    fn step_from_inside_field_skips_to_next_field() {
+        let mut cursor = cursor();
+
+        cursor.seek(Position::new(1)).unwrap();
+        assert_eq!(cursor.step().unwrap(), Some(Position::new(4)));
+
+        cursor.seek(Position::new(5)).unwrap();
+        assert_eq!(cursor.step().unwrap(), Some(Position::new(7)));
+    }
+
+    #[test]
+    fn step_from_gap_selects_next_field() {
+        let mut cursor = cursor();
+
+        cursor.seek(Position::new(2)).unwrap();
+        assert_eq!(cursor.step().unwrap(), Some(Position::new(4)));
+        assert_eq!(cursor.field(), Some(Field::Second));
+    }
+
+    #[test]
+    fn step_at_final_field_moves_to_exclusive_end() {
+        let mut cursor = cursor();
+
+        cursor.seek(Position::new(7)).unwrap();
+
+        assert_eq!(cursor.step().unwrap(), None);
+        assert_eq!(cursor.position(), Position::new(8));
+        assert_eq!(cursor.field(), None);
+        assert_eq!(cursor.step().unwrap(), None);
+        assert_eq!(cursor.position(), Position::new(8));
+    }
+
+    #[test]
+    fn seek_accepts_exclusive_end_and_rejects_positions_after_it() {
+        let mut cursor = cursor();
+
+        cursor.seek(Position::new(8)).unwrap();
+        assert_eq!(cursor.field(), None);
+
+        assert!(cursor.seek(Position::new(9)).is_err());
+        assert_eq!(cursor.position(), Position::new(8));
+    }
+
+    #[test]
+    fn next_matches_step_for_flat_structure() {
+        let mut next_cursor = cursor();
+        let mut step_cursor = cursor();
+
+        while let Some(next) = next_cursor.next().unwrap() {
+            assert_eq!(step_cursor.step().unwrap(), Some(next));
+            assert_eq!(next_cursor.position(), step_cursor.position());
+        }
+
+        assert_eq!(step_cursor.step().unwrap(), None);
+        assert_eq!(next_cursor.position(), step_cursor.position());
+    }
+}
