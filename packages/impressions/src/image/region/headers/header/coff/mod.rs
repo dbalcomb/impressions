@@ -1,13 +1,19 @@
 //! The COFF header of an image file.
 
+mod cursor;
+mod field;
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
-use crate::memory::cursor::{AsCursor, SimpleCursor};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
+
+pub use self::cursor::CoffHeaderCursor;
+pub use self::field::Field;
 
 /// The signature of an x86 CPU.
 const COFF_MACHINE_X86: u16 = 0x14c;
@@ -64,10 +70,10 @@ impl Inspect for CoffHeader {
 }
 
 impl AsCursor for CoffHeader {
-    type Cursor<'a> = SimpleCursor<'a, Self>;
+    type Cursor<'a> = CoffHeaderCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
-        SimpleCursor::new(self)
+        CoffHeaderCursor::new(self)
     }
 }
 

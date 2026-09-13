@@ -1,10 +1,12 @@
 mod error;
 mod position;
 mod simple;
+mod structure;
 
 pub use self::error::Error;
 pub use self::position::Position;
 pub use self::simple::SimpleCursor;
+pub use self::structure::StructCursor;
 
 /// A cursor over a memory region.
 pub trait Cursor {

@@ -36,6 +36,11 @@ impl Size {
             size => Err(Error::TooLarge(size)),
         }
     }
+
+    /// Constructs a new memory region size, panicking on invalid sizes.
+    pub(crate) fn new_valid(size: u64) -> Self {
+        Self::new(size).expect("valid size")
+    }
 }
 
 impl Size {

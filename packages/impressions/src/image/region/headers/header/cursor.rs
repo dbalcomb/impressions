@@ -4,16 +4,20 @@ use crate::image::Padding;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position, SimpleCursor};
 use crate::memory::inspect::{self, Inspect};
 
-use super::{CoffHeader, DosHeader, Header, OptionalHeader, SectionHeader};
+use super::Header;
+use super::coff::CoffHeaderCursor;
+use super::dos::DosHeaderCursor;
+use super::optional::OptionalHeaderCursor;
+use super::section::SectionHeaderCursor;
 
 /// A cursor over a single header.
 #[derive(Clone)]
 pub enum HeaderCursor<'a> {
-    Dos(SimpleCursor<'a, DosHeader>),
+    Dos(DosHeaderCursor<'a>),
     Signature(SimpleCursor<'a, Header>),
-    Coff(SimpleCursor<'a, CoffHeader>),
-    Optional(SimpleCursor<'a, OptionalHeader>),
-    Section(SimpleCursor<'a, SectionHeader>),
+    Coff(CoffHeaderCursor<'a>),
+    Optional(OptionalHeaderCursor<'a>),
+    Section(SectionHeaderCursor<'a>),
     Padding(SimpleCursor<'a, Padding>),
 }
 
@@ -33,7 +37,7 @@ impl<'a> HeaderCursor<'a> {
 
 impl<'a> HeaderCursor<'a> {
     /// Gets the header cursor as a DOS header cursor.
-    pub const fn as_dos(&self) -> Option<&SimpleCursor<'a, DosHeader>> {
+    pub const fn as_dos(&self) -> Option<&DosHeaderCursor<'a>> {
         match self {
             Self::Dos(cursor) => Some(cursor),
             _ => None,
@@ -49,7 +53,7 @@ impl<'a> HeaderCursor<'a> {
     }
 
     /// Gets the header cursor as a COFF header cursor.
-    pub const fn as_coff(&self) -> Option<&SimpleCursor<'a, CoffHeader>> {
+    pub const fn as_coff(&self) -> Option<&CoffHeaderCursor<'a>> {
         match self {
             Self::Coff(cursor) => Some(cursor),
             _ => None,
@@ -57,7 +61,7 @@ impl<'a> HeaderCursor<'a> {
     }
 
     /// Gets the header cursor as an optional header cursor.
-    pub const fn as_optional(&self) -> Option<&SimpleCursor<'a, OptionalHeader>> {
+    pub const fn as_optional(&self) -> Option<&OptionalHeaderCursor<'a>> {
         match self {
             Self::Optional(cursor) => Some(cursor),
             _ => None,
@@ -65,7 +69,7 @@ impl<'a> HeaderCursor<'a> {
     }
 
     /// Gets the header cursor as a section header cursor.
-    pub const fn as_section(&self) -> Option<&SimpleCursor<'a, SectionHeader>> {
+    pub const fn as_section(&self) -> Option<&SectionHeaderCursor<'a>> {
         match self {
             Self::Section(cursor) => Some(cursor),
             _ => None,

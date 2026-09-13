@@ -1,13 +1,19 @@
 //! The DOS header of an image file.
 
+mod cursor;
+mod field;
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
-use crate::memory::cursor::{AsCursor, SimpleCursor};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
+
+pub use self::cursor::DosHeaderCursor;
+pub use self::field::Field;
 
 /// The signature indicating the start of the DOS headers.
 const DOS_SIGNATURE: u16 = 0x5A4D;
@@ -128,9 +134,9 @@ impl Parse for DosHeader {
 }
 
 impl AsCursor for DosHeader {
-    type Cursor<'a> = SimpleCursor<'a, Self>;
+    type Cursor<'a> = DosHeaderCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
-        SimpleCursor::new(self)
+        DosHeaderCursor::new(self)
     }
 }

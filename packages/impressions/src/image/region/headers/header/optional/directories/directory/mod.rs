@@ -1,12 +1,20 @@
 //! A data directory entry within the Optional header.
 
+mod cursor;
+mod field;
+
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
+
+pub use self::cursor::DataDirectoryCursor;
+pub use self::field::Field;
 
 /// A data directory entry within the Optional header.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,6 +54,12 @@ impl Extent for DataDirectory {
     }
 }
 
+impl Inspect for DataDirectory {
+    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+        writeln!(inspector.identified(), "Data Directory")
+    }
+}
+
 impl Parse for DataDirectory {
     type Context<'a> = ();
     type Error = Error;
@@ -55,5 +69,13 @@ impl Parse for DataDirectory {
             virtual_address: Address::parse(&mut buffer)?,
             size: buffer.try_get_u32_le()?,
         })
+    }
+}
+
+impl AsCursor for DataDirectory {
+    type Cursor<'a> = DataDirectoryCursor<'a>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        DataDirectoryCursor::new(self)
     }
 }

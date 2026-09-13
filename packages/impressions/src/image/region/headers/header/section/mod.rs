@@ -1,6 +1,8 @@
 //! The Section header of an image file.
 
 mod characteristics;
+mod cursor;
+mod field;
 
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
@@ -9,11 +11,13 @@ use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
-use crate::memory::cursor::{AsCursor, SimpleCursor};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
 
 pub use self::characteristics::SectionCharacteristics;
+pub use self::cursor::SectionHeaderCursor;
+pub use self::field::Field;
 
 /// An image file Section header.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -112,7 +116,7 @@ impl Extent for SectionHeader {
 
 impl Inspect for SectionHeader {
     fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "Section Header {}", self.name())
+        writeln!(inspector.identified(), "Section Header")
     }
 }
 
@@ -137,9 +141,9 @@ impl Parse for SectionHeader {
 }
 
 impl AsCursor for SectionHeader {
-    type Cursor<'a> = SimpleCursor<'a, Self>;
+    type Cursor<'a> = SectionHeaderCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
-        SimpleCursor::new(self)
+        SectionHeaderCursor::new(self)
     }
 }
