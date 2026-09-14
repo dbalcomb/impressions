@@ -297,16 +297,16 @@ impl FromStr for AddressSpace {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let Some((first, last)) = s.split_once('-') else {
-            let address = s.parse::<Address>()?;
+        if let Some((first, last)) = s.split_once('-') {
+            let first = first.parse::<Address>()?;
+            let last = last.parse::<Address>()?;
 
-            return Self::new(address, address);
-        };
+            return Self::new(first, last);
+        }
 
-        let first = first.parse::<Address>()?;
-        let last = last.parse::<Address>()?;
+        let address = s.parse::<Address>()?;
 
-        Self::new(first, last)
+        Self::new(address, address)
     }
 }
 
