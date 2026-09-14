@@ -73,8 +73,8 @@ impl<T> Inspect for SimpleCursor<'_, T>
 where
     T: Extent + Inspect,
 {
-    fn inspect(&self, _: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        Ok(())
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        self.region.inspect(inspector)
     }
 }
 

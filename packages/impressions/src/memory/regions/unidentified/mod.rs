@@ -165,8 +165,11 @@ impl Segmented for Unidentified {
 }
 
 impl Inspect for Unidentified {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.unidentified(), "Unidentified")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Unidentified")
+            .finish()
     }
 }
 

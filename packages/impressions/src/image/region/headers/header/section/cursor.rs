@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
+use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 
 use super::{Field, SectionHeader};
@@ -53,36 +54,27 @@ impl<'a> Cursor for SectionHeaderCursor<'a> {
 }
 
 impl Inspect for SectionHeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        let output = &mut inspector.identified();
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         let header = self.header();
 
         let Some(field) = self.field() else {
-            return Ok(());
+            return;
         };
 
-        match field {
-            Field::Name => writeln!(output, "{field}: {}", header.name),
-            Field::VirtualSize => {
-                writeln!(output, "{field}: {}", header.virtual_size)
-            }
-            Field::VirtualAddress => writeln!(output, "{field}: {}", header.virtual_address),
-            Field::SizeOfRawData => writeln!(output, "{field}: {}", header.size_of_raw_data),
-            Field::PointerToRawData => writeln!(output, "{field}: {}", header.pointer_to_raw_data),
-            Field::PointerToRelocations => {
-                writeln!(output, "{field}: {}", header.pointer_to_relocations)
-            }
-            Field::PointerToLinenumbers => {
-                writeln!(output, "{field}: {}", header.pointer_to_linenumbers)
-            }
-            Field::NumberOfRelocations => {
-                writeln!(output, "{field}: {}", header.number_of_relocations)
-            }
-            Field::NumberOfLinenumbers => {
-                writeln!(output, "{field}: {}", header.number_of_linenumbers)
-            }
-            Field::Characteristics => writeln!(output, "{field}: {}", header.characteristics),
-        }
+        let value: &dyn inspect::InspectionValue = match field {
+            Field::Name => &header.name,
+            Field::VirtualSize => &header.virtual_size,
+            Field::VirtualAddress => &header.virtual_address,
+            Field::SizeOfRawData => &header.size_of_raw_data,
+            Field::PointerToRawData => &header.pointer_to_raw_data,
+            Field::PointerToRelocations => &header.pointer_to_relocations,
+            Field::PointerToLinenumbers => &header.pointer_to_linenumbers,
+            Field::NumberOfRelocations => &header.number_of_relocations,
+            Field::NumberOfLinenumbers => &header.number_of_linenumbers,
+            Field::Characteristics => &header.characteristics,
+        };
+
+        inspector.record(field.address_space()).field(&field, value);
     }
 }
 

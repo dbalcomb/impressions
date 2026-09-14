@@ -55,8 +55,11 @@ impl Extent for DataDirectory {
 }
 
 impl Inspect for DataDirectory {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "Data Directory")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Data Directory")
+            .finish()
     }
 }
 

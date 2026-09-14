@@ -81,7 +81,7 @@ impl<'a, T> Inspect for SegmentCursor<'a, T>
 where
     T: AsCursor<Cursor<'a>: Inspect>,
 {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Identified(identified) => identified.inspect(inspector),
             Self::Unidentified(unidentified) => unidentified.inspect(inspector),

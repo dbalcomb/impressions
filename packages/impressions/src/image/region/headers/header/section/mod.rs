@@ -115,8 +115,11 @@ impl Extent for SectionHeader {
 }
 
 impl Inspect for SectionHeader {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "Section Header")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Section Header")
+            .finish()
     }
 }
 

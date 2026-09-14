@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 
 use super::extent::Size;
+use super::inspect::InspectionValue;
 
 use self::space::Error;
 
@@ -105,6 +106,12 @@ impl Address {
             Some(address) => Some(Self(address)),
             None => None,
         }
+    }
+}
+
+impl InspectionValue for Address {
+    fn data_type(&self) -> &dyn Display {
+        &"address"
     }
 }
 

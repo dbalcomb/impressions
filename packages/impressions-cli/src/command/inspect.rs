@@ -1,10 +1,12 @@
+use std::io;
 use std::path::PathBuf;
-use std::{fmt, io};
 
 use clap::Args;
 use impressions::analysis::{Analysis, Error};
 use impressions::memory::cursor::{AsCursor, Cursor};
-use impressions::memory::inspect::{Inspect as _, Inspector};
+use impressions::memory::inspect::Inspect as _;
+
+use crate::inspector::table::TableInspector;
 
 #[derive(Args)]
 pub struct Inspect {
@@ -21,20 +23,15 @@ impl Inspect {
         eprintln!();
 
         let stdout = io::stdout();
-        let mut writer = IoWriter {
-            writer: stdout.lock(),
-            error: None,
-        };
+        let address = analysis.image().headers().optional().image_address();
 
+        let mut table = TableInspector::new(stdout.lock());
         let mut cursor = analysis.image().cursor();
 
         loop {
-            let address = cursor.address().expect("addressable within loop");
-            let mut inspector = Inspector::new(address, &mut writer);
+            cursor.inspect(&mut table.at(address));
 
-            cursor.inspect(&mut inspector)?;
-
-            if let Some(err) = writer.error.take() {
+            if let Some(err) = table.take_error() {
                 return Err(Error::Io(err));
             }
 
@@ -44,23 +41,5 @@ impl Inspect {
         }
 
         Ok(())
-    }
-}
-
-struct IoWriter<W> {
-    writer: W,
-    error: Option<io::Error>,
-}
-
-impl<W> fmt::Write for IoWriter<W>
-where
-    W: io::Write,
-{
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.writer.write_all(s.as_bytes()).map_err(|err| {
-            self.error = Some(err);
-
-            fmt::Error
-        })
     }
 }

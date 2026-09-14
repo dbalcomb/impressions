@@ -213,15 +213,11 @@ impl<'a, T> Inspect for SegmentsCursor<'a, T>
 where
     T: AsCursor<Cursor<'a>: Inspect> + Extent + Inspect,
 {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        if self.cursor().position() == Position::START {
-            self.segment.inspect(inspector)?;
-        }
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        let mut inspector = inspector.at(self.segment.address());
 
-        inspector.nest();
-        self.cursor().inspect(inspector)?;
-
-        Ok(())
+        self.segment.inspect(&mut inspector);
+        self.cursor().inspect(&mut inspector);
     }
 }
 
@@ -239,8 +235,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::memory::address::{Address, AddressSpace};
     use crate::memory::cursor::{Cursor, Error, Position};
     use crate::memory::extent::Size;
+    use crate::memory::inspect::{Inspect as _, Inspector, Record, RecordBuilder, Status};
     use crate::memory::regions::uninitialized::Uninitialized;
 
     use super::{Segments, SegmentsCursor};
@@ -251,6 +249,23 @@ mod tests {
 
     fn cursor<'a>(segments: &'a [Uninitialized]) -> SegmentsCursor<'a, Uninitialized> {
         SegmentsCursor::new(Segments::new(segments))
+    }
+
+    #[derive(Default)]
+    struct Records {
+        statuses: Vec<Option<Status>>,
+        address_spaces: Vec<AddressSpace>,
+    }
+
+    impl Inspector for Records {
+        fn emit(&mut self, record: Record<'_>) {
+            self.statuses.push(record.status());
+            self.address_spaces.push(record.address_space());
+        }
+
+        fn record(&mut self, address_space: AddressSpace) -> RecordBuilder<'_> {
+            RecordBuilder::new(self, address_space)
+        }
     }
 
     #[test]
@@ -386,5 +401,35 @@ mod tests {
             [Position::START, Position::new(2), Position::new(5)],
         );
         assert_eq!(cursor.position(), Position::from(size(10)));
+    }
+
+    #[test]
+    fn inspect_non_initial_segment_emits_ancestor_and_leaf_records() {
+        let segments = [Uninitialized::new(size(2)), Uninitialized::new(size(3))];
+        let mut cursor = cursor(&segments);
+        let mut inspector = Records::default();
+
+        cursor.seek(Position::new(2)).unwrap();
+        cursor.inspect(&mut inspector);
+
+        assert_eq!(
+            inspector.statuses,
+            [Some(Status::Unidentified), Some(Status::Unidentified)]
+        );
+    }
+
+    #[test]
+    fn inspect_rebases_child_records_to_current_segment() {
+        let segments = [Uninitialized::new(size(2)), Uninitialized::new(size(3))];
+        let mut cursor = cursor(&segments);
+        let mut inspector = Records::default();
+
+        cursor.seek(Position::new(2)).unwrap();
+        cursor.inspect(&mut inspector);
+
+        assert_eq!(
+            inspector.address_spaces,
+            [Address::new(2).to_space(size(3)).unwrap(); 2]
+        );
     }
 }

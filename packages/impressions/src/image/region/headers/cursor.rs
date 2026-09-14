@@ -56,7 +56,7 @@ impl<'a> Cursor for HeadersCursor<'a> {
 }
 
 impl Inspect for HeadersCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         self.0.inspect(inspector)
     }
 }

@@ -128,9 +128,7 @@ impl<'a> Cursor for ImageCursor<'a> {
 }
 
 impl Inspect for ImageCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        inspector.reset();
-
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         self.0.inspect(inspector)
     }
 }

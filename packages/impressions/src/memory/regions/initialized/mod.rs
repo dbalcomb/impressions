@@ -2,7 +2,7 @@
 
 mod error;
 
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Display};
 
 use bytes::Bytes;
 use serde::de::Error as _;
@@ -12,7 +12,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{self, Inspect, InspectionValue};
 use crate::memory::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
@@ -69,62 +69,52 @@ impl Completion for Initialized {
 }
 
 impl Inspect for Initialized {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        let mut output = inspector.unidentified();
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .unidentified()
+            .label(&"Initialized")
+            .value(self)
+            .finish()
+    }
+}
 
+impl InspectionValue for Initialized {
+    fn data_type(&self) -> &dyn Display {
+        &"bytes"
+    }
+}
+
+impl Display for Initialized {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let split = self.0.len() > 8;
         let prefix = self.0.iter().take(if split { 4 } else { 8 });
 
         for (index, byte) in prefix.enumerate() {
             if index > 0 {
-                write!(output, " ")?;
+                write!(f, " ")?;
             }
 
-            write!(output, "{byte:02x}")?;
+            write!(f, "{byte:02x}")?;
         }
 
         if split {
-            write!(output, " ...")?;
+            write!(f, " ...")?;
 
             for byte in self.0.iter().rev().take(4).rev() {
-                write!(output, " {byte:02x}")?;
+                write!(f, " {byte:02x}")?;
             }
         }
 
-        writeln!(output)
+        Ok(())
     }
 }
 
 impl Debug for Initialized {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let bytes = std::fmt::from_fn(|f| {
-            let split = self.0.len() > 8;
-            let prefix = self.0.iter().take(if split { 4 } else { 8 });
-
-            write!(f, "[")?;
-
-            for (index, byte) in prefix.enumerate() {
-                if index > 0 {
-                    write!(f, " ")?;
-                }
-
-                write!(f, "{byte:02x}")?;
-            }
-
-            if split {
-                write!(f, " ...")?;
-
-                for byte in self.0.iter().rev().take(4).rev() {
-                    write!(f, " {byte:02x}")?;
-                }
-            }
-
-            write!(f, "]")
-        });
-
         f.debug_struct("Initialized")
             .field("size", &self.0.len())
-            .field("bytes", &bytes)
+            .field("bytes", &format_args!("[{}]", self))
             .finish()
     }
 }

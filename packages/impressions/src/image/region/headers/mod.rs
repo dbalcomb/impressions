@@ -183,8 +183,11 @@ impl Parse for Headers {
 }
 
 impl Inspect for Headers {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "Headers")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Headers")
+            .finish()
     }
 }
 
