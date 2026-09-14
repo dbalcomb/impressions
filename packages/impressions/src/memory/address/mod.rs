@@ -2,8 +2,11 @@
 
 pub mod space;
 
+mod error;
+
 use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Sub};
+use std::str::FromStr;
 
 use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
@@ -13,8 +16,7 @@ use crate::data::parse::Parse;
 use super::extent::Size;
 use super::inspect::InspectionValue;
 
-use self::space::Error;
-
+pub use self::error::Error;
 pub use self::space::AddressSpace;
 
 /// Represents an address in memory.
@@ -62,7 +64,7 @@ impl Address {
     }
 
     /// Constructs an address space of the given size from this address.
-    pub const fn to_space(self, size: Size) -> Result<AddressSpace, Error> {
+    pub const fn to_space(self, size: Size) -> Result<AddressSpace, self::space::Error> {
         AddressSpace::with_size(self, size)
     }
 }
@@ -192,11 +194,29 @@ impl From<Address> for [u8; 4] {
     }
 }
 
+impl FromStr for Address {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hexadecimal = s
+            .strip_prefix("0x")
+            .or_else(|| s.strip_prefix("0X"))
+            .unwrap_or(s);
+
+        u32::from_str_radix(hexadecimal, 16)
+            .map(Self)
+            .map_err(Error::Parse)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+    use std::str::FromStr;
+
     use crate::data::parse::Parse;
 
-    use super::Address;
+    use super::{Address, Error};
 
     #[test]
     fn test_arithmetic() {
@@ -241,5 +261,23 @@ mod tests {
                 .unwrap_err()
                 .is_data()
         );
+    }
+
+    #[test]
+    fn from_str_parses_hexadecimal_address() {
+        assert_eq!(
+            Address::from_str("0x00400160"),
+            Ok(Address::new(0x00400160))
+        );
+        assert_eq!(Address::from_str("00400160"), Ok(Address::new(0x00400160)));
+        assert_eq!(Address::from_str("400160"), Ok(Address::new(0x00400160)));
+        assert_eq!(
+            Address::from_str("0X00400160"),
+            Ok(Address::new(0x00400160))
+        );
+        assert_matches!(Address::from_str(""), Err(Error::Parse(_)));
+        assert_matches!(Address::from_str("0x"), Err(Error::Parse(_)));
+        assert_matches!(Address::from_str("0x0040016g"), Err(Error::Parse(_)));
+        assert_matches!(Address::from_str("1_000"), Err(Error::Parse(_)));
     }
 }

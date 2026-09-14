@@ -6,6 +6,7 @@ mod subtraction;
 use core::range::RangeInclusive;
 use std::fmt::{self, Debug, Display};
 use std::ops::{Bound, RangeBounds, Sub};
+use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -292,6 +293,23 @@ impl TryFrom<std::ops::RangeInclusive<Address>> for AddressSpace {
     }
 }
 
+impl FromStr for AddressSpace {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((first, last)) = s.split_once('-') {
+            let first = first.parse::<Address>()?;
+            let last = last.parse::<Address>()?;
+
+            return Self::new(first, last);
+        }
+
+        let address = s.parse::<Address>()?;
+
+        Self::new(address, address)
+    }
+}
+
 impl Serialize for AddressSpace {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -345,9 +363,13 @@ impl<'de> Deserialize<'de> for AddressSpace {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+    use std::str::FromStr;
+
     use crate::memory::extent::Size;
 
     use super::{Address, AddressSpace, Error};
+    use crate::memory::address::Error as AddressError;
 
     #[test]
     fn test_new() {
@@ -681,6 +703,38 @@ mod tests {
             serde_json::from_str::<AddressSpace>("[79,5]")
                 .unwrap_err()
                 .is_data()
+        );
+    }
+
+    #[test]
+    fn from_str_parses_hexadecimal_address_space() {
+        assert_eq!(
+            AddressSpace::from_str("0x00400160"),
+            Ok(AddressSpace::new(0x00400160.into(), 0x00400160.into()).unwrap())
+        );
+        assert_eq!(
+            AddressSpace::from_str("00400160-00400163"),
+            Ok(AddressSpace::new(0x00400160.into(), 0x00400163.into()).unwrap())
+        );
+        assert_eq!(
+            AddressSpace::from_str("400160-400163"),
+            Ok(AddressSpace::new(0x00400160.into(), 0x00400163.into()).unwrap())
+        );
+        assert_matches!(
+            AddressSpace::from_str(""),
+            Err(Error::Address(AddressError::Parse(_)))
+        );
+        assert_matches!(
+            AddressSpace::from_str("00400160-"),
+            Err(Error::Address(AddressError::Parse(_)))
+        );
+        assert_matches!(
+            AddressSpace::from_str("00400160-00400163-00400167"),
+            Err(Error::Address(AddressError::Parse(_)))
+        );
+        assert_eq!(
+            AddressSpace::from_str("00400163-00400160"),
+            Err(Error::Invalid)
         );
     }
 }
