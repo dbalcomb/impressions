@@ -82,7 +82,7 @@ impl<'a> Cursor for RegionCursor<'a> {
 }
 
 impl Inspect for RegionCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Headers(headers) => headers.inspect(inspector),
             Self::Section(section) => section.inspect(inspector),

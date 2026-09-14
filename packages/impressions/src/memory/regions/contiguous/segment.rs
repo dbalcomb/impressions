@@ -88,7 +88,7 @@ impl<T> Inspect for Segment<T>
 where
     T: Inspect,
 {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Identified(identified) => identified.inspect(inspector),
             Self::Unidentified(unidentified) => unidentified.inspect(inspector),

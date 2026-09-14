@@ -9,6 +9,7 @@ use bytes::Buf;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::data::parse::{ArrayParseError, Parse};
+use crate::memory::inspect::InspectionValue;
 
 pub use self::error::Error;
 
@@ -48,6 +49,12 @@ impl<const N: usize> ArrayString<N> {
     /// Checks whether the string is empty.
     pub const fn is_empty(&self) -> bool {
         self.as_bytes().is_empty()
+    }
+}
+
+impl<const N: usize> InspectionValue for ArrayString<N> {
+    fn data_type(&self) -> &dyn Display {
+        &"string"
     }
 }
 

@@ -1,7 +1,8 @@
 use std::fmt::{self, Debug, Display};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::extent::Extent;
+use crate::memory::inspect::{self, Inspect, InspectionValue};
 
 use super::{DosHeader, Field};
 
@@ -53,35 +54,38 @@ impl Cursor for DosHeaderCursor<'_> {
 }
 
 impl Inspect for DosHeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        let output = &mut inspector.identified();
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         let header = self.header();
 
         let Some(field) = self.field() else {
-            return Ok(());
+            return;
         };
 
-        match field {
-            Field::Magic => writeln!(output, "{field}: {}", header.e_magic),
-            Field::BytesInLastPage => writeln!(output, "{field}: {}", header.e_cblp),
-            Field::Pages => writeln!(output, "{field}: {}", header.e_cp),
-            Field::Relocations => writeln!(output, "{field}: {}", header.e_crlc),
-            Field::HeaderParagraphs => writeln!(output, "{field}: {}", header.e_cparhdr),
-            Field::MinimumAllocation => writeln!(output, "{field}: {}", header.e_minalloc),
-            Field::MaximumAllocation => writeln!(output, "{field}: {}", header.e_maxalloc),
-            Field::StackSegment => writeln!(output, "{field}: {}", header.e_ss),
-            Field::StackPointer => writeln!(output, "{field}: {}", header.e_sp),
-            Field::Checksum => writeln!(output, "{field}: {}", header.e_csum),
-            Field::InstructionPointer => writeln!(output, "{field}: {}", header.e_ip),
-            Field::CodeSegment => writeln!(output, "{field}: {}", header.e_cs),
-            Field::RelocationTableOffset => writeln!(output, "{field}: {}", header.e_lfarlc),
-            Field::OverlayNumber => writeln!(output, "{field}: {}", header.e_ovno),
-            Field::Reserved => writeln!(output, "{field}: {}", ByteArray(&header.e_res)),
-            Field::OemId => writeln!(output, "{field}: {}", header.e_oemid),
-            Field::OemInfo => writeln!(output, "{field}: {}", header.e_oeminfo),
-            Field::Reserved2 => writeln!(output, "{field}: {}", ByteArray(&header.e_res2)),
-            Field::PeHeadersOffset => writeln!(output, "{field}: {}", header.e_lfanew),
-        }
+        let reserved = ByteArray(&header.e_res);
+        let reserved2 = ByteArray(&header.e_res2);
+        let value: &dyn InspectionValue = match field {
+            Field::Magic => &header.e_magic,
+            Field::BytesInLastPage => &header.e_cblp,
+            Field::Pages => &header.e_cp,
+            Field::Relocations => &header.e_crlc,
+            Field::HeaderParagraphs => &header.e_cparhdr,
+            Field::MinimumAllocation => &header.e_minalloc,
+            Field::MaximumAllocation => &header.e_maxalloc,
+            Field::StackSegment => &header.e_ss,
+            Field::StackPointer => &header.e_sp,
+            Field::Checksum => &header.e_csum,
+            Field::InstructionPointer => &header.e_ip,
+            Field::CodeSegment => &header.e_cs,
+            Field::RelocationTableOffset => &header.e_lfarlc,
+            Field::OverlayNumber => &header.e_ovno,
+            Field::Reserved => &reserved,
+            Field::OemId => &header.e_oemid,
+            Field::OemInfo => &header.e_oeminfo,
+            Field::Reserved2 => &reserved2,
+            Field::PeHeadersOffset => &header.e_lfanew,
+        };
+
+        inspector.record(field.address_space()).field(&field, value);
     }
 }
 
@@ -112,5 +116,11 @@ impl Display for ByteArray<'_> {
         }
 
         Ok(())
+    }
+}
+
+impl InspectionValue for ByteArray<'_> {
+    fn data_type(&self) -> &dyn Display {
+        &"bytes"
     }
 }

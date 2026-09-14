@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
+use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 
 use super::{DataDirectory, Field};
@@ -53,18 +54,19 @@ impl Cursor for DataDirectoryCursor<'_> {
 }
 
 impl Inspect for DataDirectoryCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        let output = &mut inspector.identified();
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         let directory = self.directory();
 
         let Some(field) = self.field() else {
-            return Ok(());
+            return;
         };
 
-        match field {
-            Field::VirtualAddress => writeln!(output, "{field}: {}", directory.virtual_address),
-            Field::Size => writeln!(output, "{field}: {}", directory.size),
-        }
+        let value: &dyn inspect::InspectionValue = match field {
+            Field::VirtualAddress => &directory.virtual_address,
+            Field::Size => &directory.size,
+        };
+
+        inspector.record(field.address_space()).field(&field, value);
     }
 }
 

@@ -97,7 +97,7 @@ impl Completion for Segment {
 }
 
 impl Inspect for Segment {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Initialized(initialized) => initialized.inspect(inspector),
             Self::Uninitialized(uninitialized) => uninitialized.inspect(inspector),

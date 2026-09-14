@@ -64,8 +64,11 @@ impl Extent for CoffHeader {
 }
 
 impl Inspect for CoffHeader {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "COFF Header")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"COFF Header")
+            .finish()
     }
 }
 

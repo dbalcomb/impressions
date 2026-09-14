@@ -11,6 +11,7 @@ use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 pub use self::cursor::WindowsFieldsCursor;
 pub use self::field::Field;
@@ -125,6 +126,15 @@ impl WindowsFields {
 impl Extent for WindowsFields {
     fn size(&self) -> Size {
         Size::new(68).expect("valid size")
+    }
+}
+
+impl Inspect for WindowsFields {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Windows Fields")
+            .finish()
     }
 }
 

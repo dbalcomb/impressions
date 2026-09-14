@@ -145,14 +145,14 @@ impl<'a> Cursor for HeaderCursor<'a> {
 }
 
 impl Inspect for HeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Dos(cursor) => cursor.inspect(inspector),
-            Self::Signature(cursor) => cursor.inspect(inspector),
+            Self::Signature(_) => (),
             Self::Coff(cursor) => cursor.inspect(inspector),
             Self::Optional(cursor) => cursor.inspect(inspector),
             Self::Section(cursor) => cursor.inspect(inspector),
-            Self::Padding(cursor) => cursor.inspect(inspector),
+            Self::Padding(_) => (),
         }
     }
 }

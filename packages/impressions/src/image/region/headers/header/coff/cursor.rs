@@ -1,6 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
+use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 
 use super::{CoffHeader, Field};
@@ -53,27 +54,24 @@ impl Cursor for CoffHeaderCursor<'_> {
 }
 
 impl Inspect for CoffHeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        let output = &mut inspector.identified();
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         let header = self.header();
 
         let Some(field) = self.field() else {
-            return Ok(());
+            return;
         };
 
-        match field {
-            Field::Machine => writeln!(output, "{field}: {}", header.machine),
-            Field::NumberOfSections => writeln!(output, "{field}: {}", header.number_of_sections),
-            Field::TimeDateStamp => writeln!(output, "{field}: {}", header.time_date_stamp),
-            Field::PointerToSymbolTable => {
-                writeln!(output, "{field}: {}", header.pointer_to_symbol_table)
-            }
-            Field::NumberOfSymbols => writeln!(output, "{field}: {}", header.number_of_symbols),
-            Field::SizeOfOptionalHeader => {
-                writeln!(output, "{field}: {}", header.size_of_optional_header)
-            }
-            Field::Characteristics => writeln!(output, "{field}: {}", header.characteristics),
-        }
+        let value: &dyn inspect::InspectionValue = match field {
+            Field::Machine => &header.machine,
+            Field::NumberOfSections => &header.number_of_sections,
+            Field::TimeDateStamp => &header.time_date_stamp,
+            Field::PointerToSymbolTable => &header.pointer_to_symbol_table,
+            Field::NumberOfSymbols => &header.number_of_symbols,
+            Field::SizeOfOptionalHeader => &header.size_of_optional_header,
+            Field::Characteristics => &header.characteristics,
+        };
+
+        inspector.record(field.address_space()).field(&field, value);
     }
 }
 

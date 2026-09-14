@@ -80,8 +80,11 @@ impl Extent for OptionalHeader {
 }
 
 impl Inspect for OptionalHeader {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "Optional Header")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Optional Header")
+            .finish()
     }
 }
 

@@ -93,8 +93,11 @@ impl Extent for DosHeader {
 }
 
 impl Inspect for DosHeader {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.identified(), "DOS Header")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"DOS Header")
+            .finish()
     }
 }
 

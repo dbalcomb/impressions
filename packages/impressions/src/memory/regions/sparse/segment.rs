@@ -88,10 +88,10 @@ impl<T> Inspect for Segment<T>
 where
     T: Inspect,
 {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Occupied(occupied) => occupied.inspect(inspector),
-            Self::Vacant(_) => writeln!(inspector.vacant()),
+            Self::Vacant(vacant) => inspector.record(vacant.address_space()).vacant().finish(),
         }
     }
 }

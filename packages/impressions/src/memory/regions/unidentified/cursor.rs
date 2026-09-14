@@ -70,9 +70,7 @@ impl<'a> Cursor for SegmentCursor<'a> {
 }
 
 impl Inspect for SegmentCursor<'_> {
-    fn inspect(&self, _: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        Ok(())
-    }
+    fn inspect(&self, _: &mut dyn inspect::Inspector) {}
 }
 
 impl<'a> Debug for SegmentCursor<'a> {

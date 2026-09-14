@@ -122,10 +122,15 @@ impl Completion for Header {
 }
 
 impl Inspect for Header {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Dos(dos) => dos.inspect(inspector),
-            Self::Signature => writeln!(inspector.identified(), "Signature"),
+            Self::Signature => inspector
+                .record(self.address_space())
+                .identified()
+                .label(&"Signature")
+                .value(&"PE")
+                .finish(),
             Self::Coff(coff) => coff.inspect(inspector),
             Self::Optional(optional) => optional.inspect(inspector),
             Self::Section(section) => section.inspect(inspector),

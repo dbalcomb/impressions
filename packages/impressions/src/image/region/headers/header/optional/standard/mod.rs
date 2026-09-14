@@ -11,6 +11,7 @@ use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{self, Inspect};
 
 pub use self::cursor::StandardFieldsCursor;
 pub use self::field::Field;
@@ -60,6 +61,15 @@ impl StandardFields {
 impl Extent for StandardFields {
     fn size(&self) -> Size {
         Size::new(28).expect("valid size")
+    }
+}
+
+impl Inspect for StandardFields {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&"Standard Fields")
+            .finish()
     }
 }
 

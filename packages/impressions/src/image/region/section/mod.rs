@@ -126,14 +126,14 @@ impl Parse for Section {
 }
 
 impl Inspect for Section {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        let name = self.name();
-        let c = self.characteristics;
-        let r = if c.read() { "r" } else { "-" };
-        let w = if c.write() { "w" } else { "-" };
-        let x = if c.execute() { "x" } else { "-" };
-
-        writeln!(inspector.identified(), "Section {name:<8} [{r}{w}{x}]")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .label(&format_args!(
+                "Section {} {}",
+                self.characteristics, self.name
+            ))
+            .finish()
     }
 }
 

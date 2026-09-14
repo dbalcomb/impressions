@@ -65,9 +65,9 @@ impl<'a> Cursor for BlockCursor<'a> {
 }
 
 impl Inspect for BlockCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, _: &mut dyn inspect::Inspector) {
         match self {
-            Self::Padding(cursor) => cursor.inspect(inspector),
+            Self::Padding(_) => (),
         }
     }
 }

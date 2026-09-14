@@ -1,4 +1,5 @@
 mod command;
+mod inspector;
 
 use clap::Parser;
 use impressions::analysis::Error;

@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug};
 
+use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
@@ -184,11 +185,13 @@ impl Cursor for OptionalHeaderCursor<'_> {
 }
 
 impl Inspect for OptionalHeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        let mut inspector = inspector.at(Address::new(self.cursor.offset()));
+
         match &self.cursor {
-            FieldsCursor::Standard(cursor) => cursor.inspect(inspector),
-            FieldsCursor::Windows(cursor) => cursor.inspect(inspector),
-            FieldsCursor::Directories(cursor) => cursor.inspect(inspector),
+            FieldsCursor::Standard(cursor) => cursor.inspect(&mut inspector),
+            FieldsCursor::Windows(cursor) => cursor.inspect(&mut inspector),
+            FieldsCursor::Directories(cursor) => cursor.inspect(&mut inspector),
         }
     }
 }

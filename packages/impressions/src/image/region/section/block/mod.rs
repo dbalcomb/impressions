@@ -62,7 +62,7 @@ impl Completion for Block {
 }
 
 impl Inspect for Block {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
         match self {
             Self::Padding(padding) => padding.inspect(inspector),
         }

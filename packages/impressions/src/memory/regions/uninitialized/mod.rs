@@ -2,7 +2,7 @@
 
 mod error;
 
-use std::fmt::{self, Debug};
+use std::fmt::{self, Debug, Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +10,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{self, Inspect, InspectionValue};
 use crate::memory::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
@@ -58,8 +58,29 @@ impl Completion for Uninitialized {
 }
 
 impl Inspect for Uninitialized {
-    fn inspect(&self, inspector: &mut inspect::Inspector<'_>) -> Result<(), inspect::Error> {
-        writeln!(inspector.unidentified(), "00 ...")
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .unidentified()
+            .label(&"Uninitialized")
+            .value(self)
+            .finish()
+    }
+}
+
+impl InspectionValue for Uninitialized {
+    fn data_type(&self) -> &dyn Display {
+        &"bytes"
+    }
+}
+
+impl Display for Uninitialized {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0.get() == 1 {
+            write!(f, "00")
+        } else {
+            write!(f, "00 ...")
+        }
     }
 }
 

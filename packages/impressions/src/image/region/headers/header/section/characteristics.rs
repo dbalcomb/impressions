@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
+use crate::memory::inspect::InspectionValue;
 
 /// The image file section characteristics.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -112,6 +113,12 @@ impl Display for SectionCharacteristics {
         let x = if self.execute() { "x" } else { "-" };
 
         write!(f, "{r}{w}{x}")
+    }
+}
+
+impl InspectionValue for SectionCharacteristics {
+    fn data_type(&self) -> &dyn Display {
+        &"flags"
     }
 }
 
