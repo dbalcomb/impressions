@@ -304,6 +304,23 @@ impl FromStr for AddressSpace {
             return Self::new(first, last);
         }
 
+        if let Some((first, offset)) = s.split_once('+') {
+            let first = first.parse::<Address>()?;
+            let offset = u32::from_str(offset).ok().ok_or(Error::Invalid)?;
+            let last = first.checked_add(offset).unwrap_or(Address::MAX);
+
+            return Self::new(first, last);
+        }
+
+        if let Some((address, radius)) = s.split_once('~') {
+            let address = address.parse::<Address>()?;
+            let radius = u32::from_str(radius).ok().ok_or(Error::Invalid)?;
+            let first = address.checked_sub(radius).unwrap_or(Address::MIN);
+            let last = address.checked_add(radius).unwrap_or(Address::MAX);
+
+            return Self::new(first, last);
+        }
+
         let address = s.parse::<Address>()?;
 
         Self::new(address, address)
@@ -735,6 +752,42 @@ mod tests {
         assert_eq!(
             AddressSpace::from_str("00400163-00400160"),
             Err(Error::Invalid)
+        );
+    }
+
+    #[test]
+    fn from_str_parses_forward_offsets() {
+        assert_eq!(
+            AddressSpace::from_str("00400160+0"),
+            Ok(AddressSpace::new(0x00400160.into(), 0x00400160.into()).unwrap())
+        );
+        assert_eq!(
+            AddressSpace::from_str("00400160+10"),
+            Ok(AddressSpace::new(0x00400160.into(), 0x0040016a.into()).unwrap())
+        );
+    }
+
+    #[test]
+    fn from_str_parses_symmetric_offsets() {
+        assert_eq!(
+            AddressSpace::from_str("00400160~0"),
+            Ok(AddressSpace::new(0x00400160.into(), 0x00400160.into()).unwrap())
+        );
+        assert_eq!(
+            AddressSpace::from_str("00400160~5"),
+            Ok(AddressSpace::new(0x0040015b.into(), 0x00400165.into()).unwrap())
+        );
+    }
+
+    #[test]
+    fn from_str_clamps_offsets_at_address_space_bounds() {
+        assert_eq!(
+            AddressSpace::from_str("fffffffe+5"),
+            Ok(AddressSpace::new(0xfffffffe.into(), Address::MAX).unwrap())
+        );
+        assert_eq!(
+            AddressSpace::from_str("00000002~5"),
+            Ok(AddressSpace::new(Address::MIN, 0x00000007.into()).unwrap())
         );
     }
 }
