@@ -3,7 +3,7 @@ mod record;
 
 use std::io;
 
-use impressions::memory::address::AddressSpace;
+use impressions::memory::address::{Address, AddressSpace};
 use impressions::memory::inspect::{Inspector, Record, RecordBuilder, Status};
 use unicode_truncate::UnicodeTruncateStr;
 
@@ -51,17 +51,16 @@ impl<W> TableInspector<W>
 where
     W: io::Write,
 {
-    /// Writes the current record at the given position in the history.
-    fn write_current(&mut self, position: usize) {
-        let record = self.history.get(position).expect("current record exists");
-
-        if let Err(err) = Self::write_record(&mut self.writer, position, record) {
-            self.error = Some(err);
+    /// Writes the record at the given position in the history.
+    fn write_record(&mut self, position: usize) -> io::Result<()> {
+        if self.error.is_some() {
+            return Ok(());
         }
-    }
 
-    /// Writes a record to the underlying writer.
-    fn write_record(writer: &mut W, depth: usize, record: &StoredRecord) -> io::Result<()> {
+        let Some(record) = self.history.get(position) else {
+            return Ok(());
+        };
+
         let marker = match record.status {
             Some(Status::Identified) => ' ',
             Some(Status::Unidentified) => '?',
@@ -77,15 +76,27 @@ where
         };
 
         write!(
-            writer,
+            self.writer,
             "{style}{}  {marker}  ",
             record.address_space.first()
         )?;
 
-        Self::write_label(writer, depth, &record.label)?;
+        let indentation = position.saturating_mul(2).min(LABEL_WIDTH);
+
+        write!(self.writer, "{:indentation$}", "")?;
+
+        let max_width = LABEL_WIDTH - indentation;
+        let (label, width) = record.label.unicode_truncate(max_width);
+
+        write!(
+            self.writer,
+            "{label}{:padding$}",
+            "",
+            padding = max_width - width
+        )?;
 
         writeln!(
-            writer,
+            self.writer,
             "{RESET}  {:>DATA_TYPE_WIDTH$}  {}",
             record.data_type, record.value
         )?;
@@ -93,21 +104,12 @@ where
         Ok(())
     }
 
-    /// Writes a label to the underlying writer.
-    fn write_label(writer: &mut W, depth: usize, label: &str) -> io::Result<()> {
-        let indentation = depth.saturating_mul(2).min(LABEL_WIDTH);
+    fn write_gap(&mut self, address: Address) -> io::Result<()> {
+        if self.error.is_some() {
+            return Ok(());
+        }
 
-        write!(writer, "{:indentation$}", "")?;
-
-        let max_width = LABEL_WIDTH - indentation;
-        let (label, width) = label.unicode_truncate(max_width);
-
-        write!(
-            writer,
-            "{label}{:padding$}",
-            "",
-            padding = max_width - width
-        )?;
+        writeln!(self.writer, "{DIM}{address}  :{RESET}")?;
 
         Ok(())
     }
@@ -120,15 +122,41 @@ where
     fn emit(&mut self, record: Record<'_>) {
         self.buffer.store(record);
 
-        let position = self.history.position_for(&self.buffer);
-        let changed = self.history.store(position, &mut self.buffer);
+        let Some(position) = self.history.position_for(&self.buffer) else {
+            return;
+        };
 
-        if self.error.is_some() {
+        let mut gap = None;
+
+        if position == self.history.len()
+            && let Some(prev) = self.history.last()
+            && prev.address_space.first() < self.buffer.address_space.first()
+        {
+            gap = Some(prev.address_space.first());
+        }
+
+        if position < self.history.len()
+            && let Some(prev) = self.history.last()
+            && prev.address_space.last() < self.buffer.address_space.first()
+            && !prev
+                .address_space
+                .is_adjacent_before(self.buffer.address_space)
+        {
+            gap = prev.address_space.last().next();
+        }
+
+        self.history.store(position, &mut self.buffer);
+
+        if let Some(address) = gap
+            && let Err(err) = self.write_gap(address)
+        {
+            self.error = Some(err);
+
             return;
         }
 
-        if changed {
-            self.write_current(position);
+        if let Err(err) = self.write_record(position) {
+            self.error = Some(err);
         }
     }
 
@@ -205,11 +233,16 @@ mod tests {
     #[test]
     fn truncates_labels_at_unicode_display_width() {
         let mut output = Vec::new();
+        let mut inspector = TableInspector::new(&mut output);
+        let address_space = Address::new(2).to_space(Size::new(1).unwrap()).unwrap();
         let label = "你".repeat(21);
 
-        TableInspector::write_label(&mut output, 0, &label).unwrap();
+        inspector.record(address_space).label(&label).finish();
 
-        assert_eq!(String::from_utf8(output).unwrap(), "你".repeat(20));
+        let output = String::from_utf8(output).unwrap();
+
+        assert!(output.contains(&"你".repeat(20)));
+        assert!(!output.contains(&label));
     }
 
     #[test]
@@ -232,5 +265,59 @@ mod tests {
         assert_eq!(lines.len(), 2);
         assert!(lines[0].starts_with("\x1b[32m0x00000002     Parent"));
         assert!(lines[1].starts_with("\x1b[2m0x00000002  :    Child"));
+    }
+
+    #[test]
+    fn renders_gap_before_later_root() {
+        let mut output = Vec::new();
+        let mut inspector = TableInspector::new(&mut output);
+        let first = Address::new(2).to_space(Size::new(2).unwrap()).unwrap();
+        let second = Address::new(6).to_space(Size::new(2).unwrap()).unwrap();
+
+        inspector.record(first).field(&"First", &1u16);
+        inspector.record(second).field(&"Second", &2u16);
+
+        let output = String::from_utf8(output).unwrap();
+        let lines: Vec<_> = output.lines().collect();
+
+        assert_eq!(lines.len(), 3);
+        assert!(lines[1].starts_with("\x1b[2m0x00000004  :"));
+    }
+
+    #[test]
+    fn renders_gap_before_later_child() {
+        let mut output = Vec::new();
+        let mut inspector = TableInspector::new(&mut output);
+        let parent = Address::new(2).to_space(Size::new(6).unwrap()).unwrap();
+        let child = Address::new(4).to_space(Size::new(2).unwrap()).unwrap();
+
+        inspector.record(parent).label(&"Parent").finish();
+        inspector.record(child).field(&"Child", &1u16);
+
+        let output = String::from_utf8(output).unwrap();
+        let lines: Vec<_> = output.lines().collect();
+
+        assert_eq!(lines.len(), 3);
+        assert!(lines[1].starts_with("\x1b[2m0x00000002  :"));
+    }
+
+    #[test]
+    fn renders_gap_between_non_adjacent_siblings() {
+        let mut output = Vec::new();
+        let mut inspector = TableInspector::new(&mut output);
+        let parent = Address::new(2).to_space(Size::new(6).unwrap()).unwrap();
+        let first = Address::new(2).to_space(Size::new(2).unwrap()).unwrap();
+        let second = Address::new(6).to_space(Size::new(2).unwrap()).unwrap();
+
+        inspector.record(parent).label(&"Parent").finish();
+        inspector.record(first).field(&"First", &1u16);
+        inspector.record(parent).label(&"Parent").finish();
+        inspector.record(second).field(&"Second", &2u16);
+
+        let output = String::from_utf8(output).unwrap();
+        let lines: Vec<_> = output.lines().collect();
+
+        assert_eq!(lines.len(), 4);
+        assert!(lines[2].starts_with("\x1b[2m0x00000004  :"));
     }
 }
