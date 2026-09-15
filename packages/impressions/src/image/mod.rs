@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
-use crate::memory::address::Address;
+use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::regions::sparse::{Segment, Sparse};
@@ -51,11 +51,22 @@ impl Image {
             .filter_map(|entry| entry.segment().as_occupied())
             .filter_map(Region::as_section)
     }
+
+    /// Gets the virtual address of the image.
+    pub fn address(&self) -> Address {
+        self.headers().optional().image_address()
+    }
 }
 
 impl Extent for Image {
     fn size(&self) -> Size {
         self.regions.size()
+    }
+
+    fn address_space(&self) -> AddressSpace {
+        self.address()
+            .to_space(self.size())
+            .expect("image address space validated on parse")
     }
 }
 

@@ -2,6 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::address::Address;
 use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::sparse::Segment;
 use crate::memory::regions::unidentified::Unidentified;
@@ -16,34 +17,71 @@ use super::region::{Region, RegionCursor};
 
 /// A cursor over an image.
 #[derive(Clone)]
-pub struct ImageCursor<'a>(SegmentsCursor<'a, Segment<Region>>);
+pub struct ImageCursor<'a> {
+    image: &'a Image,
+    cursor: SegmentsCursor<'a, Segment<Region>>,
+    relative: bool,
+}
 
 impl<'a> ImageCursor<'a> {
     /// Constructs a new image cursor.
     pub(super) fn new(image: &'a Image) -> Self {
-        Self(SegmentsCursor::new(image.segments()))
+        Self {
+            image,
+            cursor: SegmentsCursor::new(image.segments()),
+            relative: false,
+        }
     }
 }
 
-impl<'a> ImageCursor<'a> {
+impl ImageCursor<'_> {
+    /// Sets whether the cursor is relative to the image address.
+    ///
+    /// A relative address starts from `0x00000000` instead of the image base
+    /// address and goes up to the image size. This is useful for working with
+    /// relative virtual addresses (RVAs).
+    ///
+    /// Setting this to `true` will alter the behavior of the [`Self::address`]
+    /// method to return a relative address, and will also affect the output of
+    /// the [`Inspect`] implementation. This does not affect the position of the
+    /// cursor, which is always relative to the image base address.
+    pub const fn relative(mut self, relative: bool) -> Self {
+        self.relative = relative;
+        self
+    }
+}
+
+impl ImageCursor<'_> {
     /// Gets the address of the current position in the image.
+    ///
+    /// This returns `None` if the cursor is at the end of the 32-bit address
+    /// space.
     pub fn address(&self) -> Option<Address> {
-        self.0
-            .segments()
-            .get(Address::MIN)
-            .and_then(|entry| entry.segment().as_occupied())
-            .and_then(Region::as_headers)
-            .expect("an image always has headers at RVA 0")
-            .optional()
-            .image_address()
-            .checked_add(self.0.position().get_addressable()?)
+        if self.relative {
+            self.cursor.position().get_addressable().map(Into::into)
+        } else {
+            self.image
+                .address()
+                .checked_add(self.cursor.position().get_addressable()?)
+        }
+    }
+
+    /// Seeks to the given address in the image.
+    pub fn seek_address(&mut self, address: Address) -> Result<(), Error> {
+        match self.relative {
+            true => self.seek(address.into()),
+            false => match address.checked_sub(self.image.address().value()) {
+                Some(address) => self.seek(address.into()),
+                None => Err(Error::OutOfBounds(address.into(), self.image.size())),
+            },
+        }
     }
 }
 
 impl<'a> ImageCursor<'a> {
     /// Gets the region at the cursor position.
     pub const fn region(&self) -> Option<&'a Region> {
-        self.0.segment().as_occupied()
+        self.cursor.segment().as_occupied()
     }
 
     /// Gets the headers at the cursor position.
@@ -57,7 +95,7 @@ impl<'a> ImageCursor<'a> {
 
     /// Gets the header at the cursor position.
     pub const fn header(&self) -> Option<&'a Header> {
-        let Some(region) = self.0.cursor().as_occupied() else {
+        let Some(region) = self.cursor.cursor().as_occupied() else {
             return None;
         };
 
@@ -79,7 +117,7 @@ impl<'a> ImageCursor<'a> {
 
     /// Gets the block at the cursor position.
     pub const fn block(&self) -> Option<&'a Block> {
-        let Some(region) = self.0.cursor().as_occupied() else {
+        let Some(region) = self.cursor.cursor().as_occupied() else {
             return None;
         };
 
@@ -92,7 +130,7 @@ impl<'a> ImageCursor<'a> {
 
     /// Gets the unidentified region at the cursor position.
     pub const fn unidentified(&self) -> Option<&'a Unidentified> {
-        let Some(region) = self.0.cursor().as_occupied() else {
+        let Some(region) = self.cursor.cursor().as_occupied() else {
             return None;
         };
 
@@ -107,29 +145,33 @@ impl<'a> Cursor for ImageCursor<'a> {
     type Error = Error;
 
     fn position(&self) -> Position {
-        self.0.position()
+        self.cursor.position()
     }
 
     fn seek(&mut self, position: Position) -> Result<(), Self::Error> {
-        self.0.seek(position)
+        self.cursor.seek(position)
     }
 
     fn advance(&mut self, offset: u32) -> Result<(), Self::Error> {
-        self.0.advance(offset)
+        self.cursor.advance(offset)
     }
 
     fn next(&mut self) -> Result<Option<Position>, Self::Error> {
-        self.0.next()
+        self.cursor.next()
     }
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
-        self.0.step()
+        self.cursor.step()
     }
 }
 
 impl Inspect for ImageCursor<'_> {
     fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
-        self.0.inspect(inspector)
+        if self.relative {
+            self.cursor.inspect(inspector);
+        } else {
+            self.cursor.inspect(&mut inspector.at(self.image.address()));
+        }
     }
 }
 
@@ -137,7 +179,7 @@ impl<'a> Debug for ImageCursor<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ImageCursor")
             .field("position", &self.position())
-            .field("cursor", self.0.cursor())
+            .field("cursor", self.cursor.cursor())
             .finish()
     }
 }

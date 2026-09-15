@@ -23,15 +23,14 @@ impl Inspect {
         eprintln!();
 
         let stdout = io::stdout();
-        let address = analysis.image().headers().optional().image_address();
 
-        let mut table = TableInspector::new(stdout.lock());
+        let mut inspector = TableInspector::new(stdout.lock());
         let mut cursor = analysis.image().cursor();
 
         loop {
-            cursor.inspect(&mut table.at(address));
+            cursor.inspect(&mut inspector);
 
-            if let Some(err) = table.take_error() {
+            if let Some(err) = inspector.take_error() {
                 return Err(Error::Io(err));
             }
 

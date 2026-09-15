@@ -3,9 +3,8 @@ mod record;
 
 use std::io;
 
-use impressions::memory::address::Address;
 use impressions::memory::address::AddressSpace;
-use impressions::memory::inspect::{Inspector, RebasedInspector, Record, RecordBuilder, Status};
+use impressions::memory::inspect::{Inspector, Record, RecordBuilder, Status};
 use unicode_truncate::UnicodeTruncateStr;
 
 use self::history::History;
@@ -40,11 +39,6 @@ where
             history: History::new(),
             error: None,
         }
-    }
-
-    /// Adapts this inspector to rebase image-local address spaces.
-    pub fn at(&mut self, address: Address) -> RebasedInspector<'_> {
-        RebasedInspector::new(self, address)
     }
 
     /// Takes the error that occurred while writing to the underlying writer.
