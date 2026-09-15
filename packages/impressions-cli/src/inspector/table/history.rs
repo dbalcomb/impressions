@@ -25,10 +25,9 @@ impl History {
 
 impl History {
     /// Finds the position for the next record in the active hierarchy.
-    pub fn position_for(&self, record: &StoredRecord) -> usize {
+    pub fn position_for(&self, record: &StoredRecord) -> Option<usize> {
         let active = &self.records[..self.len];
-
-        active
+        let position = active
             .iter()
             .rposition(|existing| existing == record)
             .or_else(|| {
@@ -37,7 +36,13 @@ impl History {
                     .rposition(|existing| existing.address_space.includes(record.address_space))
                     .map(|position| position + 1)
             })
-            .unwrap_or(0)
+            .unwrap_or(0);
+
+        if position < self.len && *record == self.records[position] {
+            return None;
+        }
+
+        Some(position)
     }
 
     /// Gets the record at a position in the active hierarchy.
@@ -45,20 +50,26 @@ impl History {
         self.records.get(position)
     }
 
+    /// Gets the last record in the active hierarchy.
+    pub fn last(&self) -> Option<&StoredRecord> {
+        self.len
+            .checked_sub(1)
+            .and_then(|position| self.get(position))
+    }
+
     /// Stores a record at a hierarchy position, retaining replaced allocations.
-    pub fn store(&mut self, position: usize, buffer: &mut StoredRecord) -> bool {
+    pub fn store(&mut self, position: usize, buffer: &mut StoredRecord) {
         if position == self.records.len() {
             self.records.push(StoredRecord::default());
         }
 
-        let changed = *buffer != self.records[position];
-
-        if changed {
-            mem::swap(buffer, &mut self.records[position]);
-        }
+        mem::swap(buffer, &mut self.records[position]);
 
         self.len = position + 1;
+    }
 
-        changed
+    /// Gets the length of the active hierarchy.
+    pub fn len(&self) -> usize {
+        self.len
     }
 }
