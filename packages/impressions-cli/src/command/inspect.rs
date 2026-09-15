@@ -12,6 +12,10 @@ use crate::inspector::table::TableInspector;
 pub struct Inspect {
     /// The path of the binary analysis file.
     analysis: PathBuf,
+
+    /// Use relative addresses instead of absolute addresses.
+    #[arg(long, short = 'r')]
+    relative: bool,
 }
 
 impl Inspect {
@@ -25,7 +29,7 @@ impl Inspect {
         let stdout = io::stdout();
 
         let mut inspector = TableInspector::new(stdout.lock());
-        let mut cursor = analysis.image().cursor();
+        let mut cursor = analysis.image().cursor().relative(self.relative);
 
         loop {
             cursor.inspect(&mut inspector);
