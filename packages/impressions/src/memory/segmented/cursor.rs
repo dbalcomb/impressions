@@ -54,6 +54,11 @@ where
     pub const fn cursor(&self) -> &T::Cursor<'a> {
         &self.cursor
     }
+
+    /// Gets the inner cursor as mutable.
+    pub(crate) const fn cursor_mut(&mut self) -> &mut T::Cursor<'a> {
+        &mut self.cursor
+    }
 }
 
 impl<'a, T> SegmentsCursor<'a, T>

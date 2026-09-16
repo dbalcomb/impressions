@@ -35,6 +35,27 @@ where
     }
 }
 
+impl<'a, T> SegmentCursor<'a, T>
+where
+    T: AsCursor,
+{
+    /// Gets the segment cursor as a mutable identified cursor.
+    pub const fn as_identified_mut(&mut self) -> Option<&mut T::Cursor<'a>> {
+        match self {
+            Self::Identified(identified) => Some(identified),
+            Self::Unidentified(_) => None,
+        }
+    }
+
+    /// Gets the segment cursor as a mutable unidentified cursor.
+    pub const fn as_unidentified_mut(&mut self) -> Option<&mut SegmentsCursor<'a, Segment>> {
+        match self {
+            Self::Unidentified(unidentified) => Some(unidentified),
+            Self::Identified(_) => None,
+        }
+    }
+}
+
 impl<'a, T> Cursor for SegmentCursor<'a, T>
 where
     T: AsCursor,

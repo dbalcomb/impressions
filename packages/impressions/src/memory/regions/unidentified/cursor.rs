@@ -2,19 +2,19 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
 use crate::memory::inspect::{self, Inspect};
-use crate::memory::regions::initialized::Initialized;
+use crate::memory::regions::initialized::InitializedCursor;
 use crate::memory::regions::uninitialized::Uninitialized;
 
 /// A cursor over a segment in an unidentified region of memory.
 #[derive(Clone)]
 pub enum SegmentCursor<'a> {
-    Initialized(SimpleCursor<'a, Initialized>),
+    Initialized(InitializedCursor<'a>),
     Uninitialized(SimpleCursor<'a, Uninitialized>),
 }
 
 impl<'a> SegmentCursor<'a> {
     /// Gets the segment cursor as an initialized cursor.
-    pub const fn as_initialized(&self) -> Option<&SimpleCursor<'a, Initialized>> {
+    pub const fn as_initialized(&self) -> Option<&InitializedCursor<'a>> {
         match self {
             Self::Initialized(initialized) => Some(initialized),
             Self::Uninitialized(_) => None,
@@ -23,6 +23,24 @@ impl<'a> SegmentCursor<'a> {
 
     /// Gets the segment cursor as an uninitialized cursor.
     pub const fn as_uninitialized(&self) -> Option<&SimpleCursor<'a, Uninitialized>> {
+        match self {
+            Self::Uninitialized(uninitialized) => Some(uninitialized),
+            Self::Initialized(_) => None,
+        }
+    }
+}
+
+impl<'a> SegmentCursor<'a> {
+    /// Gets the segment cursor as a mutable initialized cursor.
+    pub const fn as_initialized_mut(&mut self) -> Option<&mut InitializedCursor<'a>> {
+        match self {
+            Self::Initialized(initialized) => Some(initialized),
+            Self::Uninitialized(_) => None,
+        }
+    }
+
+    /// Gets the segment cursor as a mutable uninitialized cursor.
+    pub const fn as_uninitialized_mut(&mut self) -> Option<&mut SimpleCursor<'a, Uninitialized>> {
         match self {
             Self::Uninitialized(uninitialized) => Some(uninitialized),
             Self::Initialized(_) => None,

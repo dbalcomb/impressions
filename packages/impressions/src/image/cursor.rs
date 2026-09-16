@@ -1,7 +1,8 @@
 use std::fmt::{self, Debug};
 
+use crate::data::parse::Parse;
 use crate::memory::address::Address;
-use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::cursor::{Cursor, Error, Position, Read, ReadError};
 use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::sparse::Segment;
@@ -162,6 +163,22 @@ impl<'a> Cursor for ImageCursor<'a> {
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
         self.cursor.step()
+    }
+}
+
+impl Read for ImageCursor<'_> {
+    fn read_with<'a, T>(
+        &mut self,
+        context: T::Context<'a>,
+    ) -> Result<T, ReadError<T::Error, Self::Error>>
+    where
+        T: Extent + Parse,
+    {
+        let Some(region) = self.cursor.cursor_mut().as_occupied_mut() else {
+            return Err(ReadError::Unsupported);
+        };
+
+        region.read_with(context)
     }
 }
 

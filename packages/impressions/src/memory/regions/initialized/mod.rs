@@ -1,5 +1,6 @@
 //! A region of initialized memory.
 
+mod cursor;
 mod error;
 
 use std::fmt::{self, Debug, Display};
@@ -10,11 +11,12 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
-use crate::memory::cursor::{AsCursor, SimpleCursor};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect, InspectionValue};
 use crate::memory::slice::{Error as SliceError, Slice};
 
+pub use self::cursor::InitializedCursor;
 pub use self::error::Error;
 
 /// A region of initialized memory.
@@ -129,10 +131,10 @@ impl<'de> Deserialize<'de> for Initialized {
 }
 
 impl AsCursor for Initialized {
-    type Cursor<'a> = SimpleCursor<'a, Self>;
+    type Cursor<'a> = InitializedCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
-        SimpleCursor::new(self)
+        InitializedCursor::new(self)
     }
 }
 

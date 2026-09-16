@@ -1,6 +1,8 @@
 use std::fmt::{self, Debug};
 
-use crate::memory::cursor::{Cursor, Error, Position};
+use crate::data::parse::Parse;
+use crate::memory::cursor::{Cursor, Error, Position, Read, ReadError};
+use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 use crate::memory::regions::contiguous::Segment;
 use crate::memory::regions::unidentified::Unidentified;
@@ -52,6 +54,26 @@ impl<'a> Cursor for HeadersCursor<'a> {
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
         self.0.step()
+    }
+}
+
+impl Read for HeadersCursor<'_> {
+    fn read_with<'a, T>(
+        &mut self,
+        context: T::Context<'a>,
+    ) -> Result<T, ReadError<T::Error, Self::Error>>
+    where
+        T: Extent + Parse,
+    {
+        let Some(unidentified) = self.0.cursor_mut().as_unidentified_mut() else {
+            return Err(ReadError::Unsupported);
+        };
+
+        let Some(initialized) = unidentified.cursor_mut().as_initialized_mut() else {
+            return Err(ReadError::Unsupported);
+        };
+
+        initialized.read_with(context)
     }
 }
 
