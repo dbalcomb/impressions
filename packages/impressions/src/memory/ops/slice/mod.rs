@@ -2,7 +2,7 @@
 
 mod error;
 
-use super::address::AddressSpace;
+use crate::memory::address::AddressSpace;
 
 pub use self::error::Error;
 
