@@ -19,14 +19,9 @@ impl<'a> RebasedInspector<'a> {
 
 impl Inspector for RebasedInspector<'_> {
     fn emit(&mut self, record: Record<'_>) {
-        let address_space = record.address_space();
-        let address = self
-            .address
-            .checked_add(address_space.first().value())
-            .expect("child record address space fits in its parent");
-
-        let address_space = address_space
-            .rebase(address)
+        let address_space = record
+            .address_space()
+            .offset_by(self.address.value())
             .expect("child record address space fits in its parent");
 
         self.inspector

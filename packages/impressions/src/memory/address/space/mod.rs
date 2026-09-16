@@ -208,6 +208,15 @@ impl AddressSpace {
     pub const fn rebase(self, address: Address) -> Result<Self, Error> {
         Self::with_size(address, self.size())
     }
+
+    /// Offsets this address space by the given offset.
+    pub const fn offset_by(self, offset: u32) -> Result<Self, Error> {
+        let Some(address) = self.first().checked_add(offset) else {
+            return Err(Error::Invalid);
+        };
+
+        Self::with_size(address, self.size())
+    }
 }
 
 impl AddressSpace {
