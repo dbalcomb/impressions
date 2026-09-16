@@ -1,6 +1,8 @@
 use std::fmt::{self, Debug};
 
-use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
+use crate::data::parse::Parse;
+use crate::memory::cursor::{AsCursor, Cursor, Error, Position, Read, ReadError};
+use crate::memory::extent::Extent;
 use crate::memory::inspect::{self, Inspect};
 
 use super::Region;
@@ -77,6 +79,21 @@ impl<'a> Cursor for RegionCursor<'a> {
         match self {
             Self::Headers(headers) => headers.step(),
             Self::Section(section) => section.step(),
+        }
+    }
+}
+
+impl Read for RegionCursor<'_> {
+    fn read_with<'a, T>(
+        &mut self,
+        context: T::Context<'a>,
+    ) -> Result<T, ReadError<T::Error, Self::Error>>
+    where
+        T: Extent + Parse,
+    {
+        match self {
+            Self::Headers(headers) => headers.read_with(context),
+            Self::Section(section) => section.read_with(context),
         }
     }
 }
