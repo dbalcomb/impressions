@@ -7,9 +7,9 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect};
+use crate::memory::ops::slice::Slice;
 use crate::memory::regions::initialized::Initialized;
 use crate::memory::regions::uninitialized::Uninitialized;
-use crate::memory::slice::Slice;
 
 use super::{Error, SegmentCursor};
 

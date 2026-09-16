@@ -7,7 +7,7 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect, InspectionValue};
-use crate::memory::slice::{Error as SliceError, Slice};
+use crate::memory::ops::slice::{Error as SliceError, Slice};
 
 /// A region of padding.
 ///
@@ -108,7 +108,7 @@ impl AsCursor for Padding {
 mod tests {
     use crate::memory::address::Address;
     use crate::memory::extent::{Extent, Size};
-    use crate::memory::slice::{Error as SliceError, Slice};
+    use crate::memory::ops::slice::{Error as SliceError, Slice};
 
     use super::Padding;
 

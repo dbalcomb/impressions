@@ -15,7 +15,7 @@ pub enum Error {
 
     /// The requested slice is invalid.
     #[error("invalid slice")]
-    Slice(#[from] crate::memory::slice::Error),
+    Slice(#[from] crate::memory::ops::slice::Error),
 
     /// The initialized region is invalid.
     #[error("the initialized region is invalid")]

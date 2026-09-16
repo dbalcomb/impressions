@@ -13,9 +13,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::ops::slice::Slice;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
-use crate::memory::slice::Slice;
 
 pub use self::cursor::SegmentCursor;
 pub use self::error::Error;

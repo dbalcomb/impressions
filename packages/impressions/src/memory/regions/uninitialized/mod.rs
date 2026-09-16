@@ -11,7 +11,7 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{self, Inspect, InspectionValue};
-use crate::memory::slice::{Error as SliceError, Slice};
+use crate::memory::ops::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
 
@@ -104,7 +104,7 @@ impl AsCursor for Uninitialized {
 mod tests {
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
-    use crate::memory::slice::{Error as SliceError, Slice};
+    use crate::memory::ops::slice::{Error as SliceError, Slice};
 
     use super::{Error, Uninitialized};
 
