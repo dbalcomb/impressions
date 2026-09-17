@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 
-use super::extent::Size;
-use super::inspect::InspectionValue;
+use super::extent::{Extent, Size};
+use super::inspect::{self, Inspect, InspectionValue};
 
 pub use self::error::Error;
 pub use self::space::AddressSpace;
@@ -108,6 +108,23 @@ impl Address {
             Some(address) => Some(Self(address)),
             None => None,
         }
+    }
+}
+
+impl Extent for Address {
+    fn size(&self) -> Size {
+        Size::new_valid(4)
+    }
+}
+
+impl Inspect for Address {
+    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+        inspector
+            .record(self.address_space())
+            .identified()
+            .label(&"Address")
+            .value(self)
+            .finish()
     }
 }
 
