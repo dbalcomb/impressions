@@ -1,5 +1,3 @@
-use crate::memory::address::AddressSpace;
-
 /// The contiguous region error.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
@@ -11,15 +9,11 @@ pub enum Error {
     #[error("invalid address space")]
     AddressSpace(#[from] crate::memory::address::space::Error),
 
-    /// The address space is outside the contiguous region.
-    #[error("address space {0} is outside contiguous region {1}")]
-    OutOfBounds(AddressSpace, AddressSpace),
-
-    /// The segment at the given index is already identified.
-    #[error("the segment at index {0} is already identified")]
-    AlreadyIdentified(usize),
-
     /// The unidentified region is invalid.
     #[error("invalid unidentified region")]
     Unidentified(#[from] crate::memory::regions::unidentified::Error),
+
+    /// A problem was encountered inserting a region.
+    #[error("insert operation error")]
+    Insert(#[from] crate::memory::ops::insert::Error),
 }

@@ -13,6 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::ops::insert::{Error as InsertError, Insert};
 use crate::memory::regions::uninitialized::Uninitialized;
 use crate::memory::segmented::{Segmented, Segments};
 
@@ -51,17 +52,21 @@ impl<T> Sparse<T> {
     }
 }
 
-impl<T> Sparse<T>
+impl<T> Insert<T> for Sparse<T>
 where
     T: Extent,
 {
-    /// Inserts a region into a vacant space.
-    pub fn insert(&mut self, address: Address, region: T) -> Result<(), Error> {
+    type Error = Error;
+
+    fn insert(&mut self, address: Address, region: T) -> Result<(), Self::Error> {
         let address_space = self.address_space();
         let region_address_space = address.to_space(region.size())?;
 
         if !self.address_space().includes(region_address_space) {
-            return Err(Error::OutOfBounds(region_address_space, address_space));
+            return Err(Error::Insert(InsertError::OutOfBounds(
+                region_address_space,
+                address_space,
+            )));
         }
 
         let mut selected = self.segments().into_iter().select(region_address_space);
@@ -71,14 +76,14 @@ where
             .expect("a contained address space starts in a segment");
 
         if first.is_occupied() {
-            return Err(Error::AlreadyOccupied(first.index()));
+            return Err(Error::Insert(InsertError::Unsupported(address)));
         }
 
         let mut last = first.clone();
 
         for segment in selected {
             if segment.is_occupied() {
-                return Err(Error::AlreadyOccupied(segment.index()));
+                return Err(Error::Insert(InsertError::Unsupported(address)));
             }
 
             last = segment;
@@ -185,6 +190,7 @@ where
 mod tests {
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
+    use crate::memory::ops::insert::{Error as InsertError, Insert};
     use crate::memory::regions::uninitialized::Uninitialized;
 
     use super::{Error, Segment, Sparse};
@@ -311,7 +317,7 @@ mod tests {
 
         assert_eq!(
             region.insert(Address::new(2), Node(3)),
-            Err(Error::AlreadyOccupied(1)),
+            Err(Error::Insert(InsertError::Unsupported(Address::new(2)))),
         );
         assert_eq!(region, original);
     }
@@ -323,10 +329,10 @@ mod tests {
 
         assert_eq!(
             region.insert(Address::new(10), Node(1)),
-            Err(Error::OutOfBounds(
+            Err(Error::Insert(InsertError::OutOfBounds(
                 AddressSpace::new(Address::new(10), Address::new(10)).unwrap(),
                 AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
-            )),
+            )))
         );
         assert_eq!(region, original);
     }
@@ -338,10 +344,10 @@ mod tests {
 
         assert_eq!(
             region.insert(Address::new(8), Node(3)),
-            Err(Error::OutOfBounds(
+            Err(Error::Insert(InsertError::OutOfBounds(
                 AddressSpace::new(Address::new(8), Address::new(10)).unwrap(),
                 AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
-            ))
+            )))
         );
         assert_eq!(region, original);
     }
