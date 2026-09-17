@@ -13,6 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::ops::insert::{Error as InsertError, Insert};
 use crate::memory::ops::slice::Slice;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
@@ -43,17 +44,22 @@ impl<T> Contiguous<T> {
     }
 }
 
-impl<T> Contiguous<T>
+impl<T> Insert<T> for Contiguous<T>
 where
     T: Extent,
 {
+    type Error = Error;
+
     /// Identifies the segment at the given address as the provided region.
-    pub fn identify(&mut self, address: Address, region: T) -> Result<(), Error> {
+    fn insert(&mut self, address: Address, region: T) -> Result<(), Self::Error> {
         let address_space = self.address_space();
         let region_address_space = address.to_space(region.size())?;
 
         if !address_space.includes(region_address_space) {
-            return Err(Error::OutOfBounds(region_address_space, address_space));
+            return Err(Error::Insert(InsertError::OutOfBounds(
+                region_address_space,
+                address_space,
+            )));
         }
 
         let mut selected = self.segments().into_iter().select(region_address_space);
@@ -63,14 +69,14 @@ where
             .expect("a contained address space starts in a segment");
 
         if first.is_identified() {
-            return Err(Error::AlreadyIdentified(first.index()));
+            return Err(Error::Insert(InsertError::Unsupported(address)));
         }
 
         let mut last = first.clone();
 
         for segment in selected {
             if segment.is_identified() {
-                return Err(Error::AlreadyIdentified(segment.index()));
+                return Err(Error::Insert(InsertError::Unsupported(address)));
             }
 
             last = segment;
@@ -205,6 +211,7 @@ mod tests {
 
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
+    use crate::memory::ops::insert::{Error as InsertError, Insert};
     use crate::memory::regions::unidentified::Unidentified;
 
     use super::{Contiguous, Error, Segment};
@@ -241,7 +248,7 @@ mod tests {
     fn identify_splits_single_unidentified_segment() {
         let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
-        region.identify(Address::new(3), Node(4)).unwrap();
+        region.insert(Address::new(3), Node(4)).unwrap();
 
         assert_eq!(
             region,
@@ -257,7 +264,7 @@ mod tests {
     fn identify_at_segment_start_omits_empty_prefix() {
         let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
-        region.identify(Address::new(0), Node(3)).unwrap();
+        region.insert(Address::new(0), Node(3)).unwrap();
 
         assert_eq!(
             region,
@@ -272,7 +279,7 @@ mod tests {
     fn identify_at_segment_end_omits_empty_suffix() {
         let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
-        region.identify(Address::new(7), Node(3)).unwrap();
+        region.insert(Address::new(7), Node(3)).unwrap();
 
         assert_eq!(
             region,
@@ -287,7 +294,7 @@ mod tests {
     fn identify_replaces_entire_unidentified_segment() {
         let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
-        region.identify(Address::new(0), Node(10)).unwrap();
+        region.insert(Address::new(0), Node(10)).unwrap();
 
         assert_eq!(region, contiguous([Segment::identified(Node(10))]));
     }
@@ -300,7 +307,7 @@ mod tests {
             Segment::unidentified(initialized(b"cccccccccc")),
         ]);
 
-        region.identify(Address::new(5), Node(20)).unwrap();
+        region.insert(Address::new(5), Node(20)).unwrap();
 
         assert_eq!(
             region,
@@ -320,7 +327,7 @@ mod tests {
             Segment::unidentified(initialized(b"cccccccccc")),
         ]);
 
-        region.identify(Address::new(10), Node(10)).unwrap();
+        region.insert(Address::new(10), Node(10)).unwrap();
 
         assert_eq!(
             region,
@@ -336,13 +343,13 @@ mod tests {
     fn identify_rejects_range_that_overlaps_identified_segment() {
         let mut region = Contiguous::unidentified(initialized(b"0123456789"));
 
-        region.identify(Address::new(3), Node(4)).unwrap();
+        region.insert(Address::new(3), Node(4)).unwrap();
 
         let original = region.clone();
 
         assert_eq!(
-            region.identify(Address::new(2), Node(3)),
-            Err(Error::AlreadyIdentified(1)),
+            region.insert(Address::new(2), Node(3)),
+            Err(Error::Insert(InsertError::Unsupported(Address::new(2)))),
         );
         assert_eq!(region, original);
     }
@@ -353,11 +360,11 @@ mod tests {
         let original = region.clone();
 
         assert_eq!(
-            region.identify(Address::new(10), Node(1)),
-            Err(Error::OutOfBounds(
+            region.insert(Address::new(10), Node(1)),
+            Err(Error::Insert(InsertError::OutOfBounds(
                 AddressSpace::new(Address::new(10), Address::new(10)).unwrap(),
                 AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
-            )),
+            )))
         );
         assert_eq!(region, original);
     }
@@ -368,11 +375,11 @@ mod tests {
         let original = region.clone();
 
         assert_eq!(
-            region.identify(Address::new(8), Node(3)),
-            Err(Error::OutOfBounds(
+            region.insert(Address::new(8), Node(3)),
+            Err(Error::Insert(InsertError::OutOfBounds(
                 AddressSpace::new(Address::new(8), Address::new(10)).unwrap(),
                 AddressSpace::new(Address::new(0), Address::new(9)).unwrap(),
-            ))
+            )))
         );
         assert_eq!(region, original);
     }
@@ -381,7 +388,7 @@ mod tests {
     fn identify_preserves_uninitialized_memory() {
         let mut region = Contiguous::unidentified(both(b"abcd", 6));
 
-        region.identify(Address::new(2), Node(5)).unwrap();
+        region.insert(Address::new(2), Node(5)).unwrap();
 
         assert_eq!(
             region,
@@ -397,7 +404,7 @@ mod tests {
     fn identify_can_start_in_uninitialized_memory() {
         let mut region = Contiguous::unidentified(both(b"abcd", 6));
 
-        region.identify(Address::new(6), Node(2)).unwrap();
+        region.insert(Address::new(6), Node(2)).unwrap();
 
         assert_eq!(
             region,

@@ -16,6 +16,7 @@ use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::ops::insert::Insert;
 use crate::memory::regions::sparse::{Segment, Sparse};
 use crate::memory::segmented::{Segmented, Segments};
 

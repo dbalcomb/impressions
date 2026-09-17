@@ -1,5 +1,3 @@
-use crate::memory::address::AddressSpace;
-
 /// The sparse region error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
@@ -11,15 +9,11 @@ pub enum Error {
     #[error("invalid address space")]
     AddressSpace(#[from] crate::memory::address::space::Error),
 
-    /// The address space is outside the sparse region.
-    #[error("address space {0} is outside sparse region {1}")]
-    OutOfBounds(AddressSpace, AddressSpace),
-
-    /// The segment at the given index is already occupied.
-    #[error("the segment at index {0} is already occupied")]
-    AlreadyOccupied(usize),
-
     /// The uninitialized region is invalid.
     #[error("invalid uninitialized region")]
     Uninitialized(#[from] crate::memory::regions::uninitialized::Error),
+
+    /// A problem was encountered inserting a region.
+    #[error("insert operation error")]
+    Insert(#[from] crate::memory::ops::insert::Error),
 }
