@@ -12,4 +12,8 @@ pub enum Error {
     /// An invalid size was specified for the section.
     #[error("invalid size")]
     Size(#[from] crate::memory::extent::Error),
+
+    /// A problem was encountered with a contiguous region.
+    #[error("contiguous region error")]
+    Contiguous(#[from] crate::memory::regions::contiguous::Error),
 }

@@ -16,7 +16,7 @@ use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::ops::insert::Insert;
+use crate::memory::ops::insert::{Error as InsertError, Insert};
 use crate::memory::regions::sparse::{Segment, Sparse};
 use crate::memory::segmented::{Segmented, Segments};
 
@@ -27,6 +27,7 @@ pub use self::padding::Padding;
 use self::region::Region;
 use self::region::headers::Headers;
 use self::region::section::Section;
+use self::region::section::block::Block;
 
 /// A 32-bit Portable Executable (PE) image file analysis.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,6 +57,31 @@ impl Image {
     /// Gets the virtual address of the image.
     pub fn address(&self) -> Address {
         self.headers().optional().image_address()
+    }
+}
+
+impl Insert<Block> for Image {
+    type Error = Error;
+
+    fn insert(&mut self, address: Address, region: Block) -> Result<(), Self::Error> {
+        let Some(address) = address.checked_sub(self.address().value()) else {
+            return Err(Error::Insert(InsertError::OutOfBounds(
+                address.to_space(region.size())?,
+                self.address_space(),
+            )));
+        };
+
+        let Some((offset, segment)) = self.regions.get_mut(address) else {
+            return Err(Error::Insert(InsertError::Unsupported(address)));
+        };
+
+        let Segment::Occupied(Region::Section(section)) = segment else {
+            return Err(Error::Insert(InsertError::Unsupported(address)));
+        };
+
+        section.insert(Address::new(offset), region)?;
+
+        Ok(())
     }
 }
 

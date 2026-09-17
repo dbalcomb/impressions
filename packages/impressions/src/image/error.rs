@@ -20,4 +20,8 @@ pub enum Error {
     /// A problem was encountered with a sparse region.
     #[error("sparse region error")]
     Sparse(#[from] crate::memory::regions::sparse::Error),
+
+    /// A problem was encountered inserting a region into the image.
+    #[error("insert operation error")]
+    Insert(#[from] crate::memory::ops::insert::Error),
 }
