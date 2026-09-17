@@ -14,9 +14,11 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
+use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::inspect::{self, Inspect};
+use crate::memory::ops::insert::Insert;
 use crate::memory::regions::contiguous::{Contiguous, Segment};
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, Segments};
@@ -51,6 +53,16 @@ impl Section {
             .segments()
             .into_iter()
             .flat_map(|segment| segment.segment().as_identified())
+    }
+}
+
+impl Insert<Block> for Section {
+    type Error = Error;
+
+    fn insert(&mut self, address: Address, region: Block) -> Result<(), Self::Error> {
+        self.blocks.insert(address, region)?;
+
+        Ok(())
     }
 }
 

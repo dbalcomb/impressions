@@ -52,6 +52,23 @@ impl<T> Sparse<T> {
     }
 }
 
+impl<T> Sparse<T>
+where
+    T: Extent,
+{
+    /// Gets a mutable reference to the segment that contains the given address.
+    pub(crate) fn get_mut(&mut self, address: Address) -> Option<(u32, &mut Segment<T>)> {
+        if let Some(segment) = self.segments().get(address) {
+            let index = segment.index();
+            let offset = segment.offset();
+
+            Some((offset, &mut self.0[index]))
+        } else {
+            None
+        }
+    }
+}
+
 impl<T> Insert<T> for Sparse<T>
 where
     T: Extent,
