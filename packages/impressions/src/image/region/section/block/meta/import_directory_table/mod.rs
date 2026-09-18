@@ -29,7 +29,7 @@ pub struct ImportDirectoryTable(Vec<ImportDirectory>);
 impl ImportDirectoryTable {
     /// Gets an iterator over the import directories.
     pub fn iter(&self) -> impl Iterator<Item = &ImportDirectory> {
-        self.0.iter()
+        self.0.iter().filter(|directory| !directory.is_null())
     }
 }
 
