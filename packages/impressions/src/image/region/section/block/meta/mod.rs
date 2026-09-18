@@ -1,6 +1,7 @@
 //! The metadata block.
 
 pub mod import_directory_table;
+pub mod import_lookup_table;
 
 mod cursor;
 
@@ -16,6 +17,7 @@ use crate::memory::inspect::{Inspect, Inspector};
 pub use self::cursor::MetaCursor;
 
 use self::import_directory_table::ImportDirectoryTable;
+use self::import_lookup_table::ImportLookupTable;
 
 /// A block of metadata.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,12 +25,16 @@ use self::import_directory_table::ImportDirectoryTable;
 pub enum Meta {
     /// The import directory table.
     ImportDirectoryTable(ImportDirectoryTable),
+
+    /// An import lookup table.
+    ImportLookupTable(ImportLookupTable),
 }
 
 impl Extent for Meta {
     fn size(&self) -> Size {
         match self {
             Self::ImportDirectoryTable(table) => table.size(),
+            Self::ImportLookupTable(table) => table.size(),
         }
     }
 }
@@ -37,6 +43,7 @@ impl Completion for Meta {
     fn identified(&self) -> u64 {
         match self {
             Self::ImportDirectoryTable(table) => table.identified(),
+            Self::ImportLookupTable(table) => table.identified(),
         }
     }
 }
@@ -45,6 +52,7 @@ impl Inspect for Meta {
     fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::ImportDirectoryTable(table) => table.inspect(inspector),
+            Self::ImportLookupTable(table) => table.inspect(inspector),
         }
     }
 }
@@ -53,6 +61,7 @@ impl Debug for Meta {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ImportDirectoryTable(table) => Debug::fmt(table, f),
+            Self::ImportLookupTable(table) => Debug::fmt(table, f),
         }
     }
 }
