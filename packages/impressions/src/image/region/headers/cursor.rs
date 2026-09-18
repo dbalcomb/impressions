@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use crate::data::parse::Parse;
 use crate::memory::cursor::{Cursor, Error, Position, Read, ReadError};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::regions::contiguous::Segment;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
@@ -78,7 +78,7 @@ impl Read for HeadersCursor<'_> {
 }
 
 impl Inspect for HeadersCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         self.0.inspect(inspector)
     }
 }

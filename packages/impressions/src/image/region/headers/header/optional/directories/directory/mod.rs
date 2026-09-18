@@ -11,7 +11,7 @@ use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::DataDirectoryCursor;
 pub use self::field::Field;
@@ -55,7 +55,7 @@ impl Extent for DataDirectory {
 }
 
 impl Inspect for DataDirectory {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
             .label(&"Data Directory")

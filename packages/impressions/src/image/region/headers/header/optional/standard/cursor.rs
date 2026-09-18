@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 
 use super::{Field, StandardFields};
 
@@ -54,7 +54,7 @@ impl Cursor for StandardFieldsCursor<'_> {
 }
 
 impl Inspect for StandardFieldsCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         let fields = self.fields();
 
         fields.inspect(inspector);
@@ -63,7 +63,7 @@ impl Inspect for StandardFieldsCursor<'_> {
             return;
         };
 
-        let value: &dyn inspect::InspectionValue = match field {
+        let value: &dyn InspectionValue = match field {
             Field::Magic => &fields.magic,
             Field::MajorLinkerVersion => &fields.major_linker_version,
             Field::MinorLinkerVersion => &fields.minor_linker_version,

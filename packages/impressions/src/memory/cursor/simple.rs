@@ -1,5 +1,5 @@
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 use super::{Cursor, Error, Position};
 
@@ -73,7 +73,7 @@ impl<T> Inspect for SimpleCursor<'_, T>
 where
     T: Extent + Inspect,
 {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         self.region.inspect(inspector)
     }
 }

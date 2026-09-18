@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::regions::unidentified::Unidentified;
 
 use super::SegmentCursor;
@@ -88,7 +88,7 @@ impl<T> Inspect for Segment<T>
 where
     T: Inspect,
 {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::Identified(identified) => identified.inspect(inspector),
             Self::Unidentified(unidentified) => unidentified.inspect(inspector),

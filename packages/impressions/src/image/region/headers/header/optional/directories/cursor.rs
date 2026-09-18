@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::segmented::{Segmented, SegmentsCursor};
 
 use super::{DataDirectories, DataDirectory};
@@ -55,7 +55,7 @@ impl Cursor for DataDirectoriesCursor<'_> {
 }
 
 impl Inspect for DataDirectoriesCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         self.directories().inspect(inspector);
         self.cursor.inspect(inspector);
     }

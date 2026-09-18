@@ -10,7 +10,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::DosHeaderCursor;
 pub use self::field::Field;
@@ -93,7 +93,7 @@ impl Extent for DosHeader {
 }
 
 impl Inspect for DosHeader {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
             .label(&"DOS Header")

@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 use super::{SegmentRef, Segments};
 
@@ -218,7 +218,7 @@ impl<'a, T> Inspect for SegmentsCursor<'a, T>
 where
     T: AsCursor<Cursor<'a>: Inspect> + Extent + Inspect,
 {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         let mut inspector = inspector.at(self.segment.address());
 
         self.segment.inspect(&mut inspector);

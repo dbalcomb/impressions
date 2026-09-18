@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 
 use super::{Field, WindowsFields};
 
@@ -54,7 +54,7 @@ impl Cursor for WindowsFieldsCursor<'_> {
 }
 
 impl Inspect for WindowsFieldsCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         let fields = self.fields();
 
         fields.inspect(inspector);
@@ -63,7 +63,7 @@ impl Inspect for WindowsFieldsCursor<'_> {
             return;
         };
 
-        let value: &dyn inspect::InspectionValue = match field {
+        let value: &dyn InspectionValue = match field {
             Field::ImageBase => &fields.image_base,
             Field::SectionAlignment => &fields.section_alignment,
             Field::FileAlignment => &fields.file_alignment,

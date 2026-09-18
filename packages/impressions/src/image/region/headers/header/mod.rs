@@ -15,7 +15,7 @@ use crate::analysis::Completion;
 use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::HeaderCursor;
 
@@ -122,7 +122,7 @@ impl Completion for Header {
 }
 
 impl Inspect for Header {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::Dos(dos) => dos.inspect(inspector),
             Self::Signature => inspector

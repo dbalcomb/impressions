@@ -6,7 +6,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect, InspectionValue};
+use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 use crate::memory::ops::slice::{Error as SliceError, Slice};
 
 /// A region of padding.
@@ -61,7 +61,7 @@ impl Slice for Padding {
 }
 
 impl Inspect for Padding {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
             .identified()

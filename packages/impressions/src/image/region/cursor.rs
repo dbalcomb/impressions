@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use crate::data::parse::Parse;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position, Read, ReadError};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 use super::Region;
 use super::headers::HeadersCursor;
@@ -99,7 +99,7 @@ impl Read for RegionCursor<'_> {
 }
 
 impl Inspect for RegionCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::Headers(headers) => headers.inspect(inspector),
             Self::Section(section) => section.inspect(inspector),

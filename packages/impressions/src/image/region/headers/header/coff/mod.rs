@@ -10,7 +10,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::CoffHeaderCursor;
 pub use self::field::Field;
@@ -64,7 +64,7 @@ impl Extent for CoffHeader {
 }
 
 impl Inspect for CoffHeader {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
             .label(&"COFF Header")

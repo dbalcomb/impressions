@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{AsCursor, Cursor, Position, SimpleCursor};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::regions::uninitialized::Uninitialized;
 
 /// A cursor over a segment in a sparse region of memory.
@@ -101,7 +101,7 @@ impl<'a, T> Inspect for SegmentCursor<'a, T>
 where
     T: AsCursor<Cursor<'a>: Inspect>,
 {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::Occupied(occupied) => occupied.inspect(inspector),
             Self::Vacant(_) => (),

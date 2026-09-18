@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 
 use super::{Field, SectionHeader};
 
@@ -54,14 +54,14 @@ impl<'a> Cursor for SectionHeaderCursor<'a> {
 }
 
 impl Inspect for SectionHeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         let header = self.header();
 
         let Some(field) = self.field() else {
             return;
         };
 
-        let value: &dyn inspect::InspectionValue = match field {
+        let value: &dyn InspectionValue = match field {
             Field::Name => &header.name,
             Field::VirtualSize => &header.virtual_size,
             Field::VirtualAddress => &header.virtual_address,
