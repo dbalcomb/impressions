@@ -20,10 +20,13 @@ impl Analyse {
             None => self.image.with_extension("impressions"),
         };
 
-        let analysis = Analysis::build(&path).with_binary_path(&self.image)?;
+        let mut analysis = Analysis::build(&path).with_binary_path(&self.image)?;
 
         eprintln!("Binary:     {}", self.image.display());
         eprintln!("Analysis:   {}", path.display());
+
+        analysis.analyse()?;
+
         eprintln!("Completion: {:.2}%", analysis.completion());
 
         analysis.save()?;

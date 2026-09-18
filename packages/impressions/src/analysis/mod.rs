@@ -1,5 +1,7 @@
 //! The binary analysis engine.
 
+pub mod analyser;
+
 mod builder;
 mod completion;
 mod error;
@@ -12,6 +14,9 @@ use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 
 use crate::image::Image;
+
+use self::analyser::Analyser;
+use self::analyser::imports::Imports;
 
 pub use self::builder::Builder;
 pub use self::completion::Completion;
@@ -61,5 +66,14 @@ impl Analysis {
     /// Gets the completion percentage of the analysis.
     pub fn completion(&self) -> f64 {
         self.image.completion()
+    }
+}
+
+impl Analysis {
+    /// Analyses the binary image.
+    pub fn analyse(&mut self) -> Result<(), Error> {
+        Imports.analyse(&mut self.image)?;
+
+        Ok(())
     }
 }
