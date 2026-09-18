@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::image::Padding;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position, SimpleCursor};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 use super::Block;
 use super::data::DataCursor;
@@ -82,7 +82,7 @@ impl<'a> Cursor for BlockCursor<'a> {
 }
 
 impl Inspect for BlockCursor<'_> {
-    fn inspect(&self, _: &mut dyn inspect::Inspector) {
+    fn inspect(&self, _: &mut dyn Inspector) {
         match self {
             Self::Data(_) => (),
             Self::Padding(_) => (),

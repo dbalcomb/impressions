@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::image::Padding;
 use crate::memory::cursor::{AsCursor, Cursor, Error, Position, SimpleCursor};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 use super::Header;
 use super::coff::CoffHeaderCursor;
@@ -145,7 +145,7 @@ impl<'a> Cursor for HeaderCursor<'a> {
 }
 
 impl Inspect for HeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::Dos(cursor) => cursor.inspect(inspector),
             Self::Signature(_) => (),

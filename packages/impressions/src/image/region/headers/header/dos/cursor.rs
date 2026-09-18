@@ -2,7 +2,7 @@ use std::fmt::{self, Debug, Display};
 
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect, InspectionValue};
+use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 
 use super::{DosHeader, Field};
 
@@ -54,7 +54,7 @@ impl Cursor for DosHeaderCursor<'_> {
 }
 
 impl Inspect for DosHeaderCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         let header = self.header();
 
         let Some(field) = self.field() else {

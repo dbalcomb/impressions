@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::address::Address;
 use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 
 use super::Data;
 
@@ -56,7 +56,7 @@ impl Cursor for DataCursor<'_> {
 }
 
 impl Inspect for DataCursor<'_> {
-    fn inspect(&self, _: &mut dyn inspect::Inspector) {
+    fn inspect(&self, _: &mut dyn Inspector) {
         match self {
             Self::Address(_) => (),
         }

@@ -13,7 +13,7 @@ use crate::analysis::Completion;
 use crate::memory::address::AddressSpace;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect, InspectionValue};
+use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 use crate::memory::ops::slice::{Error as SliceError, Slice};
 
 pub use self::cursor::InitializedCursor;
@@ -71,7 +71,7 @@ impl Completion for Initialized {
 }
 
 impl Inspect for Initialized {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
             .unidentified()

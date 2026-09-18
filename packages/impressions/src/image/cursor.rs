@@ -4,7 +4,7 @@ use crate::data::parse::Parse;
 use crate::memory::address::Address;
 use crate::memory::cursor::{Cursor, Error, Position, Read, ReadError};
 use crate::memory::extent::Extent;
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::regions::sparse::Segment;
 use crate::memory::regions::unidentified::Unidentified;
 use crate::memory::segmented::{Segmented, SegmentsCursor};
@@ -183,7 +183,7 @@ impl Read for ImageCursor<'_> {
 }
 
 impl Inspect for ImageCursor<'_> {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         if self.relative {
             self.cursor.inspect(inspector);
         } else {

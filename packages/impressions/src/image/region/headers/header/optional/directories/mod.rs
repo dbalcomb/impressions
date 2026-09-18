@@ -11,7 +11,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::inspect::{self, Inspect};
+use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::segmented::{Segmented, Segments};
 
 pub use self::cursor::DataDirectoriesCursor;
@@ -128,7 +128,7 @@ impl Segmented for DataDirectories {
 }
 
 impl Inspect for DataDirectories {
-    fn inspect(&self, inspector: &mut dyn inspect::Inspector) {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
             .label(&"Data Directories")
