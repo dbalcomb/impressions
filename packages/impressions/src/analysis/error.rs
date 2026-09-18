@@ -20,4 +20,8 @@ pub enum Error {
     /// A problem was encountered with the cursor.
     #[error("cursor error")]
     Cursor(#[from] crate::memory::cursor::Error),
+
+    /// A problem was encountered with the imports analyser.
+    #[error("imports analyser error")]
+    Imports(#[from] crate::analysis::analyser::imports::Error),
 }

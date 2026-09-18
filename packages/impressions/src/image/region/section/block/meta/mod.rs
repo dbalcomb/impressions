@@ -1,0 +1,66 @@
+//! The metadata block.
+
+pub mod import_directory_table;
+
+mod cursor;
+
+use std::fmt::{self, Debug};
+
+use serde::{Deserialize, Serialize};
+
+use crate::analysis::Completion;
+use crate::memory::cursor::AsCursor;
+use crate::memory::extent::{Extent, Size};
+use crate::memory::inspect::{Inspect, Inspector};
+
+pub use self::cursor::MetaCursor;
+
+use self::import_directory_table::ImportDirectoryTable;
+
+/// A block of metadata.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Meta {
+    /// The import directory table.
+    ImportDirectoryTable(ImportDirectoryTable),
+}
+
+impl Extent for Meta {
+    fn size(&self) -> Size {
+        match self {
+            Self::ImportDirectoryTable(table) => table.size(),
+        }
+    }
+}
+
+impl Completion for Meta {
+    fn identified(&self) -> u64 {
+        match self {
+            Self::ImportDirectoryTable(table) => table.identified(),
+        }
+    }
+}
+
+impl Inspect for Meta {
+    fn inspect(&self, inspector: &mut dyn Inspector) {
+        match self {
+            Self::ImportDirectoryTable(table) => table.inspect(inspector),
+        }
+    }
+}
+
+impl Debug for Meta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ImportDirectoryTable(table) => Debug::fmt(table, f),
+        }
+    }
+}
+
+impl AsCursor for Meta {
+    type Cursor<'a> = MetaCursor<'a>;
+
+    fn cursor(&self) -> Self::Cursor<'_> {
+        MetaCursor::new(self)
+    }
+}
