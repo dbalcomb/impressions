@@ -7,6 +7,7 @@ pub mod import_lookup_table;
 pub mod import_name;
 
 mod cursor;
+mod error;
 
 use std::fmt::{self, Debug};
 
@@ -18,6 +19,7 @@ use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::MetaCursor;
+pub use self::error::Error;
 
 use self::hint_name_table::HintNameTable;
 use self::import_address_table::ImportAddressTable;

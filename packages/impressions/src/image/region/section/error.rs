@@ -16,4 +16,8 @@ pub enum Error {
     /// A problem was encountered with a contiguous region.
     #[error("contiguous region error")]
     Contiguous(#[from] crate::memory::region::types::contiguous::Error),
+
+    /// A problem was encountered with a block region.
+    #[error("block error")]
+    Block(#[from] super::block::Error),
 }

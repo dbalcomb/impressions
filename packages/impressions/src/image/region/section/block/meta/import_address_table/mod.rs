@@ -1,13 +1,13 @@
 //! The import address table.
 
 mod cursor;
+mod error;
 
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
-use crate::image::region::section::Error;
 use crate::image::region::section::block::meta::import_lookup_table::entry::ImportLookup;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
@@ -16,6 +16,7 @@ use crate::memory::region::Null;
 use crate::memory::region::types::segmented::{Segmented, Segments};
 
 pub use self::cursor::ImportAddressTableCursor;
+pub use self::error::Error;
 
 /// A table of import addresses.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

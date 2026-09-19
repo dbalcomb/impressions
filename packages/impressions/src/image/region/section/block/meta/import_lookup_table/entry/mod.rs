@@ -1,17 +1,20 @@
 //! The import lookup entry.
 
+mod error;
+
 use std::fmt::{self, Display};
 
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
-use crate::image::region::section::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 use crate::memory::region::Null;
+
+pub use self::error::Error;
 
 /// A single import lookup.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

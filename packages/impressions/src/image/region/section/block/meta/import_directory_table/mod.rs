@@ -3,6 +3,7 @@
 pub mod entry;
 
 mod cursor;
+mod error;
 
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::image::region::headers::header::optional::directories::directory::DataDirectory;
-use crate::image::region::section::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
@@ -18,6 +18,7 @@ use crate::memory::region::Null;
 use crate::memory::region::types::segmented::{Segmented, Segments};
 
 pub use self::cursor::ImportDirectoryTableCursor;
+pub use self::error::Error;
 
 use self::entry::ImportDirectory;
 
