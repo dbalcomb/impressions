@@ -6,8 +6,8 @@ pub enum Error {
     Cursor(#[from] crate::memory::cursor::Error),
 
     /// A problem was encountered reading the import table.
-    #[error("import lookup error")]
-    ImportLookup(
+    #[error("import table error")]
+    ImportTable(
         #[from] crate::memory::cursor::ops::read::Error<crate::image::region::section::Error>,
     ),
 
