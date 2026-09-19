@@ -6,7 +6,7 @@ use std::fmt::{self, Debug, Display};
 use std::ops::Deref;
 
 use bytes::Buf;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::data::parse::Parse;
 use crate::memory::extent::{Extent, Size};
@@ -15,7 +15,7 @@ use crate::memory::inspect::InspectionValue;
 pub use self::error::Error;
 
 /// A UTF-8 string terminated by a null byte.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct NullString(String);
 
 impl NullString {
@@ -105,5 +105,37 @@ impl Deref for NullString {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for NullString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{Error, Unexpected, Visitor};
+
+        struct NullStringVisitor;
+
+        impl<'de> Visitor<'de> for NullStringVisitor {
+            type Value = NullString;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("a string without null bytes")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                if value.contains('\0') {
+                    return Err(E::invalid_value(Unexpected::Char('\0'), &self));
+                }
+
+                Ok(NullString(value.to_owned()))
+            }
+        }
+
+        deserializer.deserialize_str(NullStringVisitor)
     }
 }
