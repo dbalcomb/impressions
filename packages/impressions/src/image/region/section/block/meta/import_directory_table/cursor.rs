@@ -1,8 +1,8 @@
 use std::fmt::{self, Debug};
 
-use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::region::types::segmented::{Segmented, SegmentsCursor};
+use crate::memory::region::types::table::TableCursor;
 
 use super::{ImportDirectory, ImportDirectoryTable};
 
@@ -10,7 +10,7 @@ use super::{ImportDirectory, ImportDirectoryTable};
 #[derive(Clone)]
 pub struct ImportDirectoryTableCursor<'a> {
     table: &'a ImportDirectoryTable,
-    cursor: SegmentsCursor<'a, ImportDirectory>,
+    cursor: TableCursor<'a, ImportDirectory>,
 }
 
 impl<'a> ImportDirectoryTableCursor<'a> {
@@ -18,7 +18,7 @@ impl<'a> ImportDirectoryTableCursor<'a> {
     pub(super) fn new(table: &'a ImportDirectoryTable) -> Self {
         Self {
             table,
-            cursor: SegmentsCursor::new(table.segments()),
+            cursor: table.0.cursor(),
         }
     }
 }
@@ -65,7 +65,7 @@ impl Debug for ImportDirectoryTableCursor<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ImportDirectoryTableCursor")
             .field("position", &self.position())
-            .field("cursor", self.cursor.cursor())
+            .field("cursor", &self.cursor)
             .finish()
     }
 }

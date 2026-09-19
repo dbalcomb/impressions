@@ -1,8 +1,8 @@
 use std::fmt::{self, Debug};
 
-use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::region::types::segmented::{Segmented, SegmentsCursor};
+use crate::memory::region::types::table::TableCursor;
 
 use super::ImportAddressTable;
 use crate::image::region::section::block::meta::import_lookup_table::entry::ImportLookup;
@@ -11,7 +11,7 @@ use crate::image::region::section::block::meta::import_lookup_table::entry::Impo
 #[derive(Clone)]
 pub struct ImportAddressTableCursor<'a> {
     table: &'a ImportAddressTable,
-    cursor: SegmentsCursor<'a, ImportLookup>,
+    cursor: TableCursor<'a, ImportLookup>,
 }
 
 impl<'a> ImportAddressTableCursor<'a> {
@@ -19,7 +19,7 @@ impl<'a> ImportAddressTableCursor<'a> {
     pub(super) fn new(table: &'a ImportAddressTable) -> Self {
         Self {
             table,
-            cursor: SegmentsCursor::new(table.segments()),
+            cursor: table.0.cursor(),
         }
     }
 }
@@ -66,7 +66,7 @@ impl Debug for ImportAddressTableCursor<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ImportAddressTableCursor")
             .field("position", &self.position())
-            .field("cursor", self.cursor.cursor())
+            .field("cursor", &self.cursor)
             .finish()
     }
 }
