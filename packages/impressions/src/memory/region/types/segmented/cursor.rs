@@ -244,7 +244,7 @@ mod tests {
     use crate::memory::cursor::{Cursor, Error, Position};
     use crate::memory::extent::Size;
     use crate::memory::inspect::{Inspect as _, Inspector, Record, RecordBuilder, Status};
-    use crate::memory::regions::uninitialized::Uninitialized;
+    use crate::memory::region::types::uninitialized::Uninitialized;
 
     use super::{Segments, SegmentsCursor};
 

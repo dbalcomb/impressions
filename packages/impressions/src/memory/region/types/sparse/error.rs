@@ -11,9 +11,9 @@ pub enum Error {
 
     /// The uninitialized region is invalid.
     #[error("invalid uninitialized region")]
-    Uninitialized(#[from] crate::memory::regions::uninitialized::Error),
+    Uninitialized(#[from] crate::memory::region::types::uninitialized::Error),
 
     /// A problem was encountered inserting a region.
     #[error("insert operation error")]
-    Insert(#[from] crate::memory::ops::insert::Error),
+    Insert(#[from] crate::memory::region::ops::insert::Error),
 }

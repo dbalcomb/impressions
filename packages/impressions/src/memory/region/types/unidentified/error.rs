@@ -15,13 +15,13 @@ pub enum Error {
 
     /// The requested slice is invalid.
     #[error("invalid slice")]
-    Slice(#[from] crate::memory::ops::slice::Error),
+    Slice(#[from] crate::memory::region::ops::slice::Error),
 
     /// The initialized region is invalid.
     #[error("the initialized region is invalid")]
-    Initialized(#[from] crate::memory::regions::initialized::Error),
+    Initialized(#[from] crate::memory::region::types::initialized::Error),
 
     /// The uninitialized region is invalid.
     #[error("the uninitialized region is invalid")]
-    Uninitialized(#[from] crate::memory::regions::uninitialized::Error),
+    Uninitialized(#[from] crate::memory::region::types::uninitialized::Error),
 }

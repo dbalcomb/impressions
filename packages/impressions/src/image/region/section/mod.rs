@@ -18,10 +18,10 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::ops::insert::Insert;
-use crate::memory::regions::contiguous::{Contiguous, Segment};
-use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::region::ops::insert::Insert;
+use crate::memory::region::types::contiguous::{Contiguous, Segment};
+use crate::memory::region::types::segmented::{Segmented, Segments};
+use crate::memory::region::types::unidentified::Unidentified;
 
 use self::block::Block;
 

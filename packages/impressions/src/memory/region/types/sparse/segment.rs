@@ -6,7 +6,7 @@ use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::regions::uninitialized::Uninitialized;
+use crate::memory::region::types::uninitialized::Uninitialized;
 
 use super::SegmentCursor;
 

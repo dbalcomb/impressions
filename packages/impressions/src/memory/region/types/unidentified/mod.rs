@@ -15,8 +15,8 @@ use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::ops::slice::{Error as SliceError, Slice};
-use crate::memory::segmented::{Segmented, Segments, SegmentsCursor};
+use crate::memory::region::ops::slice::{Error as SliceError, Slice};
+use crate::memory::region::types::segmented::{Segmented, Segments, SegmentsCursor};
 
 use super::initialized::Initialized;
 use super::uninitialized::Uninitialized;
@@ -235,7 +235,7 @@ mod tests {
 
     use crate::memory::address::Address;
     use crate::memory::extent::{Error as SizeError, Extent, Size};
-    use crate::memory::ops::slice::Slice;
+    use crate::memory::region::ops::slice::Slice;
 
     use super::{Error, Initialized, Segment, Unidentified, Uninitialized};
 

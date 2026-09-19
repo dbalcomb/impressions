@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{AsCursor, Cursor, Position, SimpleCursor};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::regions::uninitialized::Uninitialized;
+use crate::memory::region::types::uninitialized::Uninitialized;
 
 /// A cursor over a segment in a sparse region of memory.
 pub enum SegmentCursor<'a, T>

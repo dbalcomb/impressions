@@ -2,8 +2,8 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::regions::initialized::InitializedCursor;
-use crate::memory::regions::uninitialized::Uninitialized;
+use crate::memory::region::types::initialized::InitializedCursor;
+use crate::memory::region::types::uninitialized::Uninitialized;
 
 /// A cursor over a segment in an unidentified region of memory.
 #[derive(Clone)]

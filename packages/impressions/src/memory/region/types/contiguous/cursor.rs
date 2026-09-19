@@ -2,8 +2,8 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{AsCursor, Cursor, Position};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::regions::unidentified::Segment;
-use crate::memory::segmented::SegmentsCursor;
+use crate::memory::region::types::segmented::SegmentsCursor;
+use crate::memory::region::types::unidentified::Segment;
 
 /// A cursor over a segment in a contiguous region of memory.
 pub enum SegmentCursor<'a, T>

@@ -5,9 +5,9 @@ use crate::memory::cursor::ops::read::{Error as ReadError, Read};
 use crate::memory::cursor::{Cursor, Error, Position};
 use crate::memory::extent::Extent;
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::regions::contiguous::Segment;
-use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, SegmentsCursor};
+use crate::memory::region::types::contiguous::Segment;
+use crate::memory::region::types::segmented::{Segmented, SegmentsCursor};
+use crate::memory::region::types::unidentified::Unidentified;
 
 use super::{Header, Headers};
 
