@@ -9,7 +9,8 @@ use crate::image::region::section::block::Block;
 use crate::image::region::section::block::meta::Meta;
 use crate::image::region::section::block::meta::import_directory_table::ImportDirectoryTable;
 use crate::image::region::section::block::meta::import_lookup_table::ImportLookupTable;
-use crate::memory::cursor::{AsCursor, Read};
+use crate::memory::cursor::AsCursor;
+use crate::memory::cursor::ops::read::Read;
 use crate::memory::ops::insert::Insert;
 
 use super::Analyser;

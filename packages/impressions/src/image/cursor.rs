@@ -2,7 +2,8 @@ use std::fmt::{self, Debug};
 
 use crate::data::parse::Parse;
 use crate::memory::address::Address;
-use crate::memory::cursor::{Cursor, Error, Position, Read, ReadError};
+use crate::memory::cursor::ops::read::{Error as ReadError, Read};
+use crate::memory::cursor::{Cursor, Error, Position};
 use crate::memory::extent::Extent;
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::regions::sparse::Segment;

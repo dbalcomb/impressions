@@ -1,16 +1,16 @@
+//! The memory region cursor API.
+
+pub mod ops;
+
 mod error;
 mod position;
 mod simple;
 mod structure;
 
-use crate::data::parse::Parse;
-
-pub use self::error::{Error, ReadError};
+pub use self::error::Error;
 pub use self::position::Position;
 pub use self::simple::SimpleCursor;
 pub use self::structure::StructCursor;
-
-use super::extent::Extent;
 
 /// A cursor over a memory region.
 pub trait Cursor {
@@ -40,32 +40,6 @@ pub trait Cursor {
         self.seek(position)?;
 
         Ok(self)
-    }
-}
-
-/// Read regions of memory from a cursor.
-pub trait Read: Cursor {
-    /// Reads a region of type `T` from the current position of the cursor with
-    /// the given context.
-    ///
-    /// Implementors of this method are expected to advance the cursor by the
-    /// extent of the parsed region.
-    fn read_with<'a, T>(
-        &mut self,
-        context: T::Context<'a>,
-    ) -> Result<T, ReadError<T::Error, Self::Error>>
-    where
-        T: Extent + Parse;
-
-    /// Reads a region of type `T` from the current position of the cursor.
-    ///
-    /// Implementors of this method are expected to advance the cursor by the
-    /// extent of the parsed region.
-    fn read<'a, T>(&mut self) -> Result<T, ReadError<T::Error, Self::Error>>
-    where
-        T: Extent + Parse<Context<'a> = ()>,
-    {
-        self.read_with(())
     }
 }
 

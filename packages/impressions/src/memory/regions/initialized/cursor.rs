@@ -1,7 +1,8 @@
 use std::fmt::{self, Debug};
 
 use crate::data::parse::Parse;
-use crate::memory::cursor::{Cursor, Error, Position, Read, ReadError, SimpleCursor};
+use crate::memory::cursor::ops::read::{Error as ReadError, Read};
+use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
 use crate::memory::extent::Extent;
 
 use super::Initialized;
