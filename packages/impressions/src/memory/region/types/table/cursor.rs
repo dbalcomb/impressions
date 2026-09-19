@@ -81,10 +81,16 @@ where
 
         self.position = position;
 
-        if position.get() < self.rows_size()
-            && let Some(cursor) = &mut self.cursor
-        {
+        if position.get() >= self.rows_size() {
+            self.cursor = None;
+        } else if let Some(cursor) = &mut self.cursor {
             cursor.seek(position)?;
+        } else {
+            let mut cursor = SegmentsCursor::new(Segments::new(&self.table.0));
+
+            cursor.seek(position)?;
+
+            self.cursor = Some(cursor);
         }
 
         Ok(())
@@ -116,8 +122,14 @@ where
             .cursor
             .as_mut()
             .expect("a table with stored rows has a segments cursor");
-        let _ = cursor.next()?;
+
+        cursor.next()?;
+
         self.position = cursor.position();
+
+        if self.position.get() == self.rows_size() {
+            self.cursor = None;
+        }
 
         Ok(Some(self.position))
     }
@@ -139,6 +151,10 @@ where
         cursor.step()?;
 
         self.position = cursor.position();
+
+        if self.position.get() == self.rows_size() {
+            self.cursor = None;
+        }
 
         Ok(Some(self.position))
     }

@@ -299,10 +299,21 @@ mod tests {
         let mut cursor = table.cursor();
 
         assert!(cursor.cursor().is_some());
+
         assert_eq!(cursor.next(), Ok(Some(Position::new(1))));
         assert!(cursor.cursor().is_some());
+
         assert_eq!(cursor.next(), Ok(Some(Position::new(2))));
+        assert!(cursor.cursor().is_none());
+
+        cursor.seek(Position::new(1)).unwrap();
+
         assert!(cursor.cursor().is_some());
+
+        cursor.seek(Position::new(2)).unwrap();
+
+        assert!(cursor.cursor().is_none());
+
         assert_eq!(cursor.next(), Ok(None));
         assert_eq!(cursor.position(), Position::new(3));
     }
