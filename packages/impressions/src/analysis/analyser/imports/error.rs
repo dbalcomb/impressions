@@ -7,7 +7,7 @@ pub enum Error {
 
     /// A problem was encountered reading the import table.
     #[error("read error")]
-    Read(#[from] crate::memory::cursor::ReadError<crate::image::region::section::Error>),
+    Read(#[from] crate::memory::cursor::ops::read::Error<crate::image::region::section::Error>),
 
     /// A problem was encountered with the image.
     #[error("image error")]
