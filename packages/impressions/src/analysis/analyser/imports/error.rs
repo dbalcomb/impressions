@@ -20,6 +20,15 @@ pub enum Error {
         >,
     ),
 
+    /// A problem was encountered reading the import hint/name entry.
+    #[error("hint/name error")]
+    HintName(
+        #[from]
+        crate::memory::cursor::ops::read::Error<
+            crate::image::region::section::block::meta::hint_name_table::entry::Error,
+        >,
+    ),
+
     /// A problem was encountered with the image.
     #[error("image error")]
     Image(#[from] crate::image::Error),
