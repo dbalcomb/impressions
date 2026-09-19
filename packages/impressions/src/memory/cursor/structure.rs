@@ -142,7 +142,7 @@ mod tests {
 
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::cursor::{Cursor, Position, StructCursor};
-    use crate::memory::extent::{Extent, Size};
+    use crate::memory::extent::{Extent, FixedExtent, Size};
 
     #[derive(Debug, EnumIter, PartialEq, Eq)]
     enum Field {
@@ -173,10 +173,8 @@ mod tests {
 
     struct Structure;
 
-    impl Extent for Structure {
-        fn size(&self) -> Size {
-            Size::new_valid(8)
-        }
+    impl FixedExtent for Structure {
+        const SIZE: Size = Size::new_valid(8);
     }
 
     fn cursor() -> StructCursor<'static, Structure, Field> {

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::CoffHeaderCursor;
@@ -57,10 +57,8 @@ impl CoffHeader {
     }
 }
 
-impl Extent for CoffHeader {
-    fn size(&self) -> Size {
-        Size::new(20).expect("valid size")
-    }
+impl FixedExtent for CoffHeader {
+    const SIZE: Size = Size::new_valid(20);
 }
 
 impl Inspect for CoffHeader {

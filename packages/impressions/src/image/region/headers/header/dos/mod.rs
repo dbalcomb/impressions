@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::DosHeaderCursor;
@@ -86,10 +86,8 @@ impl DosHeader {
     }
 }
 
-impl Extent for DosHeader {
-    fn size(&self) -> Size {
-        Size::new(64).expect("valid size")
-    }
+impl FixedExtent for DosHeader {
+    const SIZE: Size = Size::new_valid(64);
 }
 
 impl Inspect for DosHeader {

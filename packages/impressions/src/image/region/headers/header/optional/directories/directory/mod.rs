@@ -10,7 +10,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::DataDirectoryCursor;
@@ -48,10 +48,8 @@ impl DataDirectory {
     }
 }
 
-impl Extent for DataDirectory {
-    fn size(&self) -> Size {
-        Size::new(8).expect("valid size")
-    }
+impl FixedExtent for DataDirectory {
+    const SIZE: Size = Size::new_valid(8);
 }
 
 impl Inspect for DataDirectory {

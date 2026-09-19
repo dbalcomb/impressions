@@ -10,7 +10,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::WindowsFieldsCursor;
@@ -123,10 +123,8 @@ impl WindowsFields {
     }
 }
 
-impl Extent for WindowsFields {
-    fn size(&self) -> Size {
-        Size::new(68).expect("valid size")
-    }
+impl FixedExtent for WindowsFields {
+    const SIZE: Size = Size::new_valid(68);
 }
 
 impl Inspect for WindowsFields {

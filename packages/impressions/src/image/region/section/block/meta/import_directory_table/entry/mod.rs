@@ -10,7 +10,7 @@ use crate::data::parse::Parse;
 use crate::image::region::section::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::ImportDirectoryCursor;
@@ -63,9 +63,6 @@ impl ImportDirectory {
 }
 
 impl ImportDirectory {
-    /// The size of the import directory.
-    pub(super) const SIZE: u64 = 20;
-
     /// Checks whether the import directory is filled with null values.
     pub(super) const fn is_null(&self) -> bool {
         self.lookup_table_address.value() == 0
@@ -76,10 +73,8 @@ impl ImportDirectory {
     }
 }
 
-impl Extent for ImportDirectory {
-    fn size(&self) -> Size {
-        Size::new(Self::SIZE).expect("valid size")
-    }
+impl FixedExtent for ImportDirectory {
+    const SIZE: Size = Size::new_valid(20);
 }
 
 impl Inspect for ImportDirectory {

@@ -18,3 +18,18 @@ pub trait Extent {
         self.size().to_address_space()
     }
 }
+
+impl<T> Extent for T
+where
+    T: FixedExtent,
+{
+    fn size(&self) -> Size {
+        T::SIZE
+    }
+}
+
+/// Defines a memory region with a fixed size.
+pub trait FixedExtent: Extent {
+    /// The fixed size of the region.
+    const SIZE: Size;
+}

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
 
-use super::extent::{Extent, Size};
+use super::extent::{Extent, FixedExtent, Size};
 use super::inspect::{Inspect, InspectionValue, Inspector};
 
 pub use self::error::Error;
@@ -111,10 +111,8 @@ impl Address {
     }
 }
 
-impl Extent for Address {
-    fn size(&self) -> Size {
-        Size::new_valid(4)
-    }
+impl FixedExtent for Address {
+    const SIZE: Size = Size::new_valid(4);
 }
 
 impl Inspect for Address {

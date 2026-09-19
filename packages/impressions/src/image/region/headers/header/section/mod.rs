@@ -12,7 +12,7 @@ use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::characteristics::SectionCharacteristics;
@@ -108,10 +108,8 @@ impl SectionHeader {
     }
 }
 
-impl Extent for SectionHeader {
-    fn size(&self) -> Size {
-        Size::new(40).expect("valid size")
-    }
+impl FixedExtent for SectionHeader {
+    const SIZE: Size = Size::new_valid(40);
 }
 
 impl Inspect for SectionHeader {

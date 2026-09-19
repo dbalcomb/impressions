@@ -9,7 +9,7 @@ use crate::data::parse::Parse;
 use crate::image::region::section::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 
 /// A single import lookup.
@@ -51,19 +51,14 @@ impl ImportLookup {
 }
 
 impl ImportLookup {
-    /// The size of the import lookup.
-    pub(super) const SIZE: u64 = 4;
-
     /// Checks whether the import lookup is filled with null values.
     pub(crate) const fn is_null(&self) -> bool {
         matches!(self, Self::Name(address) if address.value() == 0)
     }
 }
 
-impl Extent for ImportLookup {
-    fn size(&self) -> Size {
-        Size::new(Self::SIZE).expect("valid size")
-    }
+impl FixedExtent for ImportLookup {
+    const SIZE: Size = Size::new_valid(4);
 }
 
 impl Inspect for ImportLookup {
