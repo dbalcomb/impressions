@@ -4,6 +4,7 @@ pub mod data;
 pub mod meta;
 
 mod cursor;
+mod error;
 
 use std::fmt::{self, Debug};
 
@@ -16,6 +17,7 @@ use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::BlockCursor;
+pub use self::error::Error;
 
 use self::data::Data;
 use self::meta::Meta;

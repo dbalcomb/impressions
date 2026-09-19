@@ -1,13 +1,13 @@
 //! The import directory entry.
 
 mod cursor;
+mod error;
 mod field;
 
 use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
-use crate::image::region::section::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
@@ -15,6 +15,7 @@ use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::Null;
 
 pub use self::cursor::ImportDirectoryCursor;
+pub use self::error::Error;
 pub use self::field::Field;
 
 /// An import directory entry.
