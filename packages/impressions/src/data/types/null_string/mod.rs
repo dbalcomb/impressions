@@ -139,3 +139,61 @@ impl<'de> Deserialize<'de> for NullString {
         deserializer.deserialize_str(NullStringVisitor)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::assert_matches;
+
+    use crate::data::parse::Parse;
+
+    use super::{Error, NullString};
+
+    #[test]
+    fn parse() {
+        let mut buffer = b"Hello\0World".as_slice();
+        let string = NullString::parse(&mut buffer).unwrap();
+
+        assert_eq!(string, "Hello");
+        assert_eq!(buffer, b"World");
+    }
+
+    #[test]
+    fn parse_empty() {
+        let mut buffer = b"\0".as_slice();
+        let string = NullString::parse(&mut buffer).unwrap();
+
+        assert!(string.is_empty());
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn parse_missing_null() {
+        let mut buffer = b"Hello".as_slice();
+
+        assert_eq!(NullString::parse(&mut buffer), Err(Error::MissingNull));
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn parse_invalid_utf8() {
+        let mut buffer = [b'H', 0x80, 0].as_slice();
+        let err = NullString::parse(&mut buffer).unwrap_err();
+
+        assert_matches!(err, Error::Utf8(err) if err.valid_up_to() == 1);
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn parse_serde() {
+        let string = NullString::parse(b"hello\0".as_slice()).unwrap();
+        let json = serde_json::to_string(&string).unwrap();
+
+        assert_eq!(json, "\"hello\"");
+        assert_eq!(serde_json::from_str::<NullString>(&json).unwrap(), string);
+        assert!(
+            serde_json::from_str::<NullString>("\"hello\\u0000world\"")
+                .unwrap_err()
+                .is_data()
+        );
+    }
+}
