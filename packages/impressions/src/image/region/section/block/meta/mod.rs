@@ -2,6 +2,7 @@
 
 pub mod import_directory_table;
 pub mod import_lookup_table;
+pub mod import_name;
 
 mod cursor;
 
@@ -18,6 +19,7 @@ pub use self::cursor::MetaCursor;
 
 use self::import_directory_table::ImportDirectoryTable;
 use self::import_lookup_table::ImportLookupTable;
+use self::import_name::ImportName;
 
 /// A block of metadata.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -28,6 +30,9 @@ pub enum Meta {
 
     /// An import lookup table.
     ImportLookupTable(ImportLookupTable),
+
+    /// An imported DLL name.
+    ImportName(ImportName),
 }
 
 impl Extent for Meta {
@@ -35,6 +40,7 @@ impl Extent for Meta {
         match self {
             Self::ImportDirectoryTable(table) => table.size(),
             Self::ImportLookupTable(table) => table.size(),
+            Self::ImportName(name) => name.size(),
         }
     }
 }
@@ -44,6 +50,7 @@ impl Completion for Meta {
         match self {
             Self::ImportDirectoryTable(table) => table.identified(),
             Self::ImportLookupTable(table) => table.identified(),
+            Self::ImportName(name) => name.identified(),
         }
     }
 }
@@ -53,6 +60,7 @@ impl Inspect for Meta {
         match self {
             Self::ImportDirectoryTable(table) => table.inspect(inspector),
             Self::ImportLookupTable(table) => table.inspect(inspector),
+            Self::ImportName(name) => name.inspect(inspector),
         }
     }
 }
@@ -62,6 +70,7 @@ impl Debug for Meta {
         match self {
             Self::ImportDirectoryTable(table) => Debug::fmt(table, f),
             Self::ImportLookupTable(table) => Debug::fmt(table, f),
+            Self::ImportName(name) => Debug::fmt(name, f),
         }
     }
 }
