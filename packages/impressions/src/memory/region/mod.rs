@@ -2,3 +2,7 @@
 
 pub mod ops;
 pub mod types;
+
+mod null;
+
+pub use self::null::Null;

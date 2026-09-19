@@ -11,6 +11,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
+use crate::memory::region::Null;
 
 /// A single import lookup.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,15 +51,14 @@ impl ImportLookup {
     }
 }
 
-impl ImportLookup {
-    /// Checks whether the import lookup is filled with null values.
-    pub(crate) const fn is_null(&self) -> bool {
-        matches!(self, Self::Name(address) if address.value() == 0)
-    }
-}
-
 impl FixedExtent for ImportLookup {
     const SIZE: Size = Size::new_valid(4);
+}
+
+impl Null for ImportLookup {
+    fn null() -> Self {
+        Self::Name(Address::null())
+    }
 }
 
 impl Inspect for ImportLookup {

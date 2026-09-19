@@ -15,6 +15,7 @@ use crate::data::parse::Parse;
 
 use super::extent::{Extent, FixedExtent, Size};
 use super::inspect::{Inspect, InspectionValue, Inspector};
+use super::region::Null;
 
 pub use self::error::Error;
 pub use self::space::AddressSpace;
@@ -113,6 +114,12 @@ impl Address {
 
 impl FixedExtent for Address {
     const SIZE: Size = Size::new_valid(4);
+}
+
+impl Null for Address {
+    fn null() -> Self {
+        Self::MIN
+    }
 }
 
 impl Inspect for Address {

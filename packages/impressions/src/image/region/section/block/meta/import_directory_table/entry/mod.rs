@@ -12,6 +12,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::Null;
 
 pub use self::cursor::ImportDirectoryCursor;
 pub use self::field::Field;
@@ -62,19 +63,28 @@ impl ImportDirectory {
     }
 }
 
-impl ImportDirectory {
-    /// Checks whether the import directory is filled with null values.
-    pub(super) const fn is_null(&self) -> bool {
-        self.lookup_table_address.value() == 0
-            && self.timestamp == 0
-            && self.forwarder_chain == 0
-            && self.name_address.value() == 0
-            && self.address_table_address.value() == 0
-    }
-}
-
 impl FixedExtent for ImportDirectory {
     const SIZE: Size = Size::new_valid(20);
+}
+
+impl Null for ImportDirectory {
+    fn null() -> Self {
+        Self {
+            lookup_table_address: Address::null(),
+            timestamp: 0,
+            forwarder_chain: 0,
+            name_address: Address::null(),
+            address_table_address: Address::null(),
+        }
+    }
+
+    fn is_null(&self) -> bool {
+        self.lookup_table_address.is_null()
+            && self.timestamp == 0
+            && self.forwarder_chain == 0
+            && self.name_address.is_null()
+            && self.address_table_address.is_null()
+    }
 }
 
 impl Inspect for ImportDirectory {
