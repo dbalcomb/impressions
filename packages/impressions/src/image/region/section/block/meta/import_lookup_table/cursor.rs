@@ -1,8 +1,8 @@
 use std::fmt::{self, Debug};
 
-use crate::memory::cursor::{Cursor, Error, Position};
+use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::region::types::segmented::{Segmented, SegmentsCursor};
+use crate::memory::region::types::table::TableCursor;
 
 use super::{ImportLookup, ImportLookupTable};
 
@@ -10,7 +10,7 @@ use super::{ImportLookup, ImportLookupTable};
 #[derive(Clone)]
 pub struct ImportLookupTableCursor<'a> {
     table: &'a ImportLookupTable,
-    cursor: SegmentsCursor<'a, ImportLookup>,
+    cursor: TableCursor<'a, ImportLookup>,
 }
 
 impl<'a> ImportLookupTableCursor<'a> {
@@ -18,7 +18,7 @@ impl<'a> ImportLookupTableCursor<'a> {
     pub(super) fn new(table: &'a ImportLookupTable) -> Self {
         Self {
             table,
-            cursor: SegmentsCursor::new(table.segments()),
+            cursor: table.0.cursor(),
         }
     }
 }
@@ -65,7 +65,7 @@ impl Debug for ImportLookupTableCursor<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ImportLookupTableCursor")
             .field("position", &self.position())
-            .field("cursor", self.cursor.cursor())
+            .field("cursor", &self.cursor)
             .finish()
     }
 }
