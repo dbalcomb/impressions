@@ -11,9 +11,9 @@ pub enum Error {
 
     /// The unidentified region is invalid.
     #[error("invalid unidentified region")]
-    Unidentified(#[from] crate::memory::regions::unidentified::Error),
+    Unidentified(#[from] crate::memory::region::types::unidentified::Error),
 
     /// A problem was encountered inserting a region.
     #[error("insert operation error")]
-    Insert(#[from] crate::memory::ops::insert::Error),
+    Insert(#[from] crate::memory::region::ops::insert::Error),
 }

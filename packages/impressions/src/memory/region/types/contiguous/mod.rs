@@ -13,10 +13,10 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::ops::insert::{Error as InsertError, Insert};
-use crate::memory::ops::slice::Slice;
-use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::region::ops::insert::{Error as InsertError, Insert};
+use crate::memory::region::ops::slice::Slice;
+use crate::memory::region::types::segmented::{Segmented, Segments};
+use crate::memory::region::types::unidentified::Unidentified;
 
 pub use self::cursor::SegmentCursor;
 pub use self::error::Error;
@@ -211,8 +211,8 @@ mod tests {
 
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
-    use crate::memory::ops::insert::{Error as InsertError, Insert};
-    use crate::memory::regions::unidentified::Unidentified;
+    use crate::memory::region::ops::insert::{Error as InsertError, Insert};
+    use crate::memory::region::types::unidentified::Unidentified;
 
     use super::{Contiguous, Error, Segment};
 

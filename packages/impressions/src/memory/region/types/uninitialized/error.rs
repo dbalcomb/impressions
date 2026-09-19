@@ -3,5 +3,5 @@
 pub enum Error {
     /// The requested slice is invalid.
     #[error("invalid slice")]
-    Slice(#[from] crate::memory::ops::slice::Error),
+    Slice(#[from] crate::memory::region::ops::slice::Error),
 }

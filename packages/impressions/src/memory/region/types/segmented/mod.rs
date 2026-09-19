@@ -5,8 +5,8 @@ mod entry;
 mod iter;
 mod view;
 
-use super::address::Address;
-use super::extent::Extent;
+use crate::memory::address::Address;
+use crate::memory::extent::Extent;
 
 pub use self::cursor::SegmentsCursor;
 pub use self::entry::SegmentRef;

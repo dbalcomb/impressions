@@ -14,7 +14,7 @@ use crate::image::region::section::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::region::types::segmented::{Segmented, Segments};
 
 pub use self::cursor::ImportDirectoryTableCursor;
 

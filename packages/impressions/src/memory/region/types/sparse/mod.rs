@@ -13,9 +13,9 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::ops::insert::{Error as InsertError, Insert};
-use crate::memory::regions::uninitialized::Uninitialized;
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::region::ops::insert::{Error as InsertError, Insert};
+use crate::memory::region::types::segmented::{Segmented, Segments};
+use crate::memory::region::types::uninitialized::Uninitialized;
 
 pub use self::cursor::SegmentCursor;
 pub use self::error::Error;
@@ -207,8 +207,8 @@ where
 mod tests {
     use crate::memory::address::{Address, AddressSpace};
     use crate::memory::extent::{Extent, Size};
-    use crate::memory::ops::insert::{Error as InsertError, Insert};
-    use crate::memory::regions::uninitialized::Uninitialized;
+    use crate::memory::region::ops::insert::{Error as InsertError, Insert};
+    use crate::memory::region::types::uninitialized::Uninitialized;
 
     use super::{Error, Segment, Sparse};
 

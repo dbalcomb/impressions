@@ -16,7 +16,7 @@ use crate::image::region::section::block::meta::import_name::ImportName;
 use crate::memory::cursor::AsCursor;
 use crate::memory::cursor::ops::read::Read;
 use crate::memory::extent::Extent;
-use crate::memory::ops::insert::Insert;
+use crate::memory::region::ops::insert::Insert;
 
 use super::Analyser;
 

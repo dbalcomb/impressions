@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::cursor::{Cursor, Error, Position};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::segmented::{Segmented, SegmentsCursor};
+use crate::memory::region::types::segmented::{Segmented, SegmentsCursor};
 
 use super::{ImportLookup, ImportLookupTable};
 

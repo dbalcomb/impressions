@@ -17,9 +17,9 @@ use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
-use crate::memory::regions::contiguous::{Contiguous, Segment};
-use crate::memory::regions::unidentified::Unidentified;
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::region::types::contiguous::{Contiguous, Segment};
+use crate::memory::region::types::segmented::{Segmented, Segments};
+use crate::memory::region::types::unidentified::Unidentified;
 
 pub use self::cursor::HeadersCursor;
 pub use self::error::Error;

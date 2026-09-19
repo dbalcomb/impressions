@@ -16,9 +16,9 @@ use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
-use crate::memory::ops::insert::{Error as InsertError, Insert};
-use crate::memory::regions::sparse::{Segment, Sparse};
-use crate::memory::segmented::{Segmented, Segments};
+use crate::memory::region::ops::insert::{Error as InsertError, Insert};
+use crate::memory::region::types::segmented::{Segmented, Segments};
+use crate::memory::region::types::sparse::{Segment, Sparse};
 
 pub use self::cursor::ImageCursor;
 pub use self::error::Error;
