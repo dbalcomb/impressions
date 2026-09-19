@@ -4,6 +4,7 @@ use crate::memory::cursor::{AsCursor, Cursor, Error, Position, SimpleCursor};
 use crate::memory::inspect::{Inspect, Inspector};
 
 use super::Meta;
+use super::import_address_table::ImportAddressTableCursor;
 use super::import_directory_table::ImportDirectoryTableCursor;
 use super::import_lookup_table::ImportLookupTableCursor;
 use super::import_name::ImportName;
@@ -13,6 +14,7 @@ use super::import_name::ImportName;
 pub enum MetaCursor<'a> {
     ImportDirectoryTable(ImportDirectoryTableCursor<'a>),
     ImportLookupTable(ImportLookupTableCursor<'a>),
+    ImportAddressTable(ImportAddressTableCursor<'a>),
     ImportName(SimpleCursor<'a, ImportName>),
 }
 
@@ -22,6 +24,7 @@ impl<'a> MetaCursor<'a> {
         match meta {
             Meta::ImportDirectoryTable(table) => Self::ImportDirectoryTable(table.cursor()),
             Meta::ImportLookupTable(table) => Self::ImportLookupTable(table.cursor()),
+            Meta::ImportAddressTable(table) => Self::ImportAddressTable(table.cursor()),
             Meta::ImportName(name) => Self::ImportName(name.cursor()),
         }
     }
@@ -34,6 +37,7 @@ impl Cursor for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => cursor.position(),
             Self::ImportLookupTable(cursor) => cursor.position(),
+            Self::ImportAddressTable(cursor) => cursor.position(),
             Self::ImportName(cursor) => cursor.position(),
         }
     }
@@ -42,6 +46,7 @@ impl Cursor for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => cursor.seek(position),
             Self::ImportLookupTable(cursor) => cursor.seek(position),
+            Self::ImportAddressTable(cursor) => cursor.seek(position),
             Self::ImportName(cursor) => cursor.seek(position),
         }
     }
@@ -50,6 +55,7 @@ impl Cursor for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => cursor.advance(offset),
             Self::ImportLookupTable(cursor) => cursor.advance(offset),
+            Self::ImportAddressTable(cursor) => cursor.advance(offset),
             Self::ImportName(cursor) => cursor.advance(offset),
         }
     }
@@ -58,6 +64,7 @@ impl Cursor for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => cursor.next(),
             Self::ImportLookupTable(cursor) => cursor.next(),
+            Self::ImportAddressTable(cursor) => cursor.next(),
             Self::ImportName(cursor) => cursor.next(),
         }
     }
@@ -66,6 +73,7 @@ impl Cursor for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => cursor.step(),
             Self::ImportLookupTable(cursor) => cursor.step(),
+            Self::ImportAddressTable(cursor) => cursor.step(),
             Self::ImportName(cursor) => cursor.step(),
         }
     }
@@ -76,6 +84,7 @@ impl Inspect for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => cursor.inspect(inspector),
             Self::ImportLookupTable(cursor) => cursor.inspect(inspector),
+            Self::ImportAddressTable(cursor) => cursor.inspect(inspector),
             Self::ImportName(cursor) => cursor.inspect(inspector),
         }
     }
@@ -86,6 +95,7 @@ impl Debug for MetaCursor<'_> {
         match self {
             Self::ImportDirectoryTable(cursor) => Debug::fmt(cursor, f),
             Self::ImportLookupTable(cursor) => Debug::fmt(cursor, f),
+            Self::ImportAddressTable(cursor) => Debug::fmt(cursor, f),
             Self::ImportName(cursor) => Debug::fmt(cursor, f),
         }
     }

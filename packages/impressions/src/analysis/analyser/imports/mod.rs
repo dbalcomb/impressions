@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use crate::image::Image;
 use crate::image::region::section::block::Block;
 use crate::image::region::section::block::meta::Meta;
+use crate::image::region::section::block::meta::import_address_table::ImportAddressTable;
 use crate::image::region::section::block::meta::import_directory_table::ImportDirectoryTable;
 use crate::image::region::section::block::meta::import_lookup_table::ImportLookupTable;
 use crate::image::region::section::block::meta::import_name::ImportName;
@@ -54,6 +55,19 @@ impl Analyser for Imports {
             lookup_tables.insert(address, cursor.read::<ImportLookupTable>()?);
         }
 
+        let mut address_tables = BTreeMap::new();
+
+        for directory in directory_table.iter() {
+            let address = image.address() + directory.address_table_address();
+
+            if address_tables.contains_key(&address) {
+                continue;
+            }
+
+            cursor.seek_address(address)?;
+            address_tables.insert(address, cursor.read::<ImportAddressTable>()?);
+        }
+
         let mut import_names = BTreeMap::new();
 
         for directory in directory_table.iter() {
@@ -74,6 +88,10 @@ impl Analyser for Imports {
 
         for (address, table) in lookup_tables {
             image.insert(address, Block::Meta(Meta::ImportLookupTable(table)))?;
+        }
+
+        for (address, table) in address_tables {
+            image.insert(address, Block::Meta(Meta::ImportAddressTable(table)))?;
         }
 
         for (address, name) in import_names {
