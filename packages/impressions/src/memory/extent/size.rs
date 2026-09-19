@@ -38,8 +38,11 @@ impl Size {
     }
 
     /// Constructs a new memory region size, panicking on invalid sizes.
-    pub(crate) fn new_valid(size: u64) -> Self {
-        Self::new(size).expect("valid size")
+    pub(crate) const fn new_valid(size: u64) -> Self {
+        match Self::new(size) {
+            Ok(size) => size,
+            Err(_) => panic!("size should be valid"),
+        }
     }
 }
 

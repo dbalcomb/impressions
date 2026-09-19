@@ -12,7 +12,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::header::optional::directories::directory::DataDirectory;
 use crate::image::region::section::Error;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 
@@ -68,7 +68,7 @@ impl Parse for ImportDirectoryTable {
     type Error = Error;
 
     fn parse_with(mut buffer: impl Buf, context: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let len = context.target_size() as usize / ImportDirectory::SIZE as usize;
+        let len = context.target_size() as usize / ImportDirectory::SIZE.get() as usize;
         let mut table = Vec::new();
 
         for i in 1..=context.target_size() {

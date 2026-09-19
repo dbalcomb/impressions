@@ -10,7 +10,7 @@ use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
-use crate::memory::extent::{Extent, Size};
+use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 pub use self::cursor::StandardFieldsCursor;
@@ -58,10 +58,8 @@ impl StandardFields {
     const SIGNATURE: u16 = 0x10b;
 }
 
-impl Extent for StandardFields {
-    fn size(&self) -> Size {
-        Size::new(28).expect("valid size")
-    }
+impl FixedExtent for StandardFields {
+    const SIZE: Size = Size::new_valid(28);
 }
 
 impl Inspect for StandardFields {
