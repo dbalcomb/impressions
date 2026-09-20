@@ -58,10 +58,6 @@ where
     fn rows_size(&self) -> u64 {
         self.table.len() as u64 * T::SIZE.get()
     }
-
-    fn is_at_end(&self) -> bool {
-        self.position() == Position::from(self.table.size())
-    }
 }
 
 impl<'a, T> Cursor for TableCursor<'a, T>
@@ -135,10 +131,6 @@ where
     }
 
     fn step(&mut self) -> Result<Option<Position>, Self::Error> {
-        if self.is_at_end() {
-            return Ok(None);
-        }
-
         if self.position.get() >= self.rows_size() {
             return self.next();
         }
@@ -166,7 +158,7 @@ where
     T::Cursor<'a>: Cursor + Inspect,
 {
     fn inspect(&self, inspector: &mut dyn Inspector) {
-        if self.is_at_end() {
+        if self.position() == Position::from(self.table.size()) {
             return;
         }
 

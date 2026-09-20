@@ -1,5 +1,6 @@
 //! An imported DLL name.
 
+mod cursor;
 mod error;
 
 use serde::{Deserialize, Serialize};
@@ -7,36 +8,31 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::null_string::NullString;
-use crate::image::Padding;
-use crate::memory::cursor::{AsCursor, SimpleCursor};
+use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::types::aligned::Aligned;
 
+pub use self::cursor::ImportNameCursor;
 pub use self::error::Error;
 
-/// An imported DLL name and its optional alignment padding.
+/// An imported DLL name.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImportName {
-    name: NullString,
-    pad: Option<Padding>,
+    /// The name of the imported DLL.
+    name: Aligned<NullString, 2>,
 }
 
 impl ImportName {
     /// Gets the name.
     pub const fn name(&self) -> &NullString {
-        &self.name
+        self.name.region()
     }
 }
 
 impl Extent for ImportName {
     fn size(&self) -> Size {
-        let mut size = self.name.size();
-
-        if let Some(pad) = &self.pad {
-            size = size.checked_add(pad.size()).expect("valid size");
-        }
-
-        size
+        self.name.size()
     }
 }
 
@@ -50,10 +46,8 @@ impl Inspect for ImportName {
     fn inspect(&self, inspector: &mut dyn Inspector) {
         inspector
             .record(self.address_space())
-            .identified()
             .label(&"Import Name")
-            .value(&self.name)
-            .finish()
+            .finish();
     }
 }
 
@@ -62,28 +56,24 @@ impl Parse for ImportName {
     type Error = Error;
 
     fn parse_with(mut buffer: impl bytes::Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let name = NullString::parse(&mut buffer)?;
-        let pad = if name.size().get().is_multiple_of(2) {
-            None
-        } else {
-            Some(Padding::new(Size::new_valid(1), buffer.try_get_u8()?))
-        };
-
-        Ok(Self { name, pad })
+        Ok(Self {
+            name: Aligned::parse(&mut buffer)?,
+        })
     }
 }
 
 impl AsCursor for ImportName {
-    type Cursor<'a> = SimpleCursor<'a, Self>;
+    type Cursor<'a> = ImportNameCursor<'a>;
 
     fn cursor(&self) -> Self::Cursor<'_> {
-        SimpleCursor::new(self)
+        ImportNameCursor::new(self)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::data::parse::Parse;
+    use crate::memory::cursor::{AsCursor, Cursor, Position};
     use crate::memory::extent::Extent;
 
     use super::ImportName;
@@ -93,5 +83,15 @@ mod tests {
         let import_name = ImportName::parse(&b"ab\0\0"[..]).unwrap();
 
         assert_eq!(import_name.size().get(), 4);
+    }
+
+    #[test]
+    fn cursor_visits_alignment_padding() {
+        let import_name = ImportName::parse(&b"ab\0\0"[..]).unwrap();
+        let mut cursor = import_name.cursor();
+
+        assert_eq!(cursor.next(), Ok(Some(Position::new(3))));
+        assert_eq!(cursor.next(), Ok(None));
+        assert_eq!(cursor.position(), Position::new(4));
     }
 }

@@ -1,5 +1,6 @@
 //! Memory regions.
 
+pub mod aligned;
 pub mod contiguous;
 pub mod initialized;
 pub mod segmented;

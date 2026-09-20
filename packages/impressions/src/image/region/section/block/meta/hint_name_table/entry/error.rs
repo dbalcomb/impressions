@@ -7,5 +7,8 @@ pub enum Error {
 
     /// Indicates that the name is invalid.
     #[error("invalid name")]
-    Name(#[from] crate::data::types::null_string::Error),
+    Name(
+        #[from]
+        crate::memory::region::types::aligned::Error<crate::data::types::null_string::Error>,
+    ),
 }
