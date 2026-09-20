@@ -64,6 +64,7 @@ where
         let marker = match record.status {
             Some(Status::Identified) => ' ',
             Some(Status::Unidentified) => '?',
+            Some(Status::Vacant) if record.address_space.size().get() == 1 => '‧',
             Some(Status::Vacant) => ':',
             None => '>',
         };
