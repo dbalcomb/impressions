@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 use crate::analysis::Completion;
 use crate::data::parse::Parse;
 use crate::data::types::null_string::NullString;
-use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::types::aligned::Aligned;
 
 pub use self::cursor::HintNameCursor;
 pub use self::error::Error;
@@ -31,13 +31,7 @@ pub struct HintName {
     /// An ASCII string that contains the name to import. This is the string
     /// that must be matched to the public name in the DLL. This string is case
     /// sensitive and terminated by a null byte.
-    name: NullString,
-
-    /// The padding.
-    ///
-    /// A trailing zero-pad byte that appears after the trailing null byte, if
-    /// necessary, to align the next entry on an even boundary.
-    pad: Option<Padding>,
+    name: Aligned<NullString, 2>,
 }
 
 impl HintName {
@@ -48,21 +42,15 @@ impl HintName {
 
     /// Gets the name.
     pub const fn name(&self) -> &NullString {
-        &self.name
+        self.name.region()
     }
 }
 
 impl Extent for HintName {
     fn size(&self) -> Size {
-        let mut size = Size::new_valid(2)
+        Size::new_valid(2)
             .checked_add(self.name.size())
-            .expect("valid size");
-
-        if let Some(pad) = &self.pad {
-            size = size.checked_add(pad.size()).expect("valid size");
-        }
-
-        size
+            .expect("valid size")
     }
 }
 
@@ -86,16 +74,10 @@ impl Parse for HintName {
     type Error = Error;
 
     fn parse_with(mut buffer: impl bytes::Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let hint = buffer.get_u16_le();
-        let name = NullString::parse(&mut buffer)?;
-
-        let pad = if name.size().get().is_multiple_of(2) {
-            None
-        } else {
-            Some(Padding::new(Size::new_valid(1), buffer.try_get_u8()?))
-        };
-
-        Ok(Self { hint, name, pad })
+        Ok(Self {
+            hint: buffer.try_get_u16_le()?,
+            name: Aligned::parse(&mut buffer)?,
+        })
     }
 }
 
@@ -104,5 +86,21 @@ impl AsCursor for HintName {
 
     fn cursor(&self) -> Self::Cursor<'_> {
         HintNameCursor::new(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::data::parse::Parse;
+    use crate::memory::extent::Extent;
+
+    use super::HintName;
+
+    #[test]
+    fn parse_includes_padding_after_odd_sized_name() {
+        let hint_name = HintName::parse(&b"\0\0ab\0\0"[..]).unwrap();
+
+        assert_eq!(hint_name.name(), "ab");
+        assert_eq!(hint_name.size().get(), 6);
     }
 }

@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::{Cursor, Error, Position};
-use crate::memory::extent::Extent;
+use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 
 use super::HintName;
@@ -70,23 +70,23 @@ impl Cursor for HintNameCursor<'_> {
             return Ok(Some(position));
         }
 
-        let name = self.entry().name();
-        let size = name.size().get();
+        let name_size = self.entry().name.region().size().get();
+        let size = self.entry().name.size().get();
 
-        if self.position.get() < 2 + size {
-            let position = Position::new((2 + size) as u32);
+        if self.position.get() < 2 + name_size {
+            let position = Position::new((2 + name_size) as u32);
 
             self.seek(position)?;
 
-            if size.is_multiple_of(2) {
+            if name_size == size {
                 return Ok(None);
             } else {
                 return Ok(Some(position));
             }
         }
 
-        if !size.is_multiple_of(2) {
-            self.seek(Position::new((2 + size + 1) as u32))?;
+        if self.position.get() < 2 + size {
+            self.seek(Position::new((2 + size) as u32))?;
         }
 
         Ok(None)
@@ -109,13 +109,13 @@ impl Inspect for HintNameCursor<'_> {
             return;
         }
 
-        let name = self.entry().name();
-        let size = name.size().get();
+        let name_size = self.entry().name.region().size().get();
+        let size = self.entry().name.size().get();
 
-        if self.position.get() < 2 + size {
+        if self.position.get() < 2 + name_size {
             inspector
                 .record(
-                    AddressSpace::new(Address::new(2), Address::new((2 + size - 1) as u32))
+                    AddressSpace::new(Address::new(2), Address::new((2 + name_size - 1) as u32))
                         .expect("valid address space"),
                 )
                 .identified()
@@ -126,18 +126,15 @@ impl Inspect for HintNameCursor<'_> {
             return;
         }
 
-        if !size.is_multiple_of(2) && self.position.get() < 2 + size + 1 {
+        if self.position.get() < 2 + size {
             inspector
                 .record(
-                    AddressSpace::new(
-                        Address::new((2 + size) as u32),
-                        Address::new((2 + size) as u32),
-                    )
-                    .expect("valid address space"),
+                    Address::new((2 + name_size) as u32)
+                        .to_space(Size::new_valid(size - name_size))
+                        .expect("padding is within the hint/name entry"),
                 )
-                .identified()
-                .label(&"Pad")
-                .value(self.entry().pad.as_ref().expect("pad exists"))
+                .vacant()
+                .label(&"Padding")
                 .finish();
         }
     }

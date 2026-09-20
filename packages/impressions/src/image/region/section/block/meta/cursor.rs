@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use crate::memory::cursor::{AsCursor, Cursor, Error, Position, SimpleCursor};
+use crate::memory::cursor::{AsCursor, Cursor, Error, Position};
 use crate::memory::inspect::{Inspect, Inspector};
 
 use super::Meta;
@@ -8,7 +8,7 @@ use super::hint_name_table::HintNameTableCursor;
 use super::import_address_table::ImportAddressTableCursor;
 use super::import_directory_table::ImportDirectoryTableCursor;
 use super::import_lookup_table::ImportLookupTableCursor;
-use super::import_name::ImportName;
+use super::import_name::ImportNameCursor;
 
 /// A cursor over a block of metadata.
 #[derive(Clone)]
@@ -17,7 +17,7 @@ pub enum MetaCursor<'a> {
     ImportLookupTable(ImportLookupTableCursor<'a>),
     ImportAddressTable(ImportAddressTableCursor<'a>),
     HintNameTable(HintNameTableCursor<'a>),
-    ImportName(SimpleCursor<'a, ImportName>),
+    ImportName(ImportNameCursor<'a>),
 }
 
 impl<'a> MetaCursor<'a> {
