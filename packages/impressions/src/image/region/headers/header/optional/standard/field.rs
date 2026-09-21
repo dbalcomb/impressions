@@ -1,7 +1,6 @@
 use strum::{Display, EnumIter};
 
 use crate::memory::address::{Address, AddressSpace};
-use crate::memory::cursor::Position;
 use crate::memory::extent::{Extent, Size};
 
 /// A standard field in an Optional header.
@@ -28,9 +27,9 @@ pub enum Field {
 }
 
 impl Field {
-    /// Gets the position of the field in the standard fields.
-    const fn position(self) -> Position {
-        Position::new(match self {
+    /// Gets the address of the field in the standard fields.
+    const fn address(self) -> Address {
+        Address::new(match self {
             Self::Magic => 0,
             Self::MajorLinkerVersion => 2,
             Self::MinorLinkerVersion => 3,
@@ -60,7 +59,7 @@ impl Extent for Field {
     }
 
     fn address_space(&self) -> AddressSpace {
-        Address::new(self.position().get_addressable().expect("valid position"))
+        self.address()
             .to_space(self.size())
             .expect("valid address space")
     }
