@@ -1,7 +1,6 @@
 use strum::{Display, EnumIter};
 
 use crate::memory::address::{Address, AddressSpace};
-use crate::memory::cursor::Position;
 use crate::memory::extent::{Extent, Size};
 
 /// A Windows-specific field in an Optional header.
@@ -52,9 +51,9 @@ pub enum Field {
 }
 
 impl Field {
-    /// Gets the position of the field in the Windows-specific fields.
-    const fn position(self) -> Position {
-        Position::new(match self {
+    /// Gets the address of the field in the Windows-specific fields.
+    const fn address(self) -> Address {
+        Address::new(match self {
             Self::ImageBase => 0,
             Self::SectionAlignment => 4,
             Self::FileAlignment => 8,
@@ -108,7 +107,7 @@ impl Extent for Field {
     }
 
     fn address_space(&self) -> AddressSpace {
-        Address::new(self.position().get_addressable().expect("valid position"))
+        self.address()
             .to_space(self.size())
             .expect("valid field address space")
     }

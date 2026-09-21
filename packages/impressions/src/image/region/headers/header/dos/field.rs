@@ -1,7 +1,6 @@
 use strum::{Display, EnumIter};
 
 use crate::memory::address::{Address, AddressSpace};
-use crate::memory::cursor::Position;
 use crate::memory::extent::{Extent, Size};
 
 /// A field in a DOS header.
@@ -48,9 +47,9 @@ pub enum Field {
 }
 
 impl Field {
-    /// Gets the position of the field in the DOS header.
-    const fn position(self) -> Position {
-        Position::new(match self {
+    /// Gets the address of the field in the DOS header.
+    const fn address(self) -> Address {
+        Address::new(match self {
             Self::Magic => 0,
             Self::BytesInLastPage => 2,
             Self::Pages => 4,
@@ -100,7 +99,7 @@ impl Extent for Field {
     }
 
     fn address_space(&self) -> AddressSpace {
-        Address::new(self.position().get_addressable().expect("valid position"))
+        self.address()
             .to_space(self.size())
             .expect("valid address space")
     }
