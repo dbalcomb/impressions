@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::inspect::InspectionValue;
+use crate::memory::region::ops::encode::{self, Encode};
 
 /// The image file section characteristics.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -94,6 +95,12 @@ impl SectionCharacteristics {
     /// Checks if the section contains code.
     pub const fn code(self) -> bool {
         self.0 & Self::CNT_CODE != 0
+    }
+}
+
+impl Encode for SectionCharacteristics {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write_u32_le(self.0)
     }
 }
 

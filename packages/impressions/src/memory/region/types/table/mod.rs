@@ -15,6 +15,7 @@ use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::Null;
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::TableCursor;
 pub use self::error::Error;
@@ -75,6 +76,21 @@ where
             .record(self.address_space())
             .label(&"Table")
             .finish()
+    }
+}
+
+impl<T> Encode for Table<T>
+where
+    T: FixedExtent + Null + Encode,
+{
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        for row in &self.0 {
+            row.encode(encoder)?;
+        }
+
+        T::null().encode(encoder)?;
+
+        Ok(())
     }
 }
 

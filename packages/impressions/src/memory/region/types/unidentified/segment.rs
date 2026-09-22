@@ -7,6 +7,7 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::slice::Slice;
 use crate::memory::region::types::initialized::Initialized;
 use crate::memory::region::types::uninitialized::Uninitialized;
@@ -101,6 +102,15 @@ impl Inspect for Segment {
         match self {
             Self::Initialized(initialized) => initialized.inspect(inspector),
             Self::Uninitialized(uninitialized) => uninitialized.inspect(inspector),
+        }
+    }
+}
+
+impl Encode for Segment {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Initialized(initialized) => initialized.encode(encoder),
+            Self::Uninitialized(uninitialized) => uninitialized.encode(encoder),
         }
     }
 }

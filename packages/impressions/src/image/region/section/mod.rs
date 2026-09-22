@@ -18,6 +18,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::insert::Insert;
 use crate::memory::region::types::contiguous::{Contiguous, Segment};
 use crate::memory::region::types::segmented::{Segmented, Segments};
@@ -83,6 +84,12 @@ impl Segmented for Section {
 
     fn segments(&self) -> Segments<'_, Self::Segment> {
         self.blocks.segments()
+    }
+}
+
+impl Encode for Section {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.blocks.encode(encoder)
     }
 }
 

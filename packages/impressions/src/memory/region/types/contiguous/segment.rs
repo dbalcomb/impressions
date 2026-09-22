@@ -6,6 +6,7 @@ use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::unidentified::Unidentified;
 
 use super::SegmentCursor;
@@ -92,6 +93,18 @@ where
         match self {
             Self::Identified(identified) => identified.inspect(inspector),
             Self::Unidentified(unidentified) => unidentified.inspect(inspector),
+        }
+    }
+}
+
+impl<T> Encode for Segment<T>
+where
+    T: Encode,
+{
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Identified(identified) => identified.encode(encoder),
+            Self::Unidentified(unidentified) => unidentified.encode(encoder),
         }
     }
 }

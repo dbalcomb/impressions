@@ -16,6 +16,8 @@ use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::region::ops::encode::encoder::TruncatingEncoder;
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::insert::{Error as InsertError, Insert};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 use crate::memory::region::types::sparse::{Segment, Sparse};
@@ -108,6 +110,63 @@ impl Segmented for Image {
 
     fn segments(&self) -> Segments<'_, Self::Segment> {
         self.regions.segments()
+    }
+}
+
+impl Encode for Image {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        let headers = self.headers();
+
+        if headers.sections().count() != self.sections().count() {
+            return Err(encode::Error::InvalidLayout);
+        }
+
+        headers.encode(encoder)?;
+
+        let mut file_position = headers.size().get() as usize;
+        let mut sections = self.sections();
+
+        for section_header in headers.sections() {
+            let padding_size = section_header
+                .file_offset()
+                .checked_sub(file_position)
+                .ok_or(encode::Error::InvalidLayout)?;
+
+            if padding_size > 0 {
+                let padding = Padding::new(
+                    Size::new(padding_size as u64).expect("valid padding size"),
+                    0,
+                );
+
+                padding.encode(encoder)?;
+            }
+
+            let section = sections.next().ok_or(encode::Error::InvalidLayout)?;
+            let mut section_encoder = TruncatingEncoder::new(encoder, section_header.file_size());
+
+            section.encode(&mut section_encoder)?;
+
+            let padding_size = section_header
+                .file_size()
+                .saturating_sub(section.size().get() as usize);
+
+            if padding_size > 0 {
+                let padding = Padding::new(
+                    Size::new(padding_size as u64).expect("valid padding size"),
+                    0,
+                );
+
+                padding.encode(&mut section_encoder)?;
+            }
+
+            file_position = section_header.file_offset() + section_header.file_size();
+        }
+
+        if sections.next().is_some() {
+            return Err(encode::Error::InvalidLayout);
+        }
+
+        Ok(())
     }
 }
 

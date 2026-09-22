@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
+use crate::memory::region::ops::encode::Encode;
+
 /// An inspection value with a data type representation.
-pub trait InspectionValue: Display {
+pub trait InspectionValue: Encode + Display {
     /// Gets the data type representation.
     fn data_type(&self) -> &dyn Display;
 }

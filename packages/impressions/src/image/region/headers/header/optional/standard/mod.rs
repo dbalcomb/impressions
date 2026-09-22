@@ -12,6 +12,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::StandardFieldsCursor;
 pub use self::field::Field;
@@ -68,6 +69,22 @@ impl Inspect for StandardFields {
             .record(self.address_space())
             .label(&"Standard Fields")
             .finish()
+    }
+}
+
+impl Encode for StandardFields {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write_u16_le(self.magic)?;
+        encoder.write_u8(self.major_linker_version)?;
+        encoder.write_u8(self.minor_linker_version)?;
+        encoder.write_u32_le(self.size_of_code)?;
+        encoder.write_u32_le(self.size_of_initialized_data)?;
+        encoder.write_u32_le(self.size_of_uninitialized_data)?;
+        self.address_of_entry_point.encode(encoder)?;
+        encoder.write_u32_le(self.base_of_code)?;
+        encoder.write_u32_le(self.base_of_data)?;
+
+        Ok(())
     }
 }
 

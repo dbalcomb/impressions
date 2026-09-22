@@ -16,6 +16,7 @@ use crate::image::region::headers::header::optional::directories::directory::Dat
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::table::Table;
 
 pub use self::cursor::ImportDirectoryTableCursor;
@@ -47,6 +48,12 @@ impl Inspect for ImportDirectoryTable {
             .record(self.address_space())
             .label(&"Import Directory Table")
             .finish()
+    }
+}
+
+impl Encode for ImportDirectoryTable {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.0.encode(encoder)
     }
 }
 

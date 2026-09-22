@@ -12,6 +12,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::DataDirectoryCursor;
 pub use self::field::Field;
@@ -58,6 +59,15 @@ impl Inspect for DataDirectory {
             .record(self.address_space())
             .label(&"Data Directory")
             .finish()
+    }
+}
+
+impl Encode for DataDirectory {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.virtual_address.encode(encoder)?;
+        encoder.write_u32_le(self.size)?;
+
+        Ok(())
     }
 }
 

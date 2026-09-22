@@ -12,6 +12,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::WindowsFieldsCursor;
 pub use self::field::Field;
@@ -133,6 +134,34 @@ impl Inspect for WindowsFields {
             .record(self.address_space())
             .label(&"Windows Fields")
             .finish()
+    }
+}
+
+impl Encode for WindowsFields {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.image_base.encode(encoder)?;
+        encoder.write_u32_le(self.section_alignment)?;
+        encoder.write_u32_le(self.file_alignment)?;
+        encoder.write_u16_le(self.major_operating_system_version)?;
+        encoder.write_u16_le(self.minor_operating_system_version)?;
+        encoder.write_u16_le(self.major_image_version)?;
+        encoder.write_u16_le(self.minor_image_version)?;
+        encoder.write_u16_le(self.major_subsystem_version)?;
+        encoder.write_u16_le(self.minor_subsystem_version)?;
+        encoder.write_u32_le(self.win32_version_value)?;
+        encoder.write_u32_le(self.size_of_image)?;
+        encoder.write_u32_le(self.size_of_headers)?;
+        encoder.write_u32_le(self.check_sum)?;
+        encoder.write_u16_le(self.subsystem)?;
+        encoder.write_u16_le(self.dll_characteristics)?;
+        encoder.write_u32_le(self.size_of_stack_reserve)?;
+        encoder.write_u32_le(self.size_of_stack_commit)?;
+        encoder.write_u32_le(self.size_of_heap_reserve)?;
+        encoder.write_u32_le(self.size_of_heap_commit)?;
+        encoder.write_u32_le(self.loader_flags)?;
+        encoder.write_u32_le(self.number_of_rva_and_sizes)?;
+
+        Ok(())
     }
 }
 

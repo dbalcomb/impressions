@@ -15,6 +15,7 @@ use crate::data::parse::Parse;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::table::Table;
 
 pub use self::cursor::ImportLookupTableCursor;
@@ -46,6 +47,12 @@ impl Inspect for ImportLookupTable {
             .record(self.address_space())
             .label(&"Import Lookup Table")
             .finish()
+    }
+}
+
+impl Encode for ImportLookupTable {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.0.encode(encoder)
     }
 }
 

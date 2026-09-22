@@ -16,6 +16,7 @@ use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::HeaderCursor;
 
@@ -135,6 +136,19 @@ impl Inspect for Header {
             Self::Optional(optional) => optional.inspect(inspector),
             Self::Section(section) => section.inspect(inspector),
             Self::Padding(padding) => padding.inspect(inspector),
+        }
+    }
+}
+
+impl Encode for Header {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Dos(dos) => dos.encode(encoder),
+            Self::Signature => encoder.write_u32_le(super::PE_SIGNATURE),
+            Self::Coff(coff) => coff.encode(encoder),
+            Self::Optional(optional) => optional.encode(encoder),
+            Self::Section(section) => section.encode(encoder),
+            Self::Padding(padding) => padding.encode(encoder),
         }
     }
 }

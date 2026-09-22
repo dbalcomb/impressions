@@ -15,6 +15,7 @@ use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::BlockCursor;
 pub use self::error::Error;
@@ -112,6 +113,16 @@ impl Inspect for Block {
             Self::Data(data) => data.inspect(inspector),
             Self::Meta(meta) => meta.inspect(inspector),
             Self::Padding(padding) => padding.inspect(inspector),
+        }
+    }
+}
+
+impl Encode for Block {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Data(data) => data.encode(encoder),
+            Self::Meta(meta) => meta.encode(encoder),
+            Self::Padding(padding) => padding.encode(encoder),
         }
     }
 }

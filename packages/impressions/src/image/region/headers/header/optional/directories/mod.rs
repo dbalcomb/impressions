@@ -12,6 +12,7 @@ use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 
 pub use self::cursor::DataDirectoriesCursor;
@@ -133,6 +134,16 @@ impl Inspect for DataDirectories {
             .record(self.address_space())
             .label(&"Data Directories")
             .finish()
+    }
+}
+
+impl Encode for DataDirectories {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        for data_directory in self.table.iter().take(self.count as usize) {
+            data_directory.encode(encoder)?;
+        }
+
+        Ok(())
     }
 }
 

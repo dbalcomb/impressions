@@ -11,6 +11,7 @@ use crate::data::parse::Parse;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::AlignedCursor;
 pub use self::error::Error;
@@ -73,6 +74,21 @@ where
     T: Extent + Inspect,
 {
     fn inspect(&self, _: &mut dyn Inspector) {}
+}
+
+impl<T, const ALIGNMENT: u32> Encode for Aligned<T, ALIGNMENT>
+where
+    T: Extent + Encode,
+{
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.0.encode(encoder)?;
+
+        for _ in 0..self.padding_size() {
+            encoder.write_u8(0)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl<T, const ALIGNMENT: u32> Parse for Aligned<T, ALIGNMENT>

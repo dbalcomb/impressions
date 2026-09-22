@@ -12,6 +12,7 @@ use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
 use crate::data::parse::Parse;
+use crate::memory::region::ops::encode::{self, Encode};
 
 use super::extent::{Extent, FixedExtent, Size};
 use super::inspect::{Inspect, InspectionValue, Inspector};
@@ -136,6 +137,12 @@ impl Inspect for Address {
 impl InspectionValue for Address {
     fn data_type(&self) -> &dyn Display {
         &"address"
+    }
+}
+
+impl Encode for Address {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write_u32_le(self.value())
     }
 }
 

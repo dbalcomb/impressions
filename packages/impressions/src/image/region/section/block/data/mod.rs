@@ -11,6 +11,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::DataCursor;
 
@@ -42,6 +43,14 @@ impl Inspect for Data {
     fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
             Self::Address(address) => address.inspect(inspector),
+        }
+    }
+}
+
+impl Encode for Data {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Address(address) => address.encode(encoder),
         }
     }
 }

@@ -13,6 +13,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::analysis::Completion;
 use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::insert::{Error as InsertError, Insert};
 use crate::memory::region::ops::slice::Slice;
 use crate::memory::region::types::segmented::{Segmented, Segments};
@@ -159,6 +160,19 @@ where
 {
     fn identified(&self) -> u64 {
         self.0.iter().map(Completion::identified).sum()
+    }
+}
+
+impl<T> Encode for Contiguous<T>
+where
+    T: Encode,
+{
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        for segment in &self.0 {
+            segment.encode(encoder)?;
+        }
+
+        Ok(())
     }
 }
 

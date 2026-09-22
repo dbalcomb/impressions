@@ -14,6 +14,7 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::slice::{Error as SliceError, Slice};
 
 pub use self::cursor::InitializedCursor;
@@ -78,6 +79,12 @@ impl Inspect for Initialized {
             .label(&"Initialized")
             .value(self)
             .finish()
+    }
+}
+
+impl Encode for Initialized {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write(self.0.as_ref())
     }
 }
 

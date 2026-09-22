@@ -17,6 +17,7 @@ use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::MetaCursor;
 pub use self::error::Error;
@@ -79,6 +80,18 @@ impl Inspect for Meta {
             Self::ImportAddressTable(table) => table.inspect(inspector),
             Self::HintNameTable(table) => table.inspect(inspector),
             Self::ImportName(name) => name.inspect(inspector),
+        }
+    }
+}
+
+impl Encode for Meta {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::ImportDirectoryTable(table) => table.encode(encoder),
+            Self::ImportLookupTable(table) => table.encode(encoder),
+            Self::ImportAddressTable(table) => table.encode(encoder),
+            Self::HintNameTable(table) => table.encode(encoder),
+            Self::ImportName(name) => name.encode(encoder),
         }
     }
 }

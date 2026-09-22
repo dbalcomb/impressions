@@ -15,6 +15,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 use self::directories::DataDirectories;
 use self::standard::StandardFields;
@@ -85,6 +86,19 @@ impl Inspect for OptionalHeader {
             .record(self.address_space())
             .label(&"Optional Header")
             .finish()
+    }
+}
+
+impl Encode for OptionalHeader {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.standard.encode(encoder)?;
+        self.windows.encode(encoder)?;
+
+        if let Some(data_directories) = &self.data_directories {
+            data_directories.encode(encoder)?;
+        }
+
+        Ok(())
     }
 }
 

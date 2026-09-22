@@ -173,10 +173,17 @@ mod tests {
     use impressions::memory::address::Address;
     use impressions::memory::extent::Size;
     use impressions::memory::inspect::{InspectionValue, Inspector as _};
+    use impressions::memory::region::ops::encode::{self, Encode};
 
     use super::TableInspector;
 
     struct NamedValue;
+
+    impl Encode for NamedValue {
+        fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+            encoder.write(b"value")
+        }
+    }
 
     impl Display for NamedValue {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

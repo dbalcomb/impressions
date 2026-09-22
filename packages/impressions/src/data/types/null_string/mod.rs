@@ -11,6 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::data::parse::Parse;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::InspectionValue;
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::error::Error;
 
@@ -33,6 +34,15 @@ impl NullString {
 impl Extent for NullString {
     fn size(&self) -> Size {
         Size::new(self.0.len() as u64 + 1).expect("valid size")
+    }
+}
+
+impl Encode for NullString {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write(self.0.as_bytes())?;
+        encoder.write_u8(0)?;
+
+        Ok(())
     }
 }
 

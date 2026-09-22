@@ -11,6 +11,7 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::slice::{Error as SliceError, Slice};
 
 pub use self::error::Error;
@@ -65,6 +66,12 @@ impl Inspect for Uninitialized {
             .label(&"Uninitialized")
             .value(self)
             .finish()
+    }
+}
+
+impl Encode for Uninitialized {
+    fn encode(&self, _: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        Ok(())
     }
 }
 
