@@ -11,6 +11,7 @@ use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::CoffHeaderCursor;
 pub use self::field::Field;
@@ -75,6 +76,20 @@ impl AsCursor for CoffHeader {
 
     fn cursor(&self) -> Self::Cursor<'_> {
         CoffHeaderCursor::new(self)
+    }
+}
+
+impl Encode for CoffHeader {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write_u16_le(self.machine)?;
+        encoder.write_u16_le(self.number_of_sections)?;
+        encoder.write_u32_le(self.time_date_stamp)?;
+        encoder.write_u32_le(self.pointer_to_symbol_table)?;
+        encoder.write_u32_le(self.number_of_symbols)?;
+        encoder.write_u16_le(self.size_of_optional_header)?;
+        encoder.write_u16_le(self.characteristics)?;
+
+        Ok(())
     }
 }
 

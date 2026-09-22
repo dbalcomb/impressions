@@ -14,6 +14,7 @@ use crate::image::region::section::block::meta::import_lookup_table::entry::Impo
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::table::Table;
 
 pub use self::cursor::ImportAddressTableCursor;
@@ -43,6 +44,12 @@ impl Inspect for ImportAddressTable {
             .record(self.address_space())
             .label(&"Import Address Table")
             .finish()
+    }
+}
+
+impl Encode for ImportAddressTable {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.0.encode(encoder)
     }
 }
 

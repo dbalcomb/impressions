@@ -8,12 +8,14 @@ mod error;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 
 use crate::image::Image;
+use crate::memory::region::ops::encode::Encode;
+use crate::memory::region::ops::encode::encoder::FileEncoder;
 
 use self::analyser::Analyser;
 use self::analyser::imports::Imports;
@@ -52,6 +54,16 @@ impl Analysis {
 
         self.image.serialize(&mut serializer)?;
         writer.flush()?;
+
+        Ok(())
+    }
+
+    /// Write the binary image to the given path.
+    pub fn write_image(&self, path: impl AsRef<Path>) -> Result<(), Error> {
+        let mut encoder = FileEncoder::new(path)?;
+
+        self.image.encode(&mut encoder)?;
+        encoder.finish()?;
 
         Ok(())
     }

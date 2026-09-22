@@ -11,6 +11,7 @@ use crate::data::types::null_string::NullString;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::aligned::Aligned;
 
 pub use self::cursor::ImportNameCursor;
@@ -48,6 +49,12 @@ impl Inspect for ImportName {
             .record(self.address_space())
             .label(&"Import Name")
             .finish();
+    }
+}
+
+impl Encode for ImportName {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.name.encode(encoder)
     }
 }
 

@@ -17,6 +17,7 @@ use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::contiguous::{Contiguous, Segment};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 use crate::memory::region::types::unidentified::Unidentified;
@@ -100,6 +101,12 @@ impl Segmented for Headers {
 
     fn segments(&self) -> Segments<'_, Self::Segment> {
         self.headers.segments()
+    }
+}
+
+impl Encode for Headers {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.headers.encode(encoder)
     }
 }
 
@@ -217,6 +224,7 @@ mod tests {
     use crate::data::parse::Parse;
     use crate::memory::address::Address;
     use crate::memory::extent::Extent;
+    use crate::memory::region::ops::encode::{self, Encode};
 
     use super::Headers;
 
@@ -261,6 +269,17 @@ mod tests {
         bytes[0..SAMPLE_HEADERS_DATA.len()].copy_from_slice(&SAMPLE_HEADERS_DATA);
         bytes[SAMPLE_HEADERS_SIZE..].copy_from_slice(&[1, 2, 3, 4]);
         bytes.freeze()
+    }
+
+    #[derive(Default)]
+    struct VecEncoder(Vec<u8>);
+
+    impl encode::Encoder for VecEncoder {
+        fn write(&mut self, bytes: &[u8]) -> Result<(), encode::Error> {
+            self.0.extend_from_slice(bytes);
+
+            Ok(())
+        }
     }
 
     #[test]
@@ -392,5 +411,16 @@ mod tests {
         assert_eq!(rsrc.section_address(), Address::new(0x0120E000));
 
         assert_eq!(sections.next(), None);
+    }
+
+    #[test]
+    fn encoding_reproduces_sample_headers() {
+        let source = sample_headers_padded();
+        let headers = Headers::parse(source.clone()).unwrap();
+        let mut encoder = VecEncoder::default();
+
+        headers.encode(&mut encoder).unwrap();
+
+        assert_eq!(encoder.0, source[..SAMPLE_HEADERS_SIZE]);
     }
 }

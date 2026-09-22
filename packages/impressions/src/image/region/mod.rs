@@ -13,6 +13,7 @@ use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 use self::headers::Headers;
 use self::section::Section;
@@ -92,6 +93,15 @@ impl Inspect for Region {
         match self {
             Self::Headers(headers) => headers.inspect(inspector),
             Self::Section(section) => section.inspect(inspector),
+        }
+    }
+}
+
+impl Encode for Region {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Headers(headers) => headers.encode(encoder),
+            Self::Section(section) => section.encode(encoder),
         }
     }
 }

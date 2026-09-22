@@ -3,6 +3,7 @@ use std::fmt::{self, Debug, Display};
 use crate::memory::cursor::{Cursor, Error, Position, StructCursor};
 use crate::memory::extent::Extent;
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 use super::{DosHeader, Field};
 
@@ -99,6 +100,16 @@ impl Debug for DosHeaderCursor<'_> {
 }
 
 struct ByteArray<'a>(&'a [u16]);
+
+impl Encode for ByteArray<'_> {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        for value in self.0 {
+            encoder.write_u16_le(*value)?;
+        }
+
+        Ok(())
+    }
+}
 
 impl Display for ByteArray<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

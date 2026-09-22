@@ -14,6 +14,7 @@ use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::characteristics::SectionCharacteristics;
 pub use self::cursor::SectionHeaderCursor;
@@ -118,6 +119,23 @@ impl Inspect for SectionHeader {
             .record(self.address_space())
             .label(&"Section Header")
             .finish()
+    }
+}
+
+impl Encode for SectionHeader {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.name.encode(encoder)?;
+        encoder.write_u32_le(self.virtual_size)?;
+        self.virtual_address.encode(encoder)?;
+        encoder.write_u32_le(self.size_of_raw_data)?;
+        encoder.write_u32_le(self.pointer_to_raw_data)?;
+        encoder.write_u32_le(self.pointer_to_relocations)?;
+        encoder.write_u32_le(self.pointer_to_linenumbers)?;
+        encoder.write_u16_le(self.number_of_relocations)?;
+        encoder.write_u16_le(self.number_of_linenumbers)?;
+        self.characteristics.encode(encoder)?;
+
+        Ok(())
     }
 }
 

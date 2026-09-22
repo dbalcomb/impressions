@@ -10,6 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::data::parse::{ArrayParseError, Parse};
 use crate::memory::inspect::InspectionValue;
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::error::Error;
 
@@ -55,6 +56,12 @@ impl<const N: usize> ArrayString<N> {
 impl<const N: usize> InspectionValue for ArrayString<N> {
     fn data_type(&self) -> &dyn Display {
         &"string"
+    }
+}
+
+impl<const N: usize> Encode for ArrayString<N> {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write(&self.0)
     }
 }
 
@@ -180,8 +187,30 @@ mod tests {
     use std::assert_matches;
 
     use crate::data::parse::{Parse, TryGetError};
+    use crate::memory::region::ops::encode::{self, Encode};
 
     use super::{ArrayString, Error};
+
+    #[derive(Default)]
+    struct VecEncoder(Vec<u8>);
+
+    impl encode::Encoder for VecEncoder {
+        fn write(&mut self, bytes: &[u8]) -> Result<(), encode::Error> {
+            self.0.extend_from_slice(bytes);
+
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn encodes_full_fixed_width_array() {
+        let string = ArrayString::<8>::parse(b"hello\0\0\0".as_slice()).unwrap();
+        let mut encoder = VecEncoder::default();
+
+        string.encode(&mut encoder).unwrap();
+
+        assert_eq!(encoder.0, b"hello\0\0\0");
+    }
 
     #[test]
     fn test_parse_exact() {

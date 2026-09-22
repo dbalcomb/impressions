@@ -10,6 +10,7 @@ use crate::analysis::Completion;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 
 pub use self::cursor::HintNameTableCursor;
@@ -67,6 +68,16 @@ impl Inspect for HintNameTable {
             .record(self.address_space())
             .label(&"Hint/Name Table")
             .finish()
+    }
+}
+
+impl Encode for HintNameTable {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        for entry in &self.0 {
+            entry.encode(encoder)?;
+        }
+
+        Ok(())
     }
 }
 

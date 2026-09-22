@@ -15,6 +15,7 @@ use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::slice::{Error as SliceError, Slice};
 use crate::memory::region::types::segmented::{Segmented, Segments, SegmentsCursor};
 
@@ -170,6 +171,16 @@ impl Inspect for Unidentified {
             .record(self.address_space())
             .label(&"Unidentified")
             .finish()
+    }
+}
+
+impl Encode for Unidentified {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        for segment in self.segments() {
+            segment.segment().encode(encoder)?;
+        }
+
+        Ok(())
     }
 }
 

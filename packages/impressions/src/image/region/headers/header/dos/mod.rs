@@ -11,6 +11,7 @@ use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::DosHeaderCursor;
 pub use self::field::Field;
@@ -96,6 +97,40 @@ impl Inspect for DosHeader {
             .record(self.address_space())
             .label(&"DOS Header")
             .finish()
+    }
+}
+
+impl Encode for DosHeader {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write_u16_le(self.e_magic)?;
+        encoder.write_u16_le(self.e_cblp)?;
+        encoder.write_u16_le(self.e_cp)?;
+        encoder.write_u16_le(self.e_crlc)?;
+        encoder.write_u16_le(self.e_cparhdr)?;
+        encoder.write_u16_le(self.e_minalloc)?;
+        encoder.write_u16_le(self.e_maxalloc)?;
+        encoder.write_u16_le(self.e_ss)?;
+        encoder.write_u16_le(self.e_sp)?;
+        encoder.write_u16_le(self.e_csum)?;
+        encoder.write_u16_le(self.e_ip)?;
+        encoder.write_u16_le(self.e_cs)?;
+        encoder.write_u16_le(self.e_lfarlc)?;
+        encoder.write_u16_le(self.e_ovno)?;
+
+        for res in &self.e_res {
+            encoder.write_u16_le(*res)?;
+        }
+
+        encoder.write_u16_le(self.e_oemid)?;
+        encoder.write_u16_le(self.e_oeminfo)?;
+
+        for res2 in &self.e_res2 {
+            encoder.write_u16_le(*res2)?;
+        }
+
+        encoder.write_u32_le(self.e_lfanew)?;
+
+        Ok(())
     }
 }
 

@@ -7,6 +7,7 @@ use crate::memory::address::AddressSpace;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::slice::{Error as SliceError, Slice};
 
 /// A region of padding.
@@ -68,6 +69,27 @@ impl Inspect for Padding {
             .label(&"Padding")
             .value(self)
             .finish()
+    }
+}
+
+impl Encode for Padding {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        const BUFFER_SIZE: usize = 1024;
+
+        let bytes = [self.value; BUFFER_SIZE];
+        let mut remaining = self.size.get();
+
+        while remaining >= BUFFER_SIZE as u64 {
+            encoder.write(&bytes)?;
+
+            remaining -= BUFFER_SIZE as u64;
+        }
+
+        if remaining > 0 {
+            encoder.write(&bytes[..remaining as usize])?;
+        }
+
+        Ok(())
     }
 }
 

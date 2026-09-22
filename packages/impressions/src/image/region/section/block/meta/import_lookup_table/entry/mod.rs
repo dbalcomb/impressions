@@ -13,6 +13,7 @@ use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 use crate::memory::region::Null;
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::error::Error;
 
@@ -75,6 +76,15 @@ impl Inspect for ImportLookup {
             })
             .value(self)
             .finish()
+    }
+}
+
+impl Encode for ImportLookup {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        match self {
+            Self::Name(address) => encoder.write_u32_le(address.value()),
+            Self::Ordinal(ordinal) => encoder.write_u32_le(*ordinal as u32 | 0x80000000),
+        }
     }
 }
 

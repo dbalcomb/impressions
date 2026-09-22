@@ -13,6 +13,7 @@ use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::Null;
+use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::ImportDirectoryCursor;
 pub use self::error::Error;
@@ -94,6 +95,16 @@ impl Inspect for ImportDirectory {
             .record(self.address_space())
             .label(&"Import Directory")
             .finish()
+    }
+}
+
+impl Encode for ImportDirectory {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        self.lookup_table_address.encode(encoder)?;
+        encoder.write_u32_le(self.timestamp)?;
+        encoder.write_u32_le(self.forwarder_chain)?;
+        self.name_address.encode(encoder)?;
+        self.address_table_address.encode(encoder)
     }
 }
 

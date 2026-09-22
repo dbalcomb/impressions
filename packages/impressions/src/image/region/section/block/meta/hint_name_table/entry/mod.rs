@@ -11,6 +11,7 @@ use crate::data::types::null_string::NullString;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::aligned::Aligned;
 
 pub use self::cursor::HintNameCursor;
@@ -66,6 +67,15 @@ impl Inspect for HintName {
             .record(self.address_space())
             .label(&"Hint/Name")
             .finish()
+    }
+}
+
+impl Encode for HintName {
+    fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
+        encoder.write_u16_le(self.hint)?;
+        self.name.encode(encoder)?;
+
+        Ok(())
     }
 }
 
