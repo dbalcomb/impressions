@@ -6,15 +6,14 @@ mod error;
 use std::slice::Iter;
 use std::vec::IntoIter;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::Null;
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::TableCursor;
@@ -94,14 +93,17 @@ where
     }
 }
 
-impl<T> Parse for Table<T>
+impl<T> Decode for Table<T>
 where
-    T: FixedExtent + Null + for<'a> Parse<Context<'a> = ()>,
+    T: FixedExtent + Null + for<'a> Decode<Context<'a> = ()>,
 {
     type Context<'a> = Option<Size>;
     type Error = Error<T::Error>;
 
-    fn parse_with(mut buffer: impl Buf, size: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(
+        decoder: &mut dyn Decoder,
+        size: Self::Context<'_>,
+    ) -> Result<Self, Self::Error> {
         if let Some(size) = size
             && !size.get().is_multiple_of(T::SIZE.get())
         {
@@ -114,7 +116,7 @@ where
         let mut table = Vec::new();
 
         for i in 0..Self::max_rows(size) {
-            let region = T::parse(&mut buffer).map_err(|error| Error::Row {
+            let region = T::decode(decoder).map_err(|error| Error::Row {
                 address: Address::new(i as u32),
                 error,
             })?;
@@ -171,14 +173,13 @@ impl<'a, T> IntoIterator for &'a Table<T> {
 
 #[cfg(test)]
 mod tests {
-    use bytes::{Buf, TryGetError};
     use serde::{Deserialize, Serialize};
 
-    use crate::data::parse::Parse;
     use crate::memory::cursor::{AsCursor, Cursor, Position, SimpleCursor};
     use crate::memory::extent::{Extent, FixedExtent, Size};
     use crate::memory::inspect::{Inspect, Inspector};
     use crate::memory::region::Null;
+    use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 
     use super::{Error, Table};
 
@@ -216,12 +217,15 @@ mod tests {
         }
     }
 
-    impl Parse for ByteRow {
+    impl Decode for ByteRow {
         type Context<'a> = ();
-        type Error = TryGetError;
+        type Error = DecodeError;
 
-        fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-            buffer.try_get_u8().map(Self)
+        fn decode_with(
+            decoder: &mut dyn Decoder,
+            _: Self::Context<'_>,
+        ) -> Result<Self, Self::Error> {
+            decoder.read_u8().map(Self)
         }
     }
 
@@ -242,19 +246,22 @@ mod tests {
         }
     }
 
-    impl Parse for DoubleByteRow {
+    impl Decode for DoubleByteRow {
         type Context<'a> = ();
-        type Error = TryGetError;
+        type Error = DecodeError;
 
-        fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-            Ok(Self([buffer.try_get_u8()?, buffer.try_get_u8()?]))
+        fn decode_with(
+            decoder: &mut dyn Decoder,
+            _: Self::Context<'_>,
+        ) -> Result<Self, Self::Error> {
+            Ok(Self([decoder.read_u8()?, decoder.read_u8()?]))
         }
     }
 
     #[test]
-    fn parses_table_with_exact_size() {
+    fn decodes_table_with_exact_size() {
         assert_eq!(
-            Table::<ByteRow>::parse_with([1, 2, 0].as_slice(), Some(Size::new_valid(3))),
+            Table::<ByteRow>::decode_with(&mut [1, 2, 0].as_slice(), Some(Size::new_valid(3))),
             Ok(Table(vec![ByteRow(1), ByteRow(2)])),
         );
     }
@@ -262,7 +269,7 @@ mod tests {
     #[test]
     fn rejects_terminator_before_expected_size() {
         assert_eq!(
-            Table::<ByteRow>::parse_with([1, 0].as_slice(), Some(Size::new_valid(3))),
+            Table::<ByteRow>::decode_with(&mut [1, 0].as_slice(), Some(Size::new_valid(3))),
             Err(Error::SizeMismatch {
                 expected: Size::new_valid(3),
                 actual: Size::new_valid(2),
@@ -273,7 +280,7 @@ mod tests {
     #[test]
     fn rejects_size_that_cannot_contain_whole_rows() {
         assert_eq!(
-            Table::<DoubleByteRow>::parse_with([].as_slice(), Some(Size::new_valid(3))),
+            Table::<DoubleByteRow>::decode_with(&mut [].as_slice(), Some(Size::new_valid(3))),
             Err(Error::SizeNotMultiple {
                 size: Size::new_valid(3),
                 row_size: DoubleByteRow::SIZE,
@@ -284,7 +291,7 @@ mod tests {
     #[test]
     fn rejects_table_without_terminator_within_expected_size() {
         assert_eq!(
-            Table::<ByteRow>::parse_with([1].as_slice(), Some(Size::MIN)),
+            Table::<ByteRow>::decode_with(&mut [1].as_slice(), Some(Size::MIN)),
             Err(Error::MissingNullTerminator),
         );
     }

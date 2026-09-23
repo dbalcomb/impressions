@@ -5,15 +5,14 @@ mod error;
 
 use std::ops::Deref;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::image::region::section::block::meta::import_lookup_table::entry::ImportLookup;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::table::Table;
 
@@ -53,14 +52,14 @@ impl Encode for ImportAddressTable {
     }
 }
 
-impl Parse for ImportAddressTable {
+impl Decode for ImportAddressTable {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        Table::parse_with(buffer, None)
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        Table::decode_with(decoder, None)
             .map(Self)
-            .map_err(Error::Parse)
+            .map_err(Error::Decode)
     }
 }
 

@@ -1,11 +1,10 @@
 use std::fmt::{self, Debug, Display};
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::inspect::InspectionValue;
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 /// The image file section characteristics.
@@ -104,12 +103,12 @@ impl Encode for SectionCharacteristics {
     }
 }
 
-impl Parse for SectionCharacteristics {
+impl Decode for SectionCharacteristics {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        Ok(Self(buffer.try_get_u32_le()?))
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        Ok(Self(decoder.read_u32_le()?))
     }
 }
 

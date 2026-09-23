@@ -1,9 +1,9 @@
 use std::fmt::{self, Debug};
 
-use crate::data::parse::Parse;
 use crate::memory::cursor::ops::read::{Error as ReadError, Read};
 use crate::memory::cursor::{Cursor, Error, Position, SimpleCursor};
 use crate::memory::extent::Extent;
+use crate::memory::region::ops::decode::Decode;
 
 use super::Initialized;
 
@@ -55,11 +55,11 @@ impl Read for InitializedCursor<'_> {
         context: T::Context<'a>,
     ) -> Result<T, ReadError<T::Error, Self::Error>>
     where
-        T: Extent + Parse,
+        T: Extent + Decode,
     {
         let bytes = self.region().bytes();
-        let buffer = &bytes[self.position().get() as usize..];
-        let region = T::parse_with(buffer, context).map_err(ReadError::Parse)?;
+        let mut buffer = &bytes[self.position().get() as usize..];
+        let region = T::decode_with(&mut buffer, context).map_err(ReadError::Decode)?;
 
         if let Some(offset) = region.size().get_addressable() {
             self.advance(offset).map_err(ReadError::Cursor)?;

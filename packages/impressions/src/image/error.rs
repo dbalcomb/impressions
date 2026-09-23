@@ -24,4 +24,8 @@ pub enum Error {
     /// A problem was encountered inserting a region into the image.
     #[error("insert operation error")]
     Insert(#[from] crate::memory::region::ops::insert::Error),
+
+    /// A problem was encountered decoding a region.
+    #[error("decode operation error")]
+    Decode(#[from] crate::memory::region::ops::decode::Error),
 }

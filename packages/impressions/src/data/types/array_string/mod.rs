@@ -5,11 +5,10 @@ mod error;
 use std::fmt::{self, Debug, Display};
 use std::ops::Deref;
 
-use bytes::Buf;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::data::parse::{ArrayParseError, Parse};
 use crate::memory::inspect::InspectionValue;
+use crate::memory::region::ops::decode::{ArrayDecodeError, Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::error::Error;
@@ -65,12 +64,12 @@ impl<const N: usize> Encode for ArrayString<N> {
     }
 }
 
-impl<const N: usize> Parse for ArrayString<N> {
+impl<const N: usize> Decode for ArrayString<N> {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let bytes = <[u8; N]>::parse(buffer).map_err(ArrayParseError::into_buffer_error)?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let bytes = <[u8; N]>::decode(decoder).map_err(ArrayDecodeError::into_decode_error)?;
 
         str::from_utf8(trim_trailing_null(&bytes))?;
 
@@ -186,7 +185,7 @@ const fn trim_trailing_null(mut bytes: &[u8]) -> &[u8] {
 mod tests {
     use std::assert_matches;
 
-    use crate::data::parse::{Parse, TryGetError};
+    use crate::memory::region::ops::decode::{Decode, Error as DecodeError};
     use crate::memory::region::ops::encode::{self, Encode};
 
     use super::{ArrayString, Error};
@@ -204,7 +203,7 @@ mod tests {
 
     #[test]
     fn encodes_full_fixed_width_array() {
-        let string = ArrayString::<8>::parse(b"hello\0\0\0".as_slice()).unwrap();
+        let string = ArrayString::<8>::decode(&mut b"hello\0\0\0".as_slice()).unwrap();
         let mut encoder = VecEncoder::default();
 
         string.encode(&mut encoder).unwrap();
@@ -213,30 +212,30 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_exact() {
+    fn decode_exact() {
         let mut buffer = b"Hello".as_slice();
-        let string = ArrayString::<5>::parse(&mut buffer).unwrap();
+        let string = ArrayString::<5>::decode(&mut buffer).unwrap();
 
         assert_eq!(string, "Hello");
         assert!(buffer.is_empty());
     }
 
     #[test]
-    fn test_parse_under() {
+    fn decode_under() {
         let mut buffer = b"Hello World".as_slice();
-        let string = ArrayString::<5>::parse(&mut buffer).unwrap();
+        let string = ArrayString::<5>::decode(&mut buffer).unwrap();
 
         assert_eq!(string, "Hello");
         assert_eq!(buffer, b" World");
     }
 
     #[test]
-    fn test_parse_over() {
+    fn decode_over() {
         let mut buffer = b"Hello".as_slice();
 
         assert_eq!(
-            ArrayString::<8>::parse(&mut buffer),
-            Err(Error::Read(TryGetError {
+            ArrayString::<8>::decode(&mut buffer),
+            Err(Error::Read(DecodeError::InsufficientBytes {
                 requested: 8,
                 available: 5,
             }))
@@ -245,9 +244,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_invalid() {
+    fn decode_invalid() {
         let mut buffer = [0x68, 0x80].as_slice();
-        let err = ArrayString::<2>::parse(&mut buffer).unwrap_err();
+        let err = ArrayString::<2>::decode(&mut buffer).unwrap_err();
 
         assert_matches!(err, Error::Utf8(err) if err.valid_up_to() == 1);
         assert!(buffer.is_empty());
@@ -255,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_serde() {
-        let string = ArrayString::<8>::parse("hello\0\0\0".as_bytes()).unwrap();
+        let string = ArrayString::<8>::decode(&mut "hello\0\0\0".as_bytes()).unwrap();
         let json = serde_json::to_string(&string).unwrap();
 
         assert_eq!(json, "\"hello\"");

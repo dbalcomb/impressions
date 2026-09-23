@@ -8,14 +8,14 @@ pub mod region;
 
 use std::fmt::{self, Debug};
 
-use bytes::{Buf, Bytes};
+use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::memory::address::{Address, AddressSpace};
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::encoder::TruncatingEncoder;
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::insert::{Error as InsertError, Insert};
@@ -95,7 +95,7 @@ impl Extent for Image {
     fn address_space(&self) -> AddressSpace {
         self.address()
             .to_space(self.size())
-            .expect("image address space validated on parse")
+            .expect("image address space validated on decode")
     }
 }
 
@@ -170,12 +170,12 @@ impl Encode for Image {
     }
 }
 
-impl Parse for Image {
+impl Decode for Image {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let headers = Headers::parse(&mut buffer)?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let headers = Headers::decode(decoder)?;
         let optional = headers.optional();
         let image_size = Size::new(optional.image_size() as u64)?;
 
@@ -185,11 +185,11 @@ impl Parse for Image {
         let mut position = headers.size().get() as usize;
 
         for section_header in headers.sections() {
-            buffer.advance(section_header.file_offset() - position);
+            decoder.skip(section_header.file_offset() - position)?;
 
             regions.insert(
                 section_header.section_address(),
-                Region::section(Section::parse_with(&mut buffer, section_header)?),
+                Region::section(Section::decode_with(decoder, section_header)?),
             )?;
 
             position = section_header.file_offset() + section_header.file_size();
@@ -223,7 +223,7 @@ impl Debug for Image {
 impl TryFrom<Bytes> for Image {
     type Error = Error;
 
-    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
-        Self::parse(bytes)
+    fn try_from(mut bytes: Bytes) -> Result<Self, Self::Error> {
+        Self::decode(&mut bytes)
     }
 }

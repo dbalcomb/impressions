@@ -3,15 +3,14 @@
 mod cursor;
 mod field;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::DataDirectoryCursor;
@@ -71,14 +70,14 @@ impl Encode for DataDirectory {
     }
 }
 
-impl Parse for DataDirectory {
+impl Decode for DataDirectory {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            virtual_address: Address::parse(&mut buffer)?,
-            size: buffer.try_get_u32_le()?,
+            virtual_address: Address::decode(decoder)?,
+            size: decoder.read_u32_le()?,
         })
     }
 }

@@ -5,9 +5,9 @@ pub enum Error<P, C = crate::memory::cursor::Error> {
     #[error("unsupported region")]
     Unsupported,
 
-    /// Indicates a problem parsing the region.
-    #[error("parse error")]
-    Parse(#[source] P),
+    /// Indicates a problem decoding the region.
+    #[error("decode error")]
+    Decode(#[source] P),
 
     /// Indicates a problem seeking the cursor.
     #[error("cursor error")]

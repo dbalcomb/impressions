@@ -1,9 +1,9 @@
 /// The image file section error.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    /// A problem was encountered parsing the image.
-    #[error("parse error")]
-    Parse(#[from] bytes::TryGetError),
+    /// A problem was encountered decoding the image.
+    #[error("decode error")]
+    Decode(#[from] crate::memory::region::ops::decode::Error),
 
     /// A problem was encountered with an unidentified region.
     #[error("unidentified region error")]

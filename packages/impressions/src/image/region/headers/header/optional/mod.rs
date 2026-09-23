@@ -6,15 +6,14 @@ pub mod windows;
 
 mod cursor;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 use self::directories::DataDirectories;
@@ -102,16 +101,16 @@ impl Encode for OptionalHeader {
     }
 }
 
-impl Parse for OptionalHeader {
+impl Decode for OptionalHeader {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let standard = StandardFields::parse(&mut buffer)?;
-        let windows = WindowsFields::parse(&mut buffer)?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let standard = StandardFields::decode(decoder)?;
+        let windows = WindowsFields::decode(decoder)?;
         let data_directories = match windows.number_of_rva_and_sizes() {
             0 => None,
-            count @ 1..=16 => Some(DataDirectories::parse_with(&mut buffer, count)?),
+            count @ 1..=16 => Some(DataDirectories::decode_with(decoder, count)?),
             count => return Err(Error::UnsupportedDataDirectoryCount(count)),
         };
 

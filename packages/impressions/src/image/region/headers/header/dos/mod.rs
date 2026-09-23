@@ -3,14 +3,13 @@
 mod cursor;
 mod field;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::DosHeaderCursor;
@@ -134,12 +133,12 @@ impl Encode for DosHeader {
     }
 }
 
-impl Parse for DosHeader {
+impl Decode for DosHeader {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let e_magic = buffer.try_get_u16_le()?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let e_magic = decoder.read_u16_le()?;
 
         if e_magic != DOS_SIGNATURE {
             return Err(Error::InvalidSignature);
@@ -147,24 +146,24 @@ impl Parse for DosHeader {
 
         Ok(Self {
             e_magic,
-            e_cblp: buffer.try_get_u16_le()?,
-            e_cp: buffer.try_get_u16_le()?,
-            e_crlc: buffer.try_get_u16_le()?,
-            e_cparhdr: buffer.try_get_u16_le()?,
-            e_minalloc: buffer.try_get_u16_le()?,
-            e_maxalloc: buffer.try_get_u16_le()?,
-            e_ss: buffer.try_get_u16_le()?,
-            e_sp: buffer.try_get_u16_le()?,
-            e_csum: buffer.try_get_u16_le()?,
-            e_ip: buffer.try_get_u16_le()?,
-            e_cs: buffer.try_get_u16_le()?,
-            e_lfarlc: buffer.try_get_u16_le()?,
-            e_ovno: buffer.try_get_u16_le()?,
-            e_res: array_init::try_array_init(|_| buffer.try_get_u16_le())?,
-            e_oemid: buffer.try_get_u16_le()?,
-            e_oeminfo: buffer.try_get_u16_le()?,
-            e_res2: array_init::try_array_init(|_| buffer.try_get_u16_le())?,
-            e_lfanew: buffer.try_get_u32_le()?,
+            e_cblp: decoder.read_u16_le()?,
+            e_cp: decoder.read_u16_le()?,
+            e_crlc: decoder.read_u16_le()?,
+            e_cparhdr: decoder.read_u16_le()?,
+            e_minalloc: decoder.read_u16_le()?,
+            e_maxalloc: decoder.read_u16_le()?,
+            e_ss: decoder.read_u16_le()?,
+            e_sp: decoder.read_u16_le()?,
+            e_csum: decoder.read_u16_le()?,
+            e_ip: decoder.read_u16_le()?,
+            e_cs: decoder.read_u16_le()?,
+            e_lfarlc: decoder.read_u16_le()?,
+            e_ovno: decoder.read_u16_le()?,
+            e_res: array_init::try_array_init(|_| decoder.read_u16_le())?,
+            e_oemid: decoder.read_u16_le()?,
+            e_oeminfo: decoder.read_u16_le()?,
+            e_res2: array_init::try_array_init(|_| decoder.read_u16_le())?,
+            e_lfanew: decoder.read_u32_le()?,
         })
     }
 }

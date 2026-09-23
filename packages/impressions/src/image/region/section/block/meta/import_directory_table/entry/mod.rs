@@ -4,15 +4,14 @@ mod cursor;
 mod error;
 mod field;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::Null;
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::ImportDirectoryCursor;
@@ -108,17 +107,17 @@ impl Encode for ImportDirectory {
     }
 }
 
-impl Parse for ImportDirectory {
+impl Decode for ImportDirectory {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            lookup_table_address: Address::parse(&mut buffer)?,
-            timestamp: buffer.try_get_u32_le()?,
-            forwarder_chain: buffer.try_get_u32_le()?,
-            name_address: Address::parse(&mut buffer)?,
-            address_table_address: Address::parse(&mut buffer)?,
+            lookup_table_address: Address::decode(decoder)?,
+            timestamp: decoder.read_u32_le()?,
+            forwarder_chain: decoder.read_u32_le()?,
+            name_address: Address::decode(decoder)?,
+            address_table_address: Address::decode(decoder)?,
         })
     }
 }
