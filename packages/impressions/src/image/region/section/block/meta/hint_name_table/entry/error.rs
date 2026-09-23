@@ -3,7 +3,7 @@
 pub enum Error {
     /// Indicates that the hint is invalid.
     #[error("invalid hint")]
-    Hint(#[from] bytes::TryGetError),
+    Hint(#[from] crate::memory::region::ops::decode::Error),
 
     /// Indicates that the name is invalid.
     #[error("invalid name")]

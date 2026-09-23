@@ -2,9 +2,9 @@
 
 mod error;
 
-use crate::data::parse::Parse;
 use crate::memory::cursor::Cursor;
 use crate::memory::extent::Extent;
+use crate::memory::region::ops::decode::Decode;
 
 pub use self::error::Error;
 
@@ -14,21 +14,21 @@ pub trait Read: Cursor {
     /// the given context.
     ///
     /// Implementors of this method are expected to advance the cursor by the
-    /// extent of the parsed region.
+    /// extent of the decoded region.
     fn read_with<'a, T>(
         &mut self,
         context: T::Context<'a>,
     ) -> Result<T, Error<T::Error, Self::Error>>
     where
-        T: Extent + Parse;
+        T: Extent + Decode;
 
     /// Reads a region of type `T` from the current position of the cursor.
     ///
     /// Implementors of this method are expected to advance the cursor by the
-    /// extent of the parsed region.
+    /// extent of the decoded region.
     fn read<'a, T>(&mut self) -> Result<T, Error<T::Error, Self::Error>>
     where
-        T: Extent + Parse<Context<'a> = ()>,
+        T: Extent + Decode<Context<'a> = ()>,
     {
         self.read_with(())
     }

@@ -5,12 +5,11 @@ mod error;
 use std::fmt::{self, Debug, Display};
 use std::ops::Deref;
 
-use bytes::Buf;
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::data::parse::Parse;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::InspectionValue;
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::error::Error;
@@ -37,6 +36,12 @@ impl Extent for NullString {
     }
 }
 
+impl InspectionValue for NullString {
+    fn data_type(&self) -> &dyn Display {
+        &"string"
+    }
+}
+
 impl Encode for NullString {
     fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
         encoder.write(self.0.as_bytes())?;
@@ -46,25 +51,19 @@ impl Encode for NullString {
     }
 }
 
-impl InspectionValue for NullString {
-    fn data_type(&self) -> &dyn Display {
-        &"string"
-    }
-}
-
-impl Parse for NullString {
+impl Decode for NullString {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         let mut bytes = Vec::new();
 
-        while buffer.has_remaining() {
-            let chunk = buffer.chunk();
+        while decoder.has_remaining() {
+            let chunk = decoder.chunk();
 
             if let Some(index) = chunk.iter().position(|&byte| byte == 0) {
                 bytes.extend_from_slice(&chunk[..index]);
-                buffer.advance(index + 1);
+                decoder.skip(index + 1)?;
 
                 let value =
                     String::from_utf8(bytes).map_err(|err| Error::Utf8(err.utf8_error()))?;
@@ -73,7 +72,7 @@ impl Parse for NullString {
             }
 
             bytes.extend_from_slice(chunk);
-            buffer.advance(chunk.len());
+            decoder.skip(chunk.len())?;
         }
 
         Err(Error::MissingNull)
@@ -154,48 +153,48 @@ impl<'de> Deserialize<'de> for NullString {
 mod tests {
     use std::assert_matches;
 
-    use crate::data::parse::Parse;
+    use crate::memory::region::ops::decode::Decode;
 
     use super::{Error, NullString};
 
     #[test]
-    fn parse() {
+    fn decode() {
         let mut buffer = b"Hello\0World".as_slice();
-        let string = NullString::parse(&mut buffer).unwrap();
+        let string = NullString::decode(&mut buffer).unwrap();
 
         assert_eq!(string, "Hello");
         assert_eq!(buffer, b"World");
     }
 
     #[test]
-    fn parse_empty() {
+    fn decode_empty() {
         let mut buffer = b"\0".as_slice();
-        let string = NullString::parse(&mut buffer).unwrap();
+        let string = NullString::decode(&mut buffer).unwrap();
 
         assert!(string.is_empty());
         assert!(buffer.is_empty());
     }
 
     #[test]
-    fn parse_missing_null() {
+    fn decode_missing_null() {
         let mut buffer = b"Hello".as_slice();
 
-        assert_eq!(NullString::parse(&mut buffer), Err(Error::MissingNull));
+        assert_eq!(NullString::decode(&mut buffer), Err(Error::MissingNull));
         assert!(buffer.is_empty());
     }
 
     #[test]
-    fn parse_invalid_utf8() {
+    fn decode_invalid_utf8() {
         let mut buffer = [b'H', 0x80, 0].as_slice();
-        let err = NullString::parse(&mut buffer).unwrap_err();
+        let err = NullString::decode(&mut buffer).unwrap_err();
 
         assert_matches!(err, Error::Utf8(err) if err.valid_up_to() == 1);
         assert!(buffer.is_empty());
     }
 
     #[test]
-    fn parse_serde() {
-        let string = NullString::parse(b"hello\0".as_slice()).unwrap();
+    fn decode_serde() {
+        let string = NullString::decode(&mut b"hello\0".as_slice()).unwrap();
         let json = serde_json::to_string(&string).unwrap();
 
         assert_eq!(json, "\"hello\"");

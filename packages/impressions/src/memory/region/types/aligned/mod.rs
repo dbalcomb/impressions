@@ -3,14 +3,13 @@
 mod cursor;
 mod error;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::AlignedCursor;
@@ -91,19 +90,22 @@ where
     }
 }
 
-impl<T, const ALIGNMENT: u32> Parse for Aligned<T, ALIGNMENT>
+impl<T, const ALIGNMENT: u32> Decode for Aligned<T, ALIGNMENT>
 where
-    T: Extent + Parse,
+    T: Extent + Decode,
 {
     type Context<'a> = T::Context<'a>;
     type Error = Error<T::Error>;
 
-    fn parse_with(mut buffer: impl Buf, context: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(
+        decoder: &mut dyn Decoder,
+        context: Self::Context<'_>,
+    ) -> Result<Self, Self::Error> {
         if ALIGNMENT == 0 {
             return Err(Error::ZeroAlignment);
         }
 
-        let region = T::parse_with(&mut buffer, context).map_err(Error::Region)?;
+        let region = T::decode_with(decoder, context).map_err(Error::Region)?;
         let remainder = region.size().get() % ALIGNMENT as u64;
         let padding_size = if remainder == 0 {
             0
@@ -112,7 +114,7 @@ where
         };
 
         for _ in 0..padding_size {
-            let value = buffer.try_get_u8()?;
+            let value = decoder.read_u8()?;
 
             if value != 0 {
                 return Err(Error::NonNullPadding(value));

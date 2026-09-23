@@ -8,15 +8,15 @@ use std::fmt::{self, Debug, Display};
 use std::ops::{Add, Sub};
 use std::str::FromStr;
 
-use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
+use crate::memory::region::ops::decode::{Decode, Error as DecodeError};
 use crate::memory::region::ops::encode::{self, Encode};
 
 use super::extent::{Extent, FixedExtent, Size};
 use super::inspect::{Inspect, InspectionValue, Inspector};
 use super::region::Null;
+use super::region::ops::decode::Decoder;
 
 pub use self::error::Error;
 pub use self::space::AddressSpace;
@@ -146,12 +146,12 @@ impl Encode for Address {
     }
 }
 
-impl Parse for Address {
+impl Decode for Address {
     type Context<'a> = ();
-    type Error = TryGetError;
+    type Error = DecodeError;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        buffer.try_get_u32_le().map(Self)
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        decoder.read_u32_le().map(Self)
     }
 }
 
@@ -243,7 +243,7 @@ mod tests {
     use std::assert_matches;
     use std::str::FromStr;
 
-    use crate::data::parse::Parse;
+    use crate::memory::region::ops::decode::Decode;
 
     use super::{Address, Error};
 
@@ -259,12 +259,12 @@ mod tests {
     }
 
     #[test]
-    fn test_parse() {
+    fn decode() {
         let mut buffer = [0, 0, 64, 0, 0, 16, 64, 0].as_slice();
 
-        assert_eq!(Address::parse(&mut buffer), Ok(Address::new(0x00400000)));
+        assert_eq!(Address::decode(&mut buffer), Ok(Address::new(0x00400000)));
         assert_eq!(buffer, [0, 16, 64, 0]);
-        assert_eq!(Address::parse(&mut buffer), Ok(Address::new(0x00401000)));
+        assert_eq!(Address::decode(&mut buffer), Ok(Address::new(0x00401000)));
         assert!(buffer.is_empty());
     }
 

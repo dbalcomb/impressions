@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use bytes::Bytes;
 
-use crate::data::parse::Parse;
 use crate::image::Image;
+use crate::memory::region::ops::decode::Decode;
 
 use super::{Analysis, Error};
 
@@ -23,7 +23,7 @@ impl Builder {
     pub fn with_binary_data(self, bytes: impl Into<Bytes>) -> Result<Analysis, Error> {
         Ok(Analysis {
             path: self.path,
-            image: Image::parse(bytes.into())?,
+            image: Image::decode(&mut bytes.into())?,
         })
     }
 

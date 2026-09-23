@@ -7,15 +7,14 @@ mod error;
 
 use std::ops::Deref;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::image::region::headers::header::optional::directories::directory::DataDirectory;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::table::Table;
 
@@ -57,16 +56,19 @@ impl Encode for ImportDirectoryTable {
     }
 }
 
-impl Parse for ImportDirectoryTable {
+impl Decode for ImportDirectoryTable {
     type Context<'a> = &'a DataDirectory;
     type Error = Error;
 
-    fn parse_with(buffer: impl Buf, context: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(
+        decoder: &mut dyn Decoder,
+        context: Self::Context<'_>,
+    ) -> Result<Self, Self::Error> {
         let size = Size::new(context.target_size().into())?;
 
-        Table::parse_with(buffer, Some(size))
+        Table::decode_with(decoder, Some(size))
             .map(Self)
-            .map_err(Error::Parse)
+            .map_err(Error::Decode)
     }
 }
 

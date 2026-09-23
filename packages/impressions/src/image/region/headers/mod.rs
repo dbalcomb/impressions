@@ -8,15 +8,14 @@ mod error;
 use std::fmt::{self, Debug};
 use std::iter::once;
 
-use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::image::Padding;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::contiguous::{Contiguous, Segment};
 use crate::memory::region::types::segmented::{Segmented, Segments};
@@ -110,39 +109,39 @@ impl Encode for Headers {
     }
 }
 
-impl Parse for Headers {
+impl Decode for Headers {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let dos = DosHeader::parse(&mut buffer)?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let dos = DosHeader::decode(decoder)?;
         let offset = dos.pe_headers_offset() as usize - dos.size().get() as usize;
 
-        if offset > buffer.remaining() {
-            return Err(Error::Parse(TryGetError {
+        if offset > decoder.remaining() {
+            return Err(Error::Decode(DecodeError::InsufficientBytes {
                 requested: offset,
-                available: buffer.remaining(),
+                available: decoder.remaining(),
             }));
         }
 
         let stub = if offset > 0 {
             Some(Unidentified::try_from_initialized_bytes(
-                buffer.copy_to_bytes(offset),
+                decoder.read_bytes(offset)?,
             )?)
         } else {
             None
         };
 
-        let signature = buffer.try_get_u32_le()?;
+        let signature = decoder.read_u32_le()?;
 
         if signature != PE_SIGNATURE {
             return Err(Error::InvalidSignature);
         }
 
-        let coff = CoffHeader::parse(&mut buffer)?;
-        let optional = OptionalHeader::parse(&mut buffer)?;
+        let coff = CoffHeader::decode(decoder)?;
+        let optional = OptionalHeader::decode(decoder)?;
         let sections = (0..coff.number_of_sections())
-            .map(|_| SectionHeader::parse(&mut buffer))
+            .map(|_| SectionHeader::decode(decoder))
             .collect::<Result<Vec<_>, _>>()?;
 
         let file_offset = dos.pe_headers_offset() as usize
@@ -155,11 +154,11 @@ impl Parse for Headers {
                 .map(u64::from)
                 .sum::<u64>() as usize;
 
-        let remaining = buffer
+        let remaining = decoder
             .remaining()
             .min(optional.headers_size() as usize - file_offset);
 
-        buffer.advance(remaining);
+        decoder.skip(remaining)?;
 
         let padding = if remaining > 0 {
             Some(Header::Padding(Padding::new(
@@ -221,9 +220,9 @@ impl AsCursor for Headers {
 mod tests {
     use bytes::{Buf, Bytes, BytesMut};
 
-    use crate::data::parse::Parse;
     use crate::memory::address::Address;
     use crate::memory::extent::Extent;
+    use crate::memory::region::ops::decode::Decode;
     use crate::memory::region::ops::encode::{self, Encode};
 
     use super::Headers;
@@ -283,9 +282,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_bytes() {
+    fn decode_bytes() {
         let mut buffer = sample_headers_padded();
-        let headers = Headers::parse(&mut buffer).unwrap();
+        let headers = Headers::decode(&mut buffer).unwrap();
 
         assert_eq!(headers.optional().image_address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
@@ -379,9 +378,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_slice() {
+    fn decode_slice() {
         let mut buffer = SAMPLE_HEADERS_DATA.as_slice();
-        let headers = Headers::parse(&mut buffer).unwrap();
+        let headers = Headers::decode(&mut buffer).unwrap();
 
         assert_eq!(headers.optional().image_address(), Address::new(0x00400000));
         assert_eq!(headers.size(), 4096);
@@ -416,7 +415,7 @@ mod tests {
     #[test]
     fn encoding_reproduces_sample_headers() {
         let source = sample_headers_padded();
-        let headers = Headers::parse(source.clone()).unwrap();
+        let headers = Headers::decode(&mut source.clone()).unwrap();
         let mut encoder = VecEncoder::default();
 
         headers.encode(&mut encoder).unwrap();

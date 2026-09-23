@@ -4,15 +4,14 @@ mod error;
 
 use std::fmt::{self, Display};
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::memory::address::Address;
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, InspectionValue, Inspector};
 use crate::memory::region::Null;
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::error::Error;
@@ -106,12 +105,12 @@ impl InspectionValue for ImportLookup {
     }
 }
 
-impl Parse for ImportLookup {
+impl Decode for ImportLookup {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let value = buffer.try_get_u32_le()?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let value = decoder.read_u32_le()?;
 
         Ok(match value & 0x80000000 == 0 {
             true => Self::Name(Address::new(value)),

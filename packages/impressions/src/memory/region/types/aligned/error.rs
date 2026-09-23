@@ -1,13 +1,13 @@
 /// An aligned region error.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error<T> {
-    /// The inner region could not be parsed.
+    /// The inner region could not be decoded.
     #[error("region error")]
     Region(#[source] T),
 
     /// The trailing padding could not be read.
     #[error("padding error")]
-    Padding(#[from] bytes::TryGetError),
+    Padding(#[from] crate::memory::region::ops::decode::Error),
 
     /// The trailing padding was not null.
     #[error("expected null padding byte but got {0:02x}")]

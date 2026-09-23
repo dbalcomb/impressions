@@ -4,10 +4,10 @@ use crate::memory::extent::Size;
 /// A null-terminated table error.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error<T> {
-    /// Indicates that a table row could not be parsed.
-    #[error("unable to parse table row {address}")]
+    /// Indicates that a table row could not be decoded.
+    #[error("unable to decode table row {address}")]
     Row {
-        /// The address of the row that failed to parse.
+        /// The address of the row that failed to decode.
         address: Address,
 
         /// The error that occurred while parsing the row.

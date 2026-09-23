@@ -6,11 +6,11 @@ mod error;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::data::types::null_string::NullString;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::aligned::Aligned;
 
@@ -58,13 +58,13 @@ impl Encode for ImportName {
     }
 }
 
-impl Parse for ImportName {
+impl Decode for ImportName {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl bytes::Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            name: Aligned::parse(&mut buffer)?,
+            name: Aligned::decode(decoder)?,
         })
     }
 }
@@ -79,22 +79,22 @@ impl AsCursor for ImportName {
 
 #[cfg(test)]
 mod tests {
-    use crate::data::parse::Parse;
     use crate::memory::cursor::{AsCursor, Cursor, Position};
     use crate::memory::extent::Extent;
+    use crate::memory::region::ops::decode::Decode;
 
     use super::ImportName;
 
     #[test]
-    fn parse_includes_padding_after_odd_sized_name() {
-        let import_name = ImportName::parse(&b"ab\0\0"[..]).unwrap();
+    fn decode_includes_padding_after_odd_sized_name() {
+        let import_name = ImportName::decode(&mut &b"ab\0\0"[..]).unwrap();
 
         assert_eq!(import_name.size().get(), 4);
     }
 
     #[test]
     fn cursor_visits_alignment_padding() {
-        let import_name = ImportName::parse(&b"ab\0\0"[..]).unwrap();
+        let import_name = ImportName::decode(&mut &b"ab\0\0"[..]).unwrap();
         let mut cursor = import_name.cursor();
 
         assert_eq!(cursor.next(), Ok(Some(Position::new(3))));

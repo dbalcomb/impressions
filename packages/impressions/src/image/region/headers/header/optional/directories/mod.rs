@@ -4,14 +4,13 @@ pub mod directory;
 
 mod cursor;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 
@@ -147,11 +146,14 @@ impl Encode for DataDirectories {
     }
 }
 
-impl Parse for DataDirectories {
+impl Decode for DataDirectories {
     type Context<'a> = u32;
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, count: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(
+        decoder: &mut dyn Decoder,
+        count: Self::Context<'_>,
+    ) -> Result<Self, Self::Error> {
         if count == 0 || count > Self::MAX_COUNT as u32 {
             return Err(Error::UnsupportedDataDirectoryCount(count));
         }
@@ -159,7 +161,7 @@ impl Parse for DataDirectories {
         Ok(Self {
             count,
             table: array_init::try_array_init(|i| match i < count as usize {
-                true => DataDirectory::parse(&mut buffer),
+                true => DataDirectory::decode(decoder),
                 false => Ok(DataDirectory::default()),
             })?,
         })

@@ -3,7 +3,7 @@
 pub enum Error {
     /// A problem was encountered reading bytes.
     #[error("read error")]
-    Read(#[from] bytes::TryGetError),
+    Read(#[from] crate::memory::region::ops::decode::Error),
 
     /// A problem was encountered getting a UTF-8 string.
     #[error("utf-8 error")]

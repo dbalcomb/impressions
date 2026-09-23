@@ -6,11 +6,11 @@ mod error;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::data::types::null_string::NullString;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::aligned::Aligned;
 
@@ -79,14 +79,14 @@ impl Encode for HintName {
     }
 }
 
-impl Parse for HintName {
+impl Decode for HintName {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl bytes::Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            hint: buffer.try_get_u16_le()?,
-            name: Aligned::parse(&mut buffer)?,
+            hint: decoder.read_u16_le()?,
+            name: Aligned::decode(decoder)?,
         })
     }
 }
@@ -101,14 +101,14 @@ impl AsCursor for HintName {
 
 #[cfg(test)]
 mod tests {
-    use crate::data::parse::Parse;
     use crate::memory::extent::Extent;
+    use crate::memory::region::ops::decode::Decode;
 
     use super::HintName;
 
     #[test]
-    fn parse_includes_padding_after_odd_sized_name() {
-        let hint_name = HintName::parse(&b"\0\0ab\0\0"[..]).unwrap();
+    fn decode_includes_padding_after_odd_sized_name() {
+        let hint_name = HintName::decode(&mut &b"\0\0ab\0\0"[..]).unwrap();
 
         assert_eq!(hint_name.name(), "ab");
         assert_eq!(hint_name.size().get(), 6);

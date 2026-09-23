@@ -3,15 +3,14 @@
 mod cursor;
 mod field;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::StandardFieldsCursor;
@@ -88,12 +87,12 @@ impl Encode for StandardFields {
     }
 }
 
-impl Parse for StandardFields {
+impl Decode for StandardFields {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let magic = buffer.try_get_u16_le()?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let magic = decoder.read_u16_le()?;
 
         if magic != Self::SIGNATURE {
             return Err(Error::UnsupportedArchitecture);
@@ -101,14 +100,14 @@ impl Parse for StandardFields {
 
         Ok(Self {
             magic,
-            major_linker_version: buffer.try_get_u8()?,
-            minor_linker_version: buffer.try_get_u8()?,
-            size_of_code: buffer.try_get_u32_le()?,
-            size_of_initialized_data: buffer.try_get_u32_le()?,
-            size_of_uninitialized_data: buffer.try_get_u32_le()?,
-            address_of_entry_point: Address::parse(&mut buffer)?,
-            base_of_code: buffer.try_get_u32_le()?,
-            base_of_data: buffer.try_get_u32_le()?,
+            major_linker_version: decoder.read_u8()?,
+            minor_linker_version: decoder.read_u8()?,
+            size_of_code: decoder.read_u32_le()?,
+            size_of_initialized_data: decoder.read_u32_le()?,
+            size_of_uninitialized_data: decoder.read_u32_le()?,
+            address_of_entry_point: Address::decode(decoder)?,
+            base_of_code: decoder.read_u32_le()?,
+            base_of_data: decoder.read_u32_le()?,
         })
     }
 }

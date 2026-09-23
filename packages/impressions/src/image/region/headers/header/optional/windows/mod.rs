@@ -3,15 +3,14 @@
 mod cursor;
 mod field;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::WindowsFieldsCursor;
@@ -165,33 +164,33 @@ impl Encode for WindowsFields {
     }
 }
 
-impl Parse for WindowsFields {
+impl Decode for WindowsFields {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         Ok(Self {
-            image_base: Address::parse(&mut buffer)?,
-            section_alignment: buffer.try_get_u32_le()?,
-            file_alignment: buffer.try_get_u32_le()?,
-            major_operating_system_version: buffer.try_get_u16_le()?,
-            minor_operating_system_version: buffer.try_get_u16_le()?,
-            major_image_version: buffer.try_get_u16_le()?,
-            minor_image_version: buffer.try_get_u16_le()?,
-            major_subsystem_version: buffer.try_get_u16_le()?,
-            minor_subsystem_version: buffer.try_get_u16_le()?,
-            win32_version_value: buffer.try_get_u32_le()?,
-            size_of_image: buffer.try_get_u32_le()?,
-            size_of_headers: buffer.try_get_u32_le()?,
-            check_sum: buffer.try_get_u32_le()?,
-            subsystem: buffer.try_get_u16_le()?,
-            dll_characteristics: buffer.try_get_u16_le()?,
-            size_of_stack_reserve: buffer.try_get_u32_le()?,
-            size_of_stack_commit: buffer.try_get_u32_le()?,
-            size_of_heap_reserve: buffer.try_get_u32_le()?,
-            size_of_heap_commit: buffer.try_get_u32_le()?,
-            loader_flags: buffer.try_get_u32_le()?,
-            number_of_rva_and_sizes: buffer.try_get_u32_le()?,
+            image_base: Address::decode(decoder)?,
+            section_alignment: decoder.read_u32_le()?,
+            file_alignment: decoder.read_u32_le()?,
+            major_operating_system_version: decoder.read_u16_le()?,
+            minor_operating_system_version: decoder.read_u16_le()?,
+            major_image_version: decoder.read_u16_le()?,
+            minor_image_version: decoder.read_u16_le()?,
+            major_subsystem_version: decoder.read_u16_le()?,
+            minor_subsystem_version: decoder.read_u16_le()?,
+            win32_version_value: decoder.read_u32_le()?,
+            size_of_image: decoder.read_u32_le()?,
+            size_of_headers: decoder.read_u32_le()?,
+            check_sum: decoder.read_u32_le()?,
+            subsystem: decoder.read_u16_le()?,
+            dll_characteristics: decoder.read_u16_le()?,
+            size_of_stack_reserve: decoder.read_u32_le()?,
+            size_of_stack_commit: decoder.read_u32_le()?,
+            size_of_heap_reserve: decoder.read_u32_le()?,
+            size_of_heap_commit: decoder.read_u32_le()?,
+            loader_flags: decoder.read_u32_le()?,
+            number_of_rva_and_sizes: decoder.read_u32_le()?,
         })
     }
 }

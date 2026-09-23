@@ -3,14 +3,13 @@
 mod cursor;
 mod field;
 
-use bytes::Buf;
 use serde::{Deserialize, Serialize};
 
-use crate::data::parse::Parse;
 use crate::image::region::headers::Error;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 
 pub use self::cursor::CoffHeaderCursor;
@@ -93,12 +92,12 @@ impl Encode for CoffHeader {
     }
 }
 
-impl Parse for CoffHeader {
+impl Decode for CoffHeader {
     type Context<'a> = ();
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, _: Self::Context<'_>) -> Result<Self, Self::Error> {
-        let machine = buffer.try_get_u16_le()?;
+    fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let machine = decoder.read_u16_le()?;
 
         if machine != COFF_MACHINE_X86 {
             return Err(Error::UnsupportedArchitecture);
@@ -106,12 +105,12 @@ impl Parse for CoffHeader {
 
         Ok(Self {
             machine,
-            number_of_sections: buffer.try_get_u16_le()?,
-            time_date_stamp: buffer.try_get_u32_le()?,
-            pointer_to_symbol_table: buffer.try_get_u32_le()?,
-            number_of_symbols: buffer.try_get_u32_le()?,
-            size_of_optional_header: buffer.try_get_u16_le()?,
-            characteristics: buffer.try_get_u16_le()?,
+            number_of_sections: decoder.read_u16_le()?,
+            time_date_stamp: decoder.read_u32_le()?,
+            pointer_to_symbol_table: decoder.read_u32_le()?,
+            number_of_symbols: decoder.read_u32_le()?,
+            size_of_optional_header: decoder.read_u16_le()?,
+            characteristics: decoder.read_u16_le()?,
         })
     }
 }

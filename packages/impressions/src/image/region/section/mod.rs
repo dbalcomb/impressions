@@ -8,16 +8,15 @@ mod error;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 
-use bytes::{Buf, TryGetError};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::parse::Parse;
 use crate::data::types::array_string::ArrayString;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
+use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::insert::Insert;
 use crate::memory::region::types::contiguous::{Contiguous, Segment};
@@ -93,19 +92,22 @@ impl Encode for Section {
     }
 }
 
-impl Parse for Section {
+impl Decode for Section {
     type Context<'a> = &'a SectionHeader;
     type Error = Error;
 
-    fn parse_with(mut buffer: impl Buf, section: Self::Context<'_>) -> Result<Self, Self::Error> {
+    fn decode_with(
+        decoder: &mut dyn Decoder,
+        section: Self::Context<'_>,
+    ) -> Result<Self, Self::Error> {
         if section.section_size() == 0 {
             return Err(Error::Size(SizeError::Zero));
         }
 
-        if buffer.remaining() < section.file_size() {
-            return Err(Error::Parse(TryGetError {
+        if decoder.remaining() < section.file_size() {
+            return Err(Error::Decode(DecodeError::InsufficientBytes {
                 requested: section.file_size(),
-                available: buffer.remaining(),
+                available: decoder.remaining(),
             }));
         }
 
@@ -113,20 +115,20 @@ impl Parse for Section {
         let characteristics = section.characteristics();
         let blocks = match section.section_size().cmp(&(section.file_size() as u64)) {
             Ordering::Less => {
-                let bytes = buffer.copy_to_bytes(section.section_size() as usize);
+                let bytes = decoder.read_bytes(section.section_size() as usize)?;
                 let padding = section.file_size() as u64 - section.section_size();
 
-                buffer.advance(padding as usize);
+                decoder.skip(padding as usize)?;
 
                 Contiguous::unidentified(Unidentified::try_from_initialized_bytes(bytes)?)
             }
             Ordering::Equal => {
-                let bytes = buffer.copy_to_bytes(section.file_size());
+                let bytes = decoder.read_bytes(section.file_size())?;
 
                 Contiguous::unidentified(Unidentified::try_from_initialized_bytes(bytes)?)
             }
             Ordering::Greater => {
-                let bytes = buffer.copy_to_bytes(section.file_size());
+                let bytes = decoder.read_bytes(section.file_size())?;
 
                 Contiguous::unidentified(
                     Unidentified::try_from_initialized_bytes(bytes)?.with_uninitialized_size(

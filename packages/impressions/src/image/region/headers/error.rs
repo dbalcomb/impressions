@@ -17,9 +17,9 @@ pub enum Error {
     #[error("invalid section name")]
     InvalidSectionName(#[source] crate::data::types::array_string::Error),
 
-    /// A problem was encountered parsing the image.
-    #[error("parse error")]
-    Parse(#[from] bytes::TryGetError),
+    /// A problem was encountered decoding the image.
+    #[error("decode error")]
+    Decode(#[from] crate::memory::region::ops::decode::Error),
 
     /// A problem was encountered with an unidentified region.
     #[error("unidentified region error")]
