@@ -7,6 +7,7 @@ use std::ops::Deref;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::InspectionValue;
 use crate::memory::region::ops::decode::{ArrayDecodeError, Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
@@ -52,6 +53,12 @@ impl<const N: usize> ArrayString<N> {
     }
 }
 
+impl<const N: usize> Extent for ArrayString<N> {
+    fn size(&self) -> Size {
+        Size::new_valid(N as u64)
+    }
+}
+
 impl<const N: usize> InspectionValue for ArrayString<N> {
     fn data_type(&self) -> &dyn Display {
         &"string"
@@ -69,6 +76,10 @@ impl<const N: usize> Decode for ArrayString<N> {
     type Error = Error;
 
     fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        if N == 0 {
+            return Err(Error::SizeZero);
+        }
+
         let bytes = <[u8; N]>::decode(decoder).map_err(ArrayDecodeError::into_decode_error)?;
 
         str::from_utf8(trim_trailing_null(&bytes))?;
@@ -150,6 +161,10 @@ impl<'de, const N: usize> Deserialize<'de> for ArrayString<N> {
             where
                 E: Error,
             {
+                if N == 0 {
+                    return Err(E::custom(self::Error::SizeZero));
+                }
+
                 let slice = v.as_bytes();
 
                 if slice.len() > N {

@@ -9,6 +9,8 @@ pub enum Error {
     #[error("invalid name")]
     Name(
         #[from]
-        crate::memory::region::types::aligned::Error<crate::data::types::null_string::Error>,
+        crate::memory::region::types::aligned::Error<
+            crate::memory::region::types::null_string::Error,
+        >,
     ),
 }

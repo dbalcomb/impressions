@@ -15,7 +15,7 @@ pub enum Error {
 
     /// An invalid section name was detected.
     #[error("invalid section name")]
-    InvalidSectionName(#[source] crate::data::types::array_string::Error),
+    InvalidSectionName(#[source] crate::memory::region::types::array_string::Error),
 
     /// A problem was encountered decoding the image.
     #[error("decode error")]

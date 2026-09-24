@@ -6,13 +6,13 @@ mod error;
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::types::null_string::NullString;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::types::aligned::Aligned;
+use crate::memory::region::types::null_string::NullString;
 
 pub use self::cursor::HintNameCursor;
 pub use self::error::Error;

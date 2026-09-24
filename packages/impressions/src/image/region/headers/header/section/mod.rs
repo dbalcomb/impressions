@@ -6,7 +6,6 @@ mod field;
 
 use serde::{Deserialize, Serialize};
 
-use crate::data::types::array_string::ArrayString;
 use crate::image::region::headers::Error;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
@@ -14,6 +13,7 @@ use crate::memory::extent::{Extent, FixedExtent, Size};
 use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{self, Encode};
+use crate::memory::region::types::array_string::ArrayString;
 
 pub use self::characteristics::SectionCharacteristics;
 pub use self::cursor::SectionHeaderCursor;
