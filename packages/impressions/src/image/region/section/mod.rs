@@ -11,7 +11,6 @@ use std::fmt::{self, Debug};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::Completion;
-use crate::data::types::array_string::ArrayString;
 use crate::memory::address::Address;
 use crate::memory::cursor::AsCursor;
 use crate::memory::extent::{Error as SizeError, Extent, Size};
@@ -19,6 +18,7 @@ use crate::memory::inspect::{Inspect, Inspector};
 use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 use crate::memory::region::ops::encode::{self, Encode};
 use crate::memory::region::ops::insert::Insert;
+use crate::memory::region::types::array_string::ArrayString;
 use crate::memory::region::types::contiguous::{Contiguous, Segment};
 use crate::memory::region::types::segmented::{Segmented, Segments};
 use crate::memory::region::types::unidentified::Unidentified;

@@ -1,6 +1,10 @@
 /// The array string error.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
+    /// The array string size is zero.
+    #[error("Array string size must be greater than zero")]
+    SizeZero,
+
     /// A problem was encountered reading bytes.
     #[error("Read error")]
     Read(#[from] crate::memory::region::ops::decode::Error),
