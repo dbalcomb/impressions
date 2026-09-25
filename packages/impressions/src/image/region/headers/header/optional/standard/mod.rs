@@ -58,6 +58,13 @@ impl StandardFields {
     const SIGNATURE: u16 = 0x10b;
 }
 
+impl StandardFields {
+    /// Gets the address of the entry point, relative to the base address.
+    pub const fn address_of_entry_point(&self) -> Address {
+        self.address_of_entry_point
+    }
+}
+
 impl FixedExtent for StandardFields {
     const SIZE: Size = Size::new_valid(28);
 }

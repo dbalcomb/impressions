@@ -25,6 +25,10 @@ pub enum Error {
     #[error("imports analyser error")]
     Imports(#[from] crate::analysis::analyser::imports::Error),
 
+    /// A problem was encountered with the code analyser.
+    #[error("code analyser error")]
+    Code(#[from] crate::analysis::analyser::code::Error),
+
     /// A problem was encountered when encoding the image.
     #[error("Encode image error")]
     EncodeImage(#[from] crate::memory::region::ops::encode::Error),

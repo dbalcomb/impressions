@@ -1,5 +1,6 @@
 //! The image file section block.
 
+pub mod code;
 pub mod data;
 pub mod meta;
 
@@ -20,6 +21,7 @@ use crate::memory::region::ops::encode::{self, Encode};
 pub use self::cursor::BlockCursor;
 pub use self::error::Error;
 
+use self::code::Code;
 use self::data::Data;
 use self::meta::Meta;
 
@@ -27,6 +29,9 @@ use self::meta::Meta;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Block {
+    /// A block of code.
+    Code(Code),
+
     /// A block of data.
     Data(Data),
 
@@ -45,6 +50,14 @@ impl Block {
 }
 
 impl Block {
+    /// Gets the block as code.
+    pub const fn as_code(&self) -> Option<&Code> {
+        match self {
+            Self::Code(code) => Some(code),
+            _ => None,
+        }
+    }
+
     /// Gets the block as data.
     pub const fn as_data(&self) -> Option<&Data> {
         match self {
@@ -71,6 +84,11 @@ impl Block {
 }
 
 impl Block {
+    /// Checks whether the block is code.
+    pub const fn is_code(&self) -> bool {
+        matches!(self, Self::Data(_))
+    }
+
     /// Checks whether the block is data.
     pub const fn is_data(&self) -> bool {
         matches!(self, Self::Data(_))
@@ -90,6 +108,7 @@ impl Block {
 impl Extent for Block {
     fn size(&self) -> Size {
         match self {
+            Self::Code(code) => code.size(),
             Self::Data(data) => data.size(),
             Self::Meta(meta) => meta.size(),
             Self::Padding(padding) => padding.size(),
@@ -100,6 +119,7 @@ impl Extent for Block {
 impl Completion for Block {
     fn identified(&self) -> u64 {
         match self {
+            Self::Code(code) => code.identified(),
             Self::Data(data) => data.identified(),
             Self::Meta(meta) => meta.identified(),
             Self::Padding(padding) => padding.identified(),
@@ -110,6 +130,7 @@ impl Completion for Block {
 impl Inspect for Block {
     fn inspect(&self, inspector: &mut dyn Inspector) {
         match self {
+            Self::Code(code) => code.inspect(inspector),
             Self::Data(data) => data.inspect(inspector),
             Self::Meta(meta) => meta.inspect(inspector),
             Self::Padding(padding) => padding.inspect(inspector),
@@ -120,6 +141,7 @@ impl Inspect for Block {
 impl Encode for Block {
     fn encode(&self, encoder: &mut dyn encode::Encoder) -> Result<(), encode::Error> {
         match self {
+            Self::Code(code) => code.encode(encoder),
             Self::Data(data) => data.encode(encoder),
             Self::Meta(meta) => meta.encode(encoder),
             Self::Padding(padding) => padding.encode(encoder),
@@ -130,6 +152,7 @@ impl Encode for Block {
 impl Debug for Block {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Code(code) => Debug::fmt(code, f),
             Self::Data(data) => Debug::fmt(data, f),
             Self::Meta(meta) => Debug::fmt(meta, f),
             Self::Padding(padding) => Debug::fmt(padding, f),

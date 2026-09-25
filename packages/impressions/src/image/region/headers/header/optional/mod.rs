@@ -60,6 +60,17 @@ impl OptionalHeader {
     pub const fn data_directories(&self) -> Option<&DataDirectories> {
         self.data_directories.as_ref()
     }
+
+    /// Gets the address of the entry point.
+    pub const fn entry_point(&self) -> Address {
+        match self
+            .image_address()
+            .checked_add(self.standard.address_of_entry_point().value())
+        {
+            Some(address) => address,
+            None => panic!("entry point address should fit in address space"),
+        }
+    }
 }
 
 impl Extent for OptionalHeader {
