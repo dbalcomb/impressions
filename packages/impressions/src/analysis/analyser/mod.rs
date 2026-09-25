@@ -1,3 +1,6 @@
+//! Binary analysers.
+
+pub mod code;
 pub mod imports;
 
 use crate::image::Image;

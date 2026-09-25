@@ -18,6 +18,7 @@ use crate::memory::region::ops::encode::Encode;
 use crate::memory::region::ops::encode::encoder::FileEncoder;
 
 use self::analyser::Analyser;
+use self::analyser::code::Code;
 use self::analyser::imports::Imports;
 
 pub use self::builder::Builder;
@@ -85,6 +86,7 @@ impl Analysis {
     /// Analyses the binary image.
     pub fn analyse(&mut self) -> Result<(), Error> {
         Imports.analyse(&mut self.image)?;
+        Code::new(self.image.headers().optional().entry_point()).analyse(&mut self.image)?;
 
         Ok(())
     }
