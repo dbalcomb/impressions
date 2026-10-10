@@ -223,7 +223,7 @@ mod tests {
     use crate::memory::address::Address;
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
-    use crate::memory::region::ops::encode::{self, Encode};
+    use crate::memory::region::ops::encode::Encode;
 
     use super::Headers;
 
@@ -268,17 +268,6 @@ mod tests {
         bytes[0..SAMPLE_HEADERS_DATA.len()].copy_from_slice(&SAMPLE_HEADERS_DATA);
         bytes[SAMPLE_HEADERS_SIZE..].copy_from_slice(&[1, 2, 3, 4]);
         bytes.freeze()
-    }
-
-    #[derive(Default)]
-    struct VecEncoder(Vec<u8>);
-
-    impl encode::Encoder for VecEncoder {
-        fn write(&mut self, bytes: &[u8]) -> Result<(), encode::Error> {
-            self.0.extend_from_slice(bytes);
-
-            Ok(())
-        }
     }
 
     #[test]
@@ -416,10 +405,10 @@ mod tests {
     fn encoding_reproduces_sample_headers() {
         let source = sample_headers_padded();
         let headers = Headers::decode(&mut source.clone()).unwrap();
-        let mut encoder = VecEncoder::default();
+        let mut encoder = Vec::new();
 
         headers.encode(&mut encoder).unwrap();
 
-        assert_eq!(encoder.0, source[..SAMPLE_HEADERS_SIZE]);
+        assert_eq!(encoder, source[..SAMPLE_HEADERS_SIZE]);
     }
 }

@@ -201,29 +201,18 @@ mod tests {
     use std::assert_matches;
 
     use crate::memory::region::ops::decode::{Decode, Error as DecodeError};
-    use crate::memory::region::ops::encode::{self, Encode};
+    use crate::memory::region::ops::encode::Encode;
 
     use super::{ArrayString, Error};
-
-    #[derive(Default)]
-    struct VecEncoder(Vec<u8>);
-
-    impl encode::Encoder for VecEncoder {
-        fn write(&mut self, bytes: &[u8]) -> Result<(), encode::Error> {
-            self.0.extend_from_slice(bytes);
-
-            Ok(())
-        }
-    }
 
     #[test]
     fn encodes_full_fixed_width_array() {
         let string = ArrayString::<8>::decode(&mut b"hello\0\0\0".as_slice()).unwrap();
-        let mut encoder = VecEncoder::default();
+        let mut encoder = Vec::new();
 
         string.encode(&mut encoder).unwrap();
 
-        assert_eq!(encoder.0, b"hello\0\0\0");
+        assert_eq!(encoder, b"hello\0\0\0");
     }
 
     #[test]
