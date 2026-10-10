@@ -41,22 +41,11 @@ impl Encoder for TruncatingEncoder<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Encoder, Error, TruncatingEncoder};
-
-    #[derive(Default)]
-    struct VecEncoder(Vec<u8>);
-
-    impl Encoder for VecEncoder {
-        fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
-            self.0.extend_from_slice(bytes);
-
-            Ok(())
-        }
-    }
+    use super::{Encoder, TruncatingEncoder};
 
     #[test]
     fn retains_the_prefix_and_tracks_discarded_bytes() {
-        let mut inner = VecEncoder::default();
+        let mut inner = Vec::new();
         let mut encoder = TruncatingEncoder::new(&mut inner, 3);
 
         encoder.write(&[1, 2]).unwrap();
@@ -64,6 +53,6 @@ mod tests {
         encoder.write(&[5]).unwrap();
 
         assert_eq!(encoder.position(), 5);
-        assert_eq!(inner.0, [1, 2, 3]);
+        assert_eq!(inner, [1, 2, 3]);
     }
 }

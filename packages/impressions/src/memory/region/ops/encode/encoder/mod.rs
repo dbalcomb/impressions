@@ -33,3 +33,11 @@ pub trait Encoder {
         self.write(&n.to_le_bytes())
     }
 }
+
+impl Encoder for Vec<u8> {
+    fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
+        self.extend_from_slice(bytes);
+
+        Ok(())
+    }
+}
