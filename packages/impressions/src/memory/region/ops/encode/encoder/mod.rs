@@ -3,6 +3,8 @@
 mod fs;
 mod truncating;
 
+use smallvec::{Array, SmallVec};
+
 use super::Error;
 
 pub use self::fs::FileEncoder;
@@ -35,6 +37,17 @@ pub trait Encoder {
 }
 
 impl Encoder for Vec<u8> {
+    fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
+        self.extend_from_slice(bytes);
+
+        Ok(())
+    }
+}
+
+impl<T> Encoder for SmallVec<T>
+where
+    T: Array<Item = u8>,
+{
     fn write(&mut self, bytes: &[u8]) -> Result<(), Error> {
         self.extend_from_slice(bytes);
 

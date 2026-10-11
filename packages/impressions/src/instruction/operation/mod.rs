@@ -4,8 +4,6 @@ mod error;
 
 use std::fmt::{self, Display};
 
-use serde::{Deserialize, Serialize};
-
 use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
@@ -16,7 +14,7 @@ use super::operand::register::Register32;
 pub use self::error::Error;
 
 /// An x86 instruction operation.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Operation {
     /// Push r32.
     ///
