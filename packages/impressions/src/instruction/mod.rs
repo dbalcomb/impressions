@@ -9,7 +9,8 @@ mod mnemonic;
 
 use std::fmt::{self, Display};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use smallvec::SmallVec;
 
 use crate::memory::cursor::{AsCursor, SimpleCursor};
 use crate::memory::extent::{Extent, Size};
@@ -24,7 +25,7 @@ pub use self::error::Error;
 pub use self::mnemonic::Mnemonic;
 
 /// A 32-bit x86 instruction.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
     operation: Operation,
 }
@@ -86,5 +87,92 @@ impl AsCursor for Instruction {
 
     fn cursor(&self) -> Self::Cursor<'_> {
         SimpleCursor::new(self)
+    }
+}
+
+impl Serialize for Instruction {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::Error as _;
+
+        let mut bytes = SmallVec::<[u8; 15]>::new();
+
+        self.encode(&mut bytes).map_err(S::Error::custom)?;
+        bytes.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Instruction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error as _;
+
+        let bytes = SmallVec::<[u8; 15]>::deserialize(deserializer)?;
+
+        if bytes.len() > 15 {
+            return Err(D::Error::custom("instruction exceeds 15 bytes"));
+        }
+
+        let mut decoder = bytes.as_slice();
+        let instruction = Self::decode(&mut decoder).map_err(D::Error::custom)?;
+
+        if !decoder.is_empty() {
+            return Err(D::Error::custom("trailing bytes after instruction"));
+        }
+
+        Ok(instruction)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serde_round_trips_every_push_register_encoding() {
+        for opcode in 0x50..=0x57 {
+            let bytes = [opcode];
+            let instruction = Instruction::decode(&mut &bytes[..]).unwrap();
+            let json = serde_json::to_string(&instruction).unwrap();
+
+            assert_eq!(json, format!("[{opcode}]"));
+
+            let restored = serde_json::from_str::<Instruction>(&json).unwrap();
+
+            assert_eq!(restored, instruction);
+
+            let mut encoded = SmallVec::<[u8; 15]>::new();
+
+            restored.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded.as_slice(), bytes);
+            assert!(!encoded.spilled());
+        }
+    }
+
+    #[test]
+    fn serde_rejects_invalid_or_incomplete_input() {
+        for json in ["[]", "[144]", "[-1]", "[256]"] {
+            assert!(serde_json::from_str::<Instruction>(json).is_err(), "{json}");
+        }
+    }
+
+    #[test]
+    fn serde_rejects_instructions_longer_than_fifteen_bytes() {
+        let json = serde_json::to_string(&[0x53; 16]).unwrap();
+        let err = serde_json::from_str::<Instruction>(&json).unwrap_err();
+
+        assert!(err.to_string().contains("instruction exceeds 15 bytes"));
+    }
+
+    #[test]
+    fn serde_rejects_trailing_bytes() {
+        let err = serde_json::from_str::<Instruction>("[83,80]").unwrap_err();
+
+        assert!(err.to_string().contains("trailing bytes after instruction"));
     }
 }

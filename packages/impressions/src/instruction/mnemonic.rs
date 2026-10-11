@@ -1,9 +1,7 @@
 use std::fmt::{self, Display};
 
-use serde::{Deserialize, Serialize};
-
 /// An x86 instruction mnemonic.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mnemonic {
     /// Push onto the stack.
     Push,

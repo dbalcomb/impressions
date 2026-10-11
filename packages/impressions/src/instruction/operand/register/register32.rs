@@ -1,9 +1,7 @@
 use std::fmt::{self, Display};
 
-use serde::{Deserialize, Serialize};
-
 /// A 32-bit `DWord` register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Register32 {
     /// The extended accumulator register.
