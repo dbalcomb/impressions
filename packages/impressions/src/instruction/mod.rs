@@ -155,8 +155,34 @@ mod tests {
     }
 
     #[test]
+    fn serde_includes_opcode_and_operand_bytes() {
+        for (json, display) in [
+            ("[83]", "push ebx"),
+            ("[139,193]", "mov eax, ecx"),
+            ("[139,68,139,240]", "mov eax, [ebx+ecx*4-16]"),
+        ] {
+            let instruction = serde_json::from_str::<Instruction>(json).unwrap();
+
+            assert_eq!(instruction.to_string(), display);
+            assert_eq!(serde_json::to_string(&instruction).unwrap(), json);
+        }
+    }
+
+    #[test]
     fn serde_rejects_invalid_or_incomplete_input() {
-        for json in ["[]", "[144]", "[-1]", "[256]"] {
+        for json in [
+            "[]",
+            "[-1]",
+            "[139]",
+            "[139,4]",
+            "[139,4,37]",
+            "[139,67]",
+            "[139,131,1,2,3]",
+            "[144]",
+            "[139,67,256]",
+            "[139,67,-1]",
+            "[256]",
+        ] {
             assert!(serde_json::from_str::<Instruction>(json).is_err(), "{json}");
         }
     }
@@ -174,5 +200,30 @@ mod tests {
         let err = serde_json::from_str::<Instruction>("[83,80]").unwrap_err();
 
         assert!(err.to_string().contains("trailing bytes after instruction"));
+    }
+
+    #[test]
+    fn serde_preserves_zero_displacement_widths() {
+        for bytes in [
+            &b"\x8b\x03"[..],
+            &b"\x8b\x43\x00"[..],
+            &b"\x8b\x83\x00\x00\x00\x00"[..],
+            &b"\x8b\x04\xe3"[..],
+        ] {
+            let instruction = Instruction::decode(&mut &bytes[..]).unwrap();
+            let json = serde_json::to_string(&instruction).unwrap();
+
+            assert_eq!(json, serde_json::to_string(bytes).unwrap());
+
+            let restored = serde_json::from_str::<Instruction>(&json).unwrap();
+
+            assert_eq!(restored, instruction);
+
+            let mut encoded = Vec::new();
+
+            restored.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded, bytes);
+        }
     }
 }
