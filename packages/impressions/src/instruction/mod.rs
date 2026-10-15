@@ -158,6 +158,10 @@ mod tests {
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
             ("[83]", "push ebx"),
+            ("[106,255]", "push -1"),
+            ("[106,128]", "push -128"),
+            ("[106,0]", "push 0"),
+            ("[106,127]", "push 127"),
             ("[139,193]", "mov eax, ecx"),
             ("[139,68,139,240]", "mov eax, [ebx+ecx*4-16]"),
         ] {
@@ -174,6 +178,7 @@ mod tests {
             "[]",
             "[-1]",
             "[139]",
+            "[106]",
             "[139,4]",
             "[139,4,37]",
             "[139,67]",
