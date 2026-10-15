@@ -27,7 +27,7 @@ pub enum Operation {
     /// `50+rd => push r32`
     PushR32(Register32),
 
-    /// Push a 1-byte immediate, sign-extended to 32 bits.
+    /// Push an 8-bit immediate, sign-extended to 32 bits.
     ///
     /// `6A ib => push imm8`
     PushImm8(Immediate8),
