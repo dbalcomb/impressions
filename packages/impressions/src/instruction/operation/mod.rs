@@ -12,7 +12,7 @@ use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
 
 use super::Mnemonic;
-use super::operand::immediate::Immediate8;
+use super::operand::immediate::{Immediate8, Immediate32};
 use super::operand::register::Register32;
 
 use self::encoding::R32Rm32;
@@ -26,6 +26,11 @@ pub enum Operation {
     ///
     /// `50+rd => push r32`
     PushR32(Register32),
+
+    /// Push a 32-bit immediate.
+    ///
+    /// `68 id => push imm32`
+    PushImm32(Immediate32),
 
     /// Push an 8-bit immediate, sign-extended to 32 bits.
     ///
@@ -43,6 +48,7 @@ impl Operation {
     pub const fn mnemonic(&self) -> Mnemonic {
         match self {
             Self::PushR32(_) => Mnemonic::Push,
+            Self::PushImm32(_) => Mnemonic::Push,
             Self::PushImm8(_) => Mnemonic::Push,
             Self::MovR32Rm32(_) => Mnemonic::Mov,
         }
@@ -53,6 +59,7 @@ impl Extent for Operation {
     fn size(&self) -> Size {
         match self {
             Self::PushR32(_) => Size::new_valid(1),
+            Self::PushImm32(_) => Size::new_valid(5),
             Self::PushImm8(_) => Size::new_valid(2),
             Self::MovR32Rm32(operands) => Size::new_valid(1 + operands.size().get()),
         }
@@ -63,6 +70,10 @@ impl Encode for Operation {
     fn encode(&self, encoder: &mut dyn Encoder) -> Result<(), EncodeError> {
         match self {
             Self::PushR32(reg) => encoder.write_u8(0x50 | reg.index()),
+            Self::PushImm32(immediate) => {
+                encoder.write_u8(0x68)?;
+                immediate.encode(encoder)
+            }
             Self::PushImm8(immediate) => {
                 encoder.write_u8(0x6a)?;
                 immediate.encode(encoder)
@@ -82,6 +93,7 @@ impl Decode for Operation {
     fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         match decoder.read_u8()? {
             byte @ 0x50..0x58 => Ok(Self::PushR32(Register32::from_index(byte - 0x50))),
+            0x68 => Ok(Self::PushImm32(Immediate32::decode(decoder)?)),
             0x6a => Ok(Self::PushImm8(Immediate8::decode(decoder)?)),
             0x8b => Ok(Self::MovR32Rm32(R32Rm32::decode(decoder)?)),
             opcode => Err(Error::InvalidOpcode(opcode)),
@@ -93,6 +105,7 @@ impl Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PushR32(reg) => write!(f, "{} {reg}", self.mnemonic()),
+            Self::PushImm32(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
             Self::PushImm8(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
             Self::MovR32Rm32(operands) => write!(f, "{} {operands}", self.mnemonic()),
         }
@@ -101,7 +114,7 @@ impl Display for Operation {
 
 #[cfg(test)]
 mod tests {
-    use crate::instruction::operand::immediate::Immediate8;
+    use crate::instruction::operand::immediate::{Immediate8, Immediate32};
     use crate::instruction::operand::register::Register32;
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
@@ -134,6 +147,39 @@ mod tests {
             assert_eq!(operation.size(), 1);
             assert_eq!(encoder, bytes);
             assert!(decoder.is_empty());
+        }
+    }
+
+    #[test]
+    fn push_imm32_supports_signed_values_and_little_endian_encoding() {
+        for (bytes, value, display) in [
+            (&b"\x68\x00\x00\x00\x00"[..], 0, "push 0"),
+            (&b"\x68\x01\x00\x00\x00"[..], 1, "push 1"),
+            (&b"\x68\xff\xff\xff\xff"[..], -1, "push -1"),
+            (&b"\x68\x80\xff\xff\xff"[..], -128, "push -128"),
+            (&b"\x68\x7f\x00\x00\x00"[..], 127, "push 127"),
+            (&b"\x68\x78\x56\x34\x12"[..], 0x12345678, "push 305419896"),
+            (&b"\x68\x00\x00\x00\x80"[..], i32::MIN, "push -2147483648"),
+            (&b"\x68\xff\xff\xff\x7f"[..], i32::MAX, "push 2147483647"),
+        ] {
+            let mut decoder = bytes;
+            let operation = Operation::decode(&mut decoder).unwrap();
+            let mut encoder = Vec::new();
+
+            operation.encode(&mut encoder).unwrap();
+
+            assert_eq!(operation, Operation::PushImm32(Immediate32::new(value)));
+            assert_eq!(operation.mnemonic(), Mnemonic::Push);
+            assert_eq!(operation.to_string(), display);
+            assert_eq!(operation.size(), 5);
+            assert_eq!(encoder, bytes);
+            assert!(decoder.is_empty());
+
+            let Operation::PushImm32(immediate) = operation else {
+                panic!("expected immediate push");
+            };
+
+            assert_eq!(immediate.value(), value);
         }
     }
 
