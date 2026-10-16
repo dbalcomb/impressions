@@ -7,6 +7,7 @@ mod error;
 
 use std::fmt::{self, Display};
 
+use crate::memory::address::Address;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
@@ -41,6 +42,11 @@ pub enum Operation {
     ///
     /// `8B /r => mov r32, r/m32`
     MovR32Rm32(R32Rm32),
+
+    /// Move a dword at a direct 32-bit memory offset to EAX.
+    ///
+    /// `A1 moffs32 => mov eax, moffs32`
+    MovEaxMoffs32(Address),
 }
 
 impl Operation {
@@ -51,6 +57,7 @@ impl Operation {
             Self::PushImm32(_) => Mnemonic::Push,
             Self::PushImm8(_) => Mnemonic::Push,
             Self::MovR32Rm32(_) => Mnemonic::Mov,
+            Self::MovEaxMoffs32(_) => Mnemonic::Mov,
         }
     }
 }
@@ -62,6 +69,7 @@ impl Extent for Operation {
             Self::PushImm32(_) => Size::new_valid(5),
             Self::PushImm8(_) => Size::new_valid(2),
             Self::MovR32Rm32(operands) => Size::new_valid(1 + operands.size().get()),
+            Self::MovEaxMoffs32(_) => Size::new_valid(5),
         }
     }
 }
@@ -82,6 +90,10 @@ impl Encode for Operation {
                 encoder.write_u8(0x8b)?;
                 operands.encode(encoder)
             }
+            Self::MovEaxMoffs32(offset) => {
+                encoder.write_u8(0xa1)?;
+                offset.encode(encoder)
+            }
         }
     }
 }
@@ -96,6 +108,7 @@ impl Decode for Operation {
             0x68 => Ok(Self::PushImm32(Immediate32::decode(decoder)?)),
             0x6a => Ok(Self::PushImm8(Immediate8::decode(decoder)?)),
             0x8b => Ok(Self::MovR32Rm32(R32Rm32::decode(decoder)?)),
+            0xa1 => Ok(Self::MovEaxMoffs32(Address::decode(decoder)?)),
             opcode => Err(Error::InvalidOpcode(opcode)),
         }
     }
@@ -108,6 +121,7 @@ impl Display for Operation {
             Self::PushImm32(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
             Self::PushImm8(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
             Self::MovR32Rm32(operands) => write!(f, "{} {operands}", self.mnemonic()),
+            Self::MovEaxMoffs32(offset) => write!(f, "{} eax, [{offset}]", self.mnemonic()),
         }
     }
 }
@@ -116,6 +130,7 @@ impl Display for Operation {
 mod tests {
     use crate::instruction::operand::immediate::{Immediate8, Immediate32};
     use crate::instruction::operand::register::Register32;
+    use crate::memory::address::Address;
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
     use crate::memory::region::ops::encode::Encode;
@@ -252,6 +267,36 @@ mod tests {
             assert_eq!(operation.to_string(), display);
             assert_eq!(operation.size(), bytes.len() as u64);
             assert_eq!(encoder, bytes);
+            assert!(decoder.is_empty());
+        }
+    }
+
+    #[test]
+    fn mov_eax_moffs32_supports_direct_offsets() {
+        for (bytes, offset, display) in [
+            (&b"\xa1\x00\x00\x00\x00"[..], 0, "mov eax, [0x00000000]"),
+            (
+                &b"\xa1\x78\x56\x34\x12"[..],
+                0x12345678,
+                "mov eax, [0x12345678]",
+            ),
+            (
+                &b"\xa1\xff\xff\xff\xff"[..],
+                u32::MAX,
+                "mov eax, [0xffffffff]",
+            ),
+        ] {
+            let mut decoder = bytes;
+            let operation = Operation::decode(&mut decoder).unwrap();
+            let mut encoded = Vec::new();
+
+            operation.encode(&mut encoded).unwrap();
+
+            assert_eq!(operation, Operation::MovEaxMoffs32(Address::new(offset)));
+            assert_eq!(operation.mnemonic(), Mnemonic::Mov);
+            assert_eq!(operation.to_string(), display);
+            assert_eq!(operation.size(), 5);
+            assert_eq!(encoded, bytes);
             assert!(decoder.is_empty());
         }
     }
