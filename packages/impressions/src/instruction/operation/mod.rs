@@ -93,6 +93,11 @@ pub enum Operation {
     ///
     /// `A1 moffs32 => mov eax, moffs32`
     MovEaxMoffs32(Address),
+
+    /// Call a near procedure indirectly through r/m32.
+    ///
+    /// `FF /2 => call r/m32`
+    CallRm32(Rm32),
 }
 
 impl Operation {
@@ -113,6 +118,7 @@ impl Operation {
             Self::MovRm32R32(_) => Mnemonic::Mov,
             Self::MovR32Rm32(_) => Mnemonic::Mov,
             Self::MovEaxMoffs32(_) => Mnemonic::Mov,
+            Self::CallRm32(_) => Mnemonic::Call,
         }
     }
 }
@@ -134,6 +140,7 @@ impl Extent for Operation {
             Self::MovRm32R32(operands) => Size::new_valid(1 + operands.size().get()),
             Self::MovR32Rm32(operands) => Size::new_valid(1 + operands.size().get()),
             Self::MovEaxMoffs32(_) => Size::new_valid(5),
+            Self::CallRm32(operand) => Size::new_valid(1 + operand.size().get()),
         }
     }
 }
@@ -174,6 +181,10 @@ impl Encode for Operation {
                 encoder.write_u8(0xa1)?;
                 offset.encode(encoder)
             }
+            Self::CallRm32(operand) => {
+                encoder.write_u8(0xff)?;
+                operand.encode(encoder)
+            }
         }
     }
 }
@@ -206,6 +217,17 @@ impl Decode for Operation {
             0x89 => Ok(Self::MovRm32R32(Rm32R32::decode(decoder)?)),
             0x8b => Ok(Self::MovR32Rm32(R32Rm32::decode(decoder)?)),
             0xa1 => Ok(Self::MovEaxMoffs32(Address::decode(decoder)?)),
+            0xff => {
+                let operand = Rm32::decode(decoder)?;
+
+                match operand.opcode_extension() {
+                    2 => Ok(Self::CallRm32(operand)),
+                    extension => Err(Error::InvalidOpcodeExtension {
+                        opcode: 0xff,
+                        extension,
+                    }),
+                }
+            }
             opcode => Err(Error::InvalidOpcode(opcode)),
         }
     }
@@ -236,6 +258,15 @@ impl Display for Operation {
             Self::MovRm32R32(operands) => write!(f, "{} {operands}", self.mnemonic()),
             Self::MovR32Rm32(operands) => write!(f, "{} {operands}", self.mnemonic()),
             Self::MovEaxMoffs32(offset) => write!(f, "{} eax, [{offset}]", self.mnemonic()),
+            Self::CallRm32(operand) => {
+                write!(f, "{} ", self.mnemonic())?;
+
+                if operand.memory().is_some() {
+                    f.write_str("dword ptr ")?;
+                }
+
+                Display::fmt(operand, f)
+            }
         }
     }
 }
@@ -251,6 +282,99 @@ mod tests {
     use crate::memory::region::ops::encode::Encode;
 
     use super::{Mnemonic, Operation};
+
+    #[test]
+    fn call_rm32_supports_all_register_and_memory_forms() {
+        for (bytes, display) in [
+            (
+                &b"\xff\x15\x38\x81\x5d\x00"[..],
+                "call dword ptr [0x005d8138]",
+            ),
+            (&b"\xff\x13"[..], "call dword ptr [ebx]"),
+            (&b"\xff\x53\xf0"[..], "call dword ptr [ebx-16]"),
+            (&b"\xff\x93\xf0\xff\xff\xff"[..], "call dword ptr [ebx-16]"),
+            (&b"\xff\x14\x24"[..], "call dword ptr [esp]"),
+            (&b"\xff\x55\x00"[..], "call dword ptr [ebp]"),
+            (&b"\xff\x14\x8b"[..], "call dword ptr [ebx+ecx*4]"),
+            (&b"\xff\x54\x8b\xf0"[..], "call dword ptr [ebx+ecx*4-16]"),
+            (
+                &b"\xff\x94\x8b\xf0\xff\xff\xff"[..],
+                "call dword ptr [ebx+ecx*4-16]",
+            ),
+            (
+                &b"\xff\x14\x8d\x10\x00\x00\x00"[..],
+                "call dword ptr [ecx*4+16]",
+            ),
+            (
+                &b"\xff\x14\xe5\x38\x81\x5d\x00"[..],
+                "call dword ptr [0x005d8138]",
+            ),
+        ] {
+            let operation = Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+
+            assert_eq!(operation.mnemonic(), Mnemonic::Call);
+            assert_eq!(operation.to_string(), display);
+            assert_eq!(operation.size(), bytes.len() as u64);
+
+            let Operation::CallRm32(operand) = &operation else {
+                panic!("expected CALL");
+            };
+
+            assert_eq!(operand.opcode_extension(), 2);
+            assert!(operand.memory().is_some());
+
+            let mut encoded = Vec::new();
+
+            operation.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded, bytes);
+        }
+
+        for index in 0..8 {
+            let bytes = [0xff, 0xd0 | index];
+            let operation = Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+            let register = Register32::from_index(index);
+
+            assert_eq!(operation.to_string(), format!("call {register}"));
+            assert_eq!(operation.size(), 2);
+
+            let Operation::CallRm32(operand) = &operation else {
+                panic!("expected CALL");
+            };
+
+            assert_eq!(operand.rm_register(), Some(register));
+
+            let mut encoded = Vec::new();
+
+            operation.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded, bytes);
+        }
+    }
+
+    #[test]
+    fn call_rm32_rejects_truncation_and_unsupported_extensions() {
+        for bytes in [&b"\xff\x15\x38\x81\x5d\x00"[..], &b"\xff\x54\x8b\xf0"[..]] {
+            for length in 1..bytes.len() {
+                assert!(matches!(
+                    Operation::decode_with(&mut &bytes[..length], &Prefixes::new()),
+                    Err(super::Error::Decode(_)),
+                ));
+            }
+        }
+
+        for extension in [0, 1, 3, 4, 5, 6, 7] {
+            let bytes = [0xff, 0xc0 | extension << 3];
+
+            assert_eq!(
+                Operation::decode_with(&mut &bytes[..], &Prefixes::new()),
+                Err(super::Error::InvalidOpcodeExtension {
+                    opcode: 0xff,
+                    extension
+                }),
+            );
+        }
+    }
 
     #[test]
     fn sub_rm32_imm8_supports_register_and_memory_forms() {
