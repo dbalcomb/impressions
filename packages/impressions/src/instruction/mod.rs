@@ -2,6 +2,7 @@
 
 pub mod operand;
 pub mod operation;
+pub mod prefix;
 
 mod error;
 mod inspect;
@@ -19,7 +20,8 @@ use crate::memory::region::ops::decode::{Decode, Decoder};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
 
 use self::inspect::Inspection;
-use self::operation::Operation;
+use self::operation::{Error as OpError, Operation};
+use self::prefix::{Prefix, Prefixes};
 
 pub use self::error::Error;
 pub use self::mnemonic::Mnemonic;
@@ -27,10 +29,16 @@ pub use self::mnemonic::Mnemonic;
 /// A 32-bit x86 instruction.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Instruction {
+    prefixes: Prefixes,
     operation: Operation,
 }
 
 impl Instruction {
+    /// Gets the prefixes.
+    pub const fn prefixes(&self) -> &Prefixes {
+        &self.prefixes
+    }
+
     /// Gets the operation.
     pub const fn operation(&self) -> &Operation {
         &self.operation
@@ -44,7 +52,7 @@ impl Instruction {
 
 impl Extent for Instruction {
     fn size(&self) -> Size {
-        self.operation.size()
+        Size::new_valid(self.prefixes.len() as u64 + self.operation.size().get())
     }
 }
 
@@ -61,6 +69,7 @@ impl Inspect for Instruction {
 
 impl Encode for Instruction {
     fn encode(&self, encoder: &mut dyn Encoder) -> Result<(), EncodeError> {
+        self.prefixes.encode(encoder)?;
         self.operation.encode(encoder)
     }
 }
@@ -70,14 +79,44 @@ impl Decode for Instruction {
     type Error = Error;
 
     fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
+        let mut prefixes = Prefixes::new();
+        let operation = loop {
+            match Operation::decode_with(decoder, &prefixes) {
+                Ok(operation) => break operation,
+                Err(OpError::InvalidOpcode(byte)) => {
+                    prefixes
+                        .push(Prefix::try_from(byte).map_err(|_| OpError::InvalidOpcode(byte))?)?;
+                }
+                Err(err) => return Err(err.into()),
+            }
+        };
+
         Ok(Self {
-            operation: Operation::decode(decoder)?,
+            operation,
+            prefixes,
         })
     }
 }
 
 impl Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.prefixes.has_fs_override() {
+            match &self.operation {
+                Operation::MovEaxMoffs32(offset) => {
+                    return write!(f, "{} eax, fs:[{offset}]", self.mnemonic());
+                }
+                Operation::MovR32Rm32(operands) if let Some(memory) = operands.memory() => {
+                    return write!(
+                        f,
+                        "{} {}, fs:{memory}",
+                        self.mnemonic(),
+                        operands.register()
+                    );
+                }
+                _ => {}
+            }
+        }
+
         Display::fmt(&self.operation, f)
     }
 }
@@ -133,6 +172,113 @@ mod tests {
     use super::*;
 
     #[test]
+    fn fs_override_supports_explicit_memory_operands() {
+        for (bytes, operation, display) in [
+            (
+                &b"\x64\xa1\x00\x00\x00\x00"[..],
+                &b"\xa1\x00\x00\x00\x00"[..],
+                "mov eax, fs:[0x00000000]",
+            ),
+            (&b"\x64\x8b\x03"[..], &b"\x8b\x03"[..], "mov eax, fs:[ebx]"),
+            (
+                &b"\x64\x8b\x44\x8b\xf0"[..],
+                &b"\x8b\x44\x8b\xf0"[..],
+                "mov eax, fs:[ebx+ecx*4-16]",
+            ),
+        ] {
+            let instruction = Instruction::decode(&mut &bytes[..]).unwrap();
+            let unprefixed = Instruction::decode(&mut &operation[..]).unwrap();
+
+            assert_eq!(instruction.operation(), unprefixed.operation());
+            assert!(instruction.prefixes().has_fs_override());
+            assert_eq!(instruction.prefixes().len(), 1);
+            assert_eq!(instruction.to_string(), display);
+            assert_eq!(instruction.size(), bytes.len() as u64);
+
+            let mut encoded = Vec::new();
+
+            instruction.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded, bytes);
+
+            let json = serde_json::to_string(&instruction).unwrap();
+
+            assert_eq!(json, serde_json::to_string(bytes).unwrap());
+            assert_eq!(
+                serde_json::from_str::<Instruction>(&json).unwrap(),
+                instruction
+            );
+        }
+    }
+
+    #[test]
+    fn fs_override_does_not_change_register_or_stack_operands() {
+        for (bytes, display) in [
+            (&b"\x64\x8b\xc1"[..], "mov eax, ecx"),
+            (&b"\x64\x53"[..], "push ebx"),
+            (&b"\x64\x6a\xff"[..], "push -1"),
+            (&b"\x64\x68\xff\xff\xff\xff"[..], "push -1"),
+        ] {
+            let instruction = Instruction::decode(&mut &bytes[..]).unwrap();
+
+            assert_eq!(instruction.to_string(), display);
+
+            let mut encoded = Vec::new();
+
+            instruction.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded, bytes);
+        }
+    }
+
+    #[test]
+    fn fs_override_preserves_repetitions_within_prefix_capacity() {
+        for count in 1..=4 {
+            let mut bytes = vec![0x64; count];
+
+            bytes.extend_from_slice(b"\xa1\x00\x00\x00\x00");
+
+            let instruction = Instruction::decode(&mut bytes.as_slice()).unwrap();
+
+            assert_eq!(instruction.prefixes().len(), count);
+            assert_eq!(instruction.size(), bytes.len() as u64);
+
+            let mut encoded = Vec::new();
+
+            instruction.encode(&mut encoded).unwrap();
+
+            assert_eq!(encoded, bytes);
+        }
+
+        assert_eq!(
+            Instruction::decode(&mut &b"\x64\x64\x64\x64\x64\xa1\x00\x00\x00\x00"[..]),
+            Err(Error::Prefix(prefix::Error::TooManyPrefixes)),
+        );
+    }
+
+    #[test]
+    fn fs_override_requires_complete_operation() {
+        let bytes = b"\x64\xa1\x00\x00\x00\x00";
+
+        for length in 1..bytes.len() {
+            assert!(matches!(
+                Instruction::decode(&mut &bytes[..length]),
+                Err(Error::Operation(operation::Error::Decode(_))),
+            ));
+        }
+    }
+
+    #[test]
+    fn unsupported_opcodes_remain_operation_errors() {
+        for bytes in [&b"\x90"[..], &b"\x64\x90"[..]] {
+            assert_eq!(
+                Instruction::decode(&mut &bytes[..]),
+                Err(Error::Operation(operation::Error::InvalidOpcode(0x90))),
+            );
+        }
+    }
+
+    #[test]
     fn serde_round_trips_every_push_register_encoding() {
         for opcode in 0x50..=0x57 {
             let bytes = [opcode];
@@ -172,6 +318,7 @@ mod tests {
             ("[161,0,0,0,0]", "mov eax, [0x00000000]"),
             ("[161,120,86,52,18]", "mov eax, [0x12345678]"),
             ("[161,255,255,255,255]", "mov eax, [0xffffffff]"),
+            ("[100,161,0,0,0,0]", "mov eax, fs:[0x00000000]"),
         ] {
             let instruction = serde_json::from_str::<Instruction>(json).unwrap();
 
@@ -191,7 +338,6 @@ mod tests {
             "[161,0]",
             "[161,0,0]",
             "[161,0,0,0]",
-            "[100,161,0,0,0,0]",
             "[104]",
             "[104,1]",
             "[104,1,2]",

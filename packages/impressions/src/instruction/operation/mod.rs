@@ -15,6 +15,7 @@ use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
 use super::Mnemonic;
 use super::operand::immediate::{Immediate8, Immediate32};
 use super::operand::register::Register32;
+use super::prefix::Prefixes;
 
 use self::encoding::R32Rm32;
 
@@ -99,7 +100,7 @@ impl Encode for Operation {
 }
 
 impl Decode for Operation {
-    type Context<'a> = ();
+    type Context<'a> = &'a Prefixes;
     type Error = Error;
 
     fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
@@ -130,6 +131,7 @@ impl Display for Operation {
 mod tests {
     use crate::instruction::operand::immediate::{Immediate8, Immediate32};
     use crate::instruction::operand::register::Register32;
+    use crate::instruction::prefix::Prefixes;
     use crate::memory::address::Address;
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
@@ -151,7 +153,7 @@ mod tests {
         ] {
             let bytes = [opcode];
             let mut decoder = bytes.as_slice();
-            let operation = Operation::decode(&mut decoder).unwrap();
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
             let mut encoder = Vec::new();
 
             operation.encode(&mut encoder).unwrap();
@@ -178,7 +180,7 @@ mod tests {
             (&b"\x68\xff\xff\xff\x7f"[..], i32::MAX, "push 2147483647"),
         ] {
             let mut decoder = bytes;
-            let operation = Operation::decode(&mut decoder).unwrap();
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
             let mut encoder = Vec::new();
 
             operation.encode(&mut encoder).unwrap();
@@ -203,7 +205,7 @@ mod tests {
         for value in i8::MIN..=i8::MAX {
             let bytes = [0x6a, value as u8];
             let mut decoder = bytes.as_slice();
-            let operation = Operation::decode(&mut decoder).unwrap();
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
             let mut encoder = Vec::new();
 
             operation.encode(&mut encoder).unwrap();
@@ -258,7 +260,7 @@ mod tests {
             (&b"\x8b\x85\x00\x00\x00\x00"[..], "mov eax, [ebp]"),
         ] {
             let mut decoder = bytes;
-            let operation = Operation::decode(&mut decoder).unwrap();
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
             let mut encoder = Vec::new();
 
             operation.encode(&mut encoder).unwrap();
@@ -287,7 +289,7 @@ mod tests {
             ),
         ] {
             let mut decoder = bytes;
-            let operation = Operation::decode(&mut decoder).unwrap();
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
             let mut encoded = Vec::new();
 
             operation.encode(&mut encoded).unwrap();
