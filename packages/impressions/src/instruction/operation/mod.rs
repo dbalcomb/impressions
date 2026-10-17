@@ -17,7 +17,7 @@ use super::operand::immediate::{Immediate8, Immediate32};
 use super::operand::register::Register32;
 use super::prefix::Prefixes;
 
-use self::encoding::{R32Rm32, Rm32R32};
+use self::encoding::{R32Rm32, Rm32, Rm32R32};
 
 pub use self::error::Error;
 
@@ -38,6 +38,46 @@ pub enum Operation {
     ///
     /// `6A ib => push imm8`
     PushImm8(Immediate8),
+
+    /// Add a sign-extended byte immediate to r/m32.
+    ///
+    /// `83 /0 ib => add r/m32, imm8`
+    AddRm32Imm8(Rm32, Immediate8),
+
+    /// Bitwise OR r/m32 with a sign-extended byte immediate.
+    ///
+    /// `83 /1 ib => or r/m32, imm8`
+    OrRm32Imm8(Rm32, Immediate8),
+
+    /// Add a sign-extended byte immediate and carry to r/m32.
+    ///
+    /// `83 /2 ib => adc r/m32, imm8`
+    AdcRm32Imm8(Rm32, Immediate8),
+
+    /// Subtract a sign-extended byte immediate and borrow from r/m32.
+    ///
+    /// `83 /3 ib => sbb r/m32, imm8`
+    SbbRm32Imm8(Rm32, Immediate8),
+
+    /// Bitwise AND r/m32 with a sign-extended byte immediate.
+    ///
+    /// `83 /4 ib => and r/m32, imm8`
+    AndRm32Imm8(Rm32, Immediate8),
+
+    /// Subtract a sign-extended byte immediate from r/m32.
+    ///
+    /// `83 /5 ib => sub r/m32, imm8`
+    SubRm32Imm8(Rm32, Immediate8),
+
+    /// Bitwise XOR r/m32 with a sign-extended byte immediate.
+    ///
+    /// `83 /6 ib => xor r/m32, imm8`
+    XorRm32Imm8(Rm32, Immediate8),
+
+    /// Compare r/m32 with a sign-extended byte immediate.
+    ///
+    /// `83 /7 ib => cmp r/m32, imm8`
+    CmpRm32Imm8(Rm32, Immediate8),
 
     /// Move r32 to r/m32.
     ///
@@ -62,6 +102,14 @@ impl Operation {
             Self::PushR32(_) => Mnemonic::Push,
             Self::PushImm32(_) => Mnemonic::Push,
             Self::PushImm8(_) => Mnemonic::Push,
+            Self::AddRm32Imm8(..) => Mnemonic::Add,
+            Self::OrRm32Imm8(..) => Mnemonic::Or,
+            Self::AdcRm32Imm8(..) => Mnemonic::Adc,
+            Self::SbbRm32Imm8(..) => Mnemonic::Sbb,
+            Self::AndRm32Imm8(..) => Mnemonic::And,
+            Self::SubRm32Imm8(..) => Mnemonic::Sub,
+            Self::XorRm32Imm8(..) => Mnemonic::Xor,
+            Self::CmpRm32Imm8(..) => Mnemonic::Cmp,
             Self::MovRm32R32(_) => Mnemonic::Mov,
             Self::MovR32Rm32(_) => Mnemonic::Mov,
             Self::MovEaxMoffs32(_) => Mnemonic::Mov,
@@ -75,6 +123,14 @@ impl Extent for Operation {
             Self::PushR32(_) => Size::new_valid(1),
             Self::PushImm32(_) => Size::new_valid(5),
             Self::PushImm8(_) => Size::new_valid(2),
+            Self::AddRm32Imm8(operand, _)
+            | Self::OrRm32Imm8(operand, _)
+            | Self::AdcRm32Imm8(operand, _)
+            | Self::SbbRm32Imm8(operand, _)
+            | Self::AndRm32Imm8(operand, _)
+            | Self::SubRm32Imm8(operand, _)
+            | Self::XorRm32Imm8(operand, _)
+            | Self::CmpRm32Imm8(operand, _) => Size::new_valid(2 + operand.size().get()),
             Self::MovRm32R32(operands) => Size::new_valid(1 + operands.size().get()),
             Self::MovR32Rm32(operands) => Size::new_valid(1 + operands.size().get()),
             Self::MovEaxMoffs32(_) => Size::new_valid(5),
@@ -92,6 +148,18 @@ impl Encode for Operation {
             }
             Self::PushImm8(immediate) => {
                 encoder.write_u8(0x6a)?;
+                immediate.encode(encoder)
+            }
+            Self::AddRm32Imm8(operand, immediate)
+            | Self::OrRm32Imm8(operand, immediate)
+            | Self::AdcRm32Imm8(operand, immediate)
+            | Self::SbbRm32Imm8(operand, immediate)
+            | Self::AndRm32Imm8(operand, immediate)
+            | Self::SubRm32Imm8(operand, immediate)
+            | Self::XorRm32Imm8(operand, immediate)
+            | Self::CmpRm32Imm8(operand, immediate) => {
+                encoder.write_u8(0x83)?;
+                operand.encode(encoder)?;
                 immediate.encode(encoder)
             }
             Self::MovRm32R32(operands) => {
@@ -119,6 +187,22 @@ impl Decode for Operation {
             byte @ 0x50..0x58 => Ok(Self::PushR32(Register32::from_index(byte - 0x50))),
             0x68 => Ok(Self::PushImm32(Immediate32::decode(decoder)?)),
             0x6a => Ok(Self::PushImm8(Immediate8::decode(decoder)?)),
+            0x83 => {
+                let operand = Rm32::decode(decoder)?;
+                let immediate = Immediate8::decode(decoder)?;
+
+                match operand.opcode_extension() {
+                    0 => Ok(Self::AddRm32Imm8(operand, immediate)),
+                    1 => Ok(Self::OrRm32Imm8(operand, immediate)),
+                    2 => Ok(Self::AdcRm32Imm8(operand, immediate)),
+                    3 => Ok(Self::SbbRm32Imm8(operand, immediate)),
+                    4 => Ok(Self::AndRm32Imm8(operand, immediate)),
+                    5 => Ok(Self::SubRm32Imm8(operand, immediate)),
+                    6 => Ok(Self::XorRm32Imm8(operand, immediate)),
+                    7 => Ok(Self::CmpRm32Imm8(operand, immediate)),
+                    _ => unreachable!("ModR/M opcode extension is three bits"),
+                }
+            }
             0x89 => Ok(Self::MovRm32R32(Rm32R32::decode(decoder)?)),
             0x8b => Ok(Self::MovR32Rm32(R32Rm32::decode(decoder)?)),
             0xa1 => Ok(Self::MovEaxMoffs32(Address::decode(decoder)?)),
@@ -133,6 +217,22 @@ impl Display for Operation {
             Self::PushR32(reg) => write!(f, "{} {reg}", self.mnemonic()),
             Self::PushImm32(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
             Self::PushImm8(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
+            Self::AddRm32Imm8(operand, immediate)
+            | Self::OrRm32Imm8(operand, immediate)
+            | Self::AdcRm32Imm8(operand, immediate)
+            | Self::SbbRm32Imm8(operand, immediate)
+            | Self::AndRm32Imm8(operand, immediate)
+            | Self::SubRm32Imm8(operand, immediate)
+            | Self::XorRm32Imm8(operand, immediate)
+            | Self::CmpRm32Imm8(operand, immediate) => {
+                write!(f, "{} ", self.mnemonic())?;
+
+                if operand.memory().is_some() {
+                    f.write_str("dword ptr ")?;
+                }
+
+                write!(f, "{operand}, {immediate}")
+            }
             Self::MovRm32R32(operands) => write!(f, "{} {operands}", self.mnemonic()),
             Self::MovR32Rm32(operands) => write!(f, "{} {operands}", self.mnemonic()),
             Self::MovEaxMoffs32(offset) => write!(f, "{} eax, [{offset}]", self.mnemonic()),
@@ -151,6 +251,187 @@ mod tests {
     use crate::memory::region::ops::encode::Encode;
 
     use super::{Mnemonic, Operation};
+
+    #[test]
+    fn sub_rm32_imm8_supports_register_and_memory_forms() {
+        for (bytes, display) in [
+            (&b"\x83\xec\x58"[..], "sub esp, 88"),
+            (&b"\x83\xe8\xff"[..], "sub eax, -1"),
+            (&b"\x83\x2b\x01"[..], "sub dword ptr [ebx], 1"),
+            (&b"\x83\x6b\xf0\x80"[..], "sub dword ptr [ebx-16], -128"),
+            (
+                &b"\x83\xab\xf0\xff\xff\xff\x7f"[..],
+                "sub dword ptr [ebx-16], 127",
+            ),
+            (
+                &b"\x83\x2d\x78\x56\x34\x12\x00"[..],
+                "sub dword ptr [0x12345678], 0",
+            ),
+            (&b"\x83\x2c\x24\x01"[..], "sub dword ptr [esp], 1"),
+            (&b"\x83\x6d\x00\x01"[..], "sub dword ptr [ebp], 1"),
+            (&b"\x83\x2c\x8b\x01"[..], "sub dword ptr [ebx+ecx*4], 1"),
+            (
+                &b"\x83\x6c\x8b\xf0\x01"[..],
+                "sub dword ptr [ebx+ecx*4-16], 1",
+            ),
+            (
+                &b"\x83\xac\x8b\xf0\xff\xff\xff\x01"[..],
+                "sub dword ptr [ebx+ecx*4-16], 1",
+            ),
+            (
+                &b"\x83\x2c\x8d\x10\x00\x00\x00\x01"[..],
+                "sub dword ptr [ecx*4+16], 1",
+            ),
+            (
+                &b"\x83\x2c\xe5\x78\x56\x34\x12\x01"[..],
+                "sub dword ptr [0x12345678], 1",
+            ),
+        ] {
+            let mut decoder = bytes;
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
+            let mut encoded = Vec::new();
+
+            operation.encode(&mut encoded).unwrap();
+
+            assert_eq!(operation.mnemonic(), Mnemonic::Sub);
+            assert_eq!(operation.to_string(), display);
+            assert_eq!(operation.size(), bytes.len() as u64);
+            assert_eq!(encoded, bytes);
+            assert!(decoder.is_empty());
+
+            let Operation::SubRm32Imm8(operands, immediate) = operation else {
+                panic!("expected SUB");
+            };
+
+            assert_eq!(operands.opcode_extension(), 5);
+            assert_eq!(immediate.value(), *bytes.last().unwrap() as i8);
+        }
+
+        for register in 0..8 {
+            for immediate in i8::MIN..=i8::MAX {
+                let bytes = [0x83, 0xe8 | register, immediate as u8];
+                let operation = Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+                let Operation::SubRm32Imm8(operands, decoded_immediate) = operation else {
+                    panic!("expected SUB");
+                };
+
+                assert_eq!(
+                    operands.rm_register(),
+                    Some(Register32::from_index(register))
+                );
+                assert_eq!(decoded_immediate, Immediate8::new(immediate));
+
+                let mut encoded = Vec::new();
+
+                Operation::SubRm32Imm8(operands, decoded_immediate)
+                    .encode(&mut encoded)
+                    .unwrap();
+
+                assert_eq!(encoded, bytes);
+            }
+        }
+    }
+
+    #[test]
+    fn group83_rejects_truncation() {
+        for bytes in [
+            &b"\x83"[..],
+            &b"\x83\xec"[..],
+            &b"\x83\x2c"[..],
+            &b"\x83\x6c\x24"[..],
+            &b"\x83\x6c\x24\xf0"[..],
+            &b"\x83\x2d\x01\x02\x03"[..],
+            &b"\x83\x2d\x01\x02\x03\x04"[..],
+        ] {
+            assert!(matches!(
+                Operation::decode_with(&mut &bytes[..], &Prefixes::new()),
+                Err(super::Error::Decode(_)),
+            ));
+        }
+    }
+
+    #[test]
+    fn group83_supports_all_operations_and_addressing_forms() {
+        for (extension, mnemonic, name, constructor) in [
+            (
+                0,
+                Mnemonic::Add,
+                "add",
+                Operation::AddRm32Imm8 as fn(super::Rm32, Immediate8) -> Operation,
+            ),
+            (1, Mnemonic::Or, "or", Operation::OrRm32Imm8),
+            (2, Mnemonic::Adc, "adc", Operation::AdcRm32Imm8),
+            (3, Mnemonic::Sbb, "sbb", Operation::SbbRm32Imm8),
+            (4, Mnemonic::And, "and", Operation::AndRm32Imm8),
+            (5, Mnemonic::Sub, "sub", Operation::SubRm32Imm8),
+            (6, Mnemonic::Xor, "xor", Operation::XorRm32Imm8),
+            (7, Mnemonic::Cmp, "cmp", Operation::CmpRm32Imm8),
+        ] {
+            for (operand_bytes, destination) in [
+                (&b"\xc0"[..], "eax"),
+                (&b"\x03"[..], "dword ptr [ebx]"),
+                (&b"\x43\xf0"[..], "dword ptr [ebx-16]"),
+                (&b"\x83\xf0\xff\xff\xff"[..], "dword ptr [ebx-16]"),
+                (&b"\x05\x78\x56\x34\x12"[..], "dword ptr [0x12345678]"),
+                (&b"\x04\x24"[..], "dword ptr [esp]"),
+                (&b"\x45\x00"[..], "dword ptr [ebp]"),
+                (&b"\x04\x8b"[..], "dword ptr [ebx+ecx*4]"),
+                (&b"\x44\x8b\xf0"[..], "dword ptr [ebx+ecx*4-16]"),
+                (&b"\x84\x8b\xf0\xff\xff\xff"[..], "dword ptr [ebx+ecx*4-16]"),
+                (&b"\x04\x8d\x10\x00\x00\x00"[..], "dword ptr [ecx*4+16]"),
+                (&b"\x04\xe5\x78\x56\x34\x12"[..], "dword ptr [0x12345678]"),
+            ] {
+                for immediate in [i8::MIN, -1, 0, 1, i8::MAX] {
+                    let mut bytes = vec![0x83];
+
+                    bytes.extend_from_slice(operand_bytes);
+                    bytes[1] |= extension << 3;
+                    bytes.push(immediate as u8);
+
+                    let mut decoder = bytes.as_slice();
+                    let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
+                    let operands = super::Rm32::decode(&mut &bytes[1..]).unwrap();
+
+                    assert_eq!(operation, constructor(operands, Immediate8::new(immediate)));
+                    assert_eq!(operation.mnemonic(), mnemonic);
+                    assert_eq!(
+                        operation.to_string(),
+                        format!("{name} {destination}, {immediate}")
+                    );
+                    assert_eq!(operation.size(), bytes.len() as u64);
+                    assert_eq!(operands.opcode_extension(), extension);
+
+                    let mut encoded = Vec::new();
+
+                    operation.encode(&mut encoded).unwrap();
+
+                    assert_eq!(encoded, bytes);
+                    assert!(decoder.is_empty());
+                }
+            }
+
+            for register in 0..8 {
+                for immediate in i8::MIN..=i8::MAX {
+                    let bytes = [0x83, 0xc0 | extension << 3 | register, immediate as u8];
+                    let operation =
+                        Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+                    let operands = super::Rm32::decode(&mut &bytes[1..]).unwrap();
+
+                    assert_eq!(operation, constructor(operands, Immediate8::new(immediate)));
+                    assert_eq!(
+                        operands.rm_register(),
+                        Some(Register32::from_index(register))
+                    );
+
+                    let mut encoded = Vec::new();
+
+                    operation.encode(&mut encoded).unwrap();
+
+                    assert_eq!(encoded, bytes);
+                }
+            }
+        }
+    }
 
     #[test]
     fn push_r32_supports_all_register_forms() {

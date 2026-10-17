@@ -102,6 +102,18 @@ impl Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.prefixes.has_fs_override() {
             match &self.operation {
+                Operation::AddRm32Imm8(operands, immediate)
+                | Operation::OrRm32Imm8(operands, immediate)
+                | Operation::AdcRm32Imm8(operands, immediate)
+                | Operation::SbbRm32Imm8(operands, immediate)
+                | Operation::AndRm32Imm8(operands, immediate)
+                | Operation::SubRm32Imm8(operands, immediate)
+                | Operation::XorRm32Imm8(operands, immediate)
+                | Operation::CmpRm32Imm8(operands, immediate)
+                    if let Some(memory) = operands.memory() =>
+                {
+                    return write!(f, "{} dword ptr fs:{memory}, {immediate}", self.mnemonic(),);
+                }
                 Operation::MovRm32R32(operands) if let Some(memory) = operands.memory() => {
                     return write!(
                         f,
@@ -178,6 +190,42 @@ impl<'de> Deserialize<'de> for Instruction {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn group83_preserves_prefixes_and_serializes_all_operations() {
+        for (extension, name) in [
+            (0, "add"),
+            (1, "or"),
+            (2, "adc"),
+            (3, "sbb"),
+            (4, "and"),
+            (5, "sub"),
+            (6, "xor"),
+            (7, "cmp"),
+        ] {
+            for (operand_bytes, destination) in [
+                (&b"\xc0"[..], "eax"),
+                (&b"\x05\x00\x00\x00\x00"[..], "dword ptr fs:[0x00000000]"),
+            ] {
+                let mut bytes = vec![0x64, 0x83];
+                bytes.extend_from_slice(operand_bytes);
+                bytes[2] |= extension << 3;
+                bytes.push(0xff);
+                let instruction = Instruction::decode(&mut bytes.as_slice()).unwrap();
+                assert_eq!(instruction.to_string(), format!("{name} {destination}, -1"));
+                assert_eq!(instruction.size(), bytes.len() as u64);
+                let json = serde_json::to_string(&instruction).unwrap();
+                assert_eq!(json, serde_json::to_string(&bytes).unwrap());
+                assert_eq!(
+                    serde_json::from_str::<Instruction>(&json).unwrap(),
+                    instruction
+                );
+                let mut encoded = Vec::new();
+                instruction.encode(&mut encoded).unwrap();
+                assert_eq!(encoded, bytes);
+            }
+        }
+    }
 
     #[test]
     fn fs_override_supports_explicit_memory_operands() {
@@ -322,6 +370,10 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[131,236,88]", "sub esp, 88"),
+            ("[131,232,255]", "sub eax, -1"),
+            ("[100,131,45,0,0,0,0,1]", "sub dword ptr fs:[0x00000000], 1"),
+            ("[100,131,236,88]", "sub esp, 88"),
             ("[83]", "push ebx"),
             ("[106,255]", "push -1"),
             ("[106,128]", "push -128"),
@@ -349,6 +401,8 @@ mod tests {
     #[test]
     fn serde_rejects_invalid_or_incomplete_input() {
         for json in [
+            "[131]",
+            "[131,236]",
             "[]",
             "[-1]",
             "[139]",
