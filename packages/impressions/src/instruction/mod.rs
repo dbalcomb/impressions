@@ -133,6 +133,9 @@ impl Display for Instruction {
                 Operation::MovEaxMoffs32(offset) => {
                     return write!(f, "{} eax, fs:[{offset}]", self.mnemonic());
                 }
+                Operation::CallRm32(operand) if let Some(memory) = operand.memory() => {
+                    return write!(f, "{} dword ptr fs:{memory}", self.mnemonic());
+                }
                 _ => {}
             }
         }
@@ -231,6 +234,11 @@ mod tests {
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
             (
+                &b"\x64\xff\x15\x38\x81\x5d\x00"[..],
+                &b"\xff\x15\x38\x81\x5d\x00"[..],
+                "call dword ptr fs:[0x005d8138]",
+            ),
+            (
                 &b"\x64\x89\x25\x00\x00\x00\x00"[..],
                 &b"\x89\x25\x00\x00\x00\x00"[..],
                 "mov fs:[0x00000000], esp",
@@ -280,6 +288,7 @@ mod tests {
     #[test]
     fn fs_override_does_not_change_register_or_stack_operands() {
         for (bytes, display) in [
+            (&b"\x64\xff\xd0"[..], "call eax"),
             (&b"\x64\x89\xc1"[..], "mov ecx, eax"),
             (&b"\x64\x8b\xc1"[..], "mov eax, ecx"),
             (&b"\x64\x53"[..], "push ebx"),
@@ -370,6 +379,8 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[255,21,56,129,93,0]", "call dword ptr [0x005d8138]"),
+            ("[255,208]", "call eax"),
             ("[131,236,88]", "sub esp, 88"),
             ("[131,232,255]", "sub eax, -1"),
             ("[100,131,45,0,0,0,0,1]", "sub dword ptr fs:[0x00000000], 1"),
@@ -401,6 +412,9 @@ mod tests {
     #[test]
     fn serde_rejects_invalid_or_incomplete_input() {
         for json in [
+            "[255]",
+            "[255,21,56,129,93]",
+            "[255,192]",
             "[131]",
             "[131,236]",
             "[]",

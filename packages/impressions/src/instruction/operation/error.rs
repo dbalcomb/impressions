@@ -8,4 +8,8 @@ pub enum Error {
     /// An invalid opcode was encountered.
     #[error("invalid opcode {0:02x}")]
     InvalidOpcode(u8),
+
+    /// An unsupported ModR/M opcode extension was encountered.
+    #[error("unsupported opcode extension /{extension} for opcode {opcode:02x}")]
+    InvalidOpcodeExtension { opcode: u8, extension: u8 },
 }

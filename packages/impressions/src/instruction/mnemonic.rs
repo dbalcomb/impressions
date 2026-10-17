@@ -12,6 +12,9 @@ pub enum Mnemonic {
     /// Bitwise AND.
     And,
 
+    /// Call a procedure.
+    Call,
+
     /// Compare.
     Cmp,
 
@@ -40,6 +43,7 @@ impl Display for Mnemonic {
             Self::Adc => write!(f, "adc"),
             Self::Add => write!(f, "add"),
             Self::And => write!(f, "and"),
+            Self::Call => write!(f, "call"),
             Self::Cmp => write!(f, "cmp"),
             Self::Mov => write!(f, "mov"),
             Self::Or => write!(f, "or"),

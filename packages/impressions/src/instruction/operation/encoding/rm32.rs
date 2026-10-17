@@ -28,7 +28,7 @@ impl Rm32 {
         self.modifier().reg_index()
     }
 
-    /// Gets the destination register for register-mode encodings.
+    /// Gets the operand register for register-mode encodings.
     pub const fn rm_register(&self) -> Option<Register32> {
         self.0.rm_register()
     }
