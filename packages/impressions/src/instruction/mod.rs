@@ -102,8 +102,13 @@ impl Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.prefixes.has_fs_override() {
             match &self.operation {
-                Operation::MovEaxMoffs32(offset) => {
-                    return write!(f, "{} eax, fs:[{offset}]", self.mnemonic());
+                Operation::MovRm32R32(operands) if let Some(memory) = operands.memory() => {
+                    return write!(
+                        f,
+                        "{} fs:{memory}, {}",
+                        self.mnemonic(),
+                        operands.register()
+                    );
                 }
                 Operation::MovR32Rm32(operands) if let Some(memory) = operands.memory() => {
                     return write!(
@@ -112,6 +117,9 @@ impl Display for Instruction {
                         self.mnemonic(),
                         operands.register()
                     );
+                }
+                Operation::MovEaxMoffs32(offset) => {
+                    return write!(f, "{} eax, fs:[{offset}]", self.mnemonic());
                 }
                 _ => {}
             }
@@ -175,6 +183,16 @@ mod tests {
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
             (
+                &b"\x64\x89\x25\x00\x00\x00\x00"[..],
+                &b"\x89\x25\x00\x00\x00\x00"[..],
+                "mov fs:[0x00000000], esp",
+            ),
+            (
+                &b"\x64\x89\x44\x8b\xf0"[..],
+                &b"\x89\x44\x8b\xf0"[..],
+                "mov fs:[ebx+ecx*4-16], eax",
+            ),
+            (
                 &b"\x64\xa1\x00\x00\x00\x00"[..],
                 &b"\xa1\x00\x00\x00\x00"[..],
                 "mov eax, fs:[0x00000000]",
@@ -214,6 +232,7 @@ mod tests {
     #[test]
     fn fs_override_does_not_change_register_or_stack_operands() {
         for (bytes, display) in [
+            (&b"\x64\x89\xc1"[..], "mov ecx, eax"),
             (&b"\x64\x8b\xc1"[..], "mov eax, ecx"),
             (&b"\x64\x53"[..], "push ebx"),
             (&b"\x64\x6a\xff"[..], "push -1"),
