@@ -17,7 +17,7 @@ use super::operand::immediate::{Immediate8, Immediate32};
 use super::operand::register::Register32;
 use super::prefix::Prefixes;
 
-use self::encoding::R32Rm32;
+use self::encoding::{R32Rm32, Rm32R32};
 
 pub use self::error::Error;
 
@@ -39,6 +39,11 @@ pub enum Operation {
     /// `6A ib => push imm8`
     PushImm8(Immediate8),
 
+    /// Move r32 to r/m32.
+    ///
+    /// `89 /r => mov r/m32, r32`
+    MovRm32R32(Rm32R32),
+
     /// Move r/m32 to r32.
     ///
     /// `8B /r => mov r32, r/m32`
@@ -57,6 +62,7 @@ impl Operation {
             Self::PushR32(_) => Mnemonic::Push,
             Self::PushImm32(_) => Mnemonic::Push,
             Self::PushImm8(_) => Mnemonic::Push,
+            Self::MovRm32R32(_) => Mnemonic::Mov,
             Self::MovR32Rm32(_) => Mnemonic::Mov,
             Self::MovEaxMoffs32(_) => Mnemonic::Mov,
         }
@@ -69,6 +75,7 @@ impl Extent for Operation {
             Self::PushR32(_) => Size::new_valid(1),
             Self::PushImm32(_) => Size::new_valid(5),
             Self::PushImm8(_) => Size::new_valid(2),
+            Self::MovRm32R32(operands) => Size::new_valid(1 + operands.size().get()),
             Self::MovR32Rm32(operands) => Size::new_valid(1 + operands.size().get()),
             Self::MovEaxMoffs32(_) => Size::new_valid(5),
         }
@@ -86,6 +93,10 @@ impl Encode for Operation {
             Self::PushImm8(immediate) => {
                 encoder.write_u8(0x6a)?;
                 immediate.encode(encoder)
+            }
+            Self::MovRm32R32(operands) => {
+                encoder.write_u8(0x89)?;
+                operands.encode(encoder)
             }
             Self::MovR32Rm32(operands) => {
                 encoder.write_u8(0x8b)?;
@@ -108,6 +119,7 @@ impl Decode for Operation {
             byte @ 0x50..0x58 => Ok(Self::PushR32(Register32::from_index(byte - 0x50))),
             0x68 => Ok(Self::PushImm32(Immediate32::decode(decoder)?)),
             0x6a => Ok(Self::PushImm8(Immediate8::decode(decoder)?)),
+            0x89 => Ok(Self::MovRm32R32(Rm32R32::decode(decoder)?)),
             0x8b => Ok(Self::MovR32Rm32(R32Rm32::decode(decoder)?)),
             0xa1 => Ok(Self::MovEaxMoffs32(Address::decode(decoder)?)),
             opcode => Err(Error::InvalidOpcode(opcode)),
@@ -121,6 +133,7 @@ impl Display for Operation {
             Self::PushR32(reg) => write!(f, "{} {reg}", self.mnemonic()),
             Self::PushImm32(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
             Self::PushImm8(immediate) => write!(f, "{} {immediate}", self.mnemonic()),
+            Self::MovRm32R32(operands) => write!(f, "{} {operands}", self.mnemonic()),
             Self::MovR32Rm32(operands) => write!(f, "{} {operands}", self.mnemonic()),
             Self::MovEaxMoffs32(offset) => write!(f, "{} eax, [{offset}]", self.mnemonic()),
         }
@@ -222,6 +235,55 @@ mod tests {
             };
 
             assert_eq!(immediate.value(), value);
+        }
+    }
+
+    #[test]
+    fn mov_rm32_r32_supports_all_register_and_memory_forms() {
+        for (bytes, display) in [
+            (&b"\x89\xc1"[..], "mov ecx, eax"),
+            (&b"\x89\xd3"[..], "mov ebx, edx"),
+            (&b"\x89\x03"[..], "mov [ebx], eax"),
+            (&b"\x89\x43\x10"[..], "mov [ebx+16], eax"),
+            (&b"\x89\x83\xf0\xff\xff\xff"[..], "mov [ebx-16], eax"),
+            (&b"\x89\x25\x00\x00\x00\x00"[..], "mov [0x00000000], esp"),
+            (&b"\x89\x04\x24"[..], "mov [esp], eax"),
+            (&b"\x89\x45\x00"[..], "mov [ebp], eax"),
+            (&b"\x89\x85\x00\x00\x00\x00"[..], "mov [ebp], eax"),
+            (&b"\x89\x04\x8b"[..], "mov [ebx+ecx*4], eax"),
+            (&b"\x89\x44\x8b\xf0"[..], "mov [ebx+ecx*4-16], eax"),
+            (
+                &b"\x89\x84\x8b\xf0\xff\xff\xff"[..],
+                "mov [ebx+ecx*4-16], eax",
+            ),
+            (&b"\x89\x44\x24\xf0"[..], "mov [esp-16], eax"),
+            (&b"\x89\x84\x24\xf0\xff\xff\xff"[..], "mov [esp-16], eax"),
+            (&b"\x89\x04\x8d\x10\x00\x00\x00"[..], "mov [ecx*4+16], eax"),
+            (
+                &b"\x89\x04\x25\x78\x56\x34\x12"[..],
+                "mov [0x12345678], eax",
+            ),
+            (&b"\x89\x43\x00"[..], "mov [ebx], eax"),
+            (&b"\x89\x83\x00\x00\x00\x00"[..], "mov [ebx], eax"),
+            (&b"\x89\x04\x0b"[..], "mov [ebx+ecx*1], eax"),
+            (&b"\x89\x04\x4b"[..], "mov [ebx+ecx*2], eax"),
+            (&b"\x89\x04\xcb"[..], "mov [ebx+ecx*8], eax"),
+            (&b"\x89\x04\xe3"[..], "mov [ebx], eax"),
+            (&b"\x89\x44\x25\x00"[..], "mov [ebp], eax"),
+            (&b"\x89\x84\x25\x00\x00\x00\x00"[..], "mov [ebp], eax"),
+        ] {
+            let mut decoder = bytes;
+            let operation = Operation::decode_with(&mut decoder, &Prefixes::new()).unwrap();
+            let mut encoder = Vec::new();
+
+            operation.encode(&mut encoder).unwrap();
+
+            assert!(matches!(operation, Operation::MovRm32R32(_)));
+            assert_eq!(operation.mnemonic(), Mnemonic::Mov);
+            assert_eq!(operation.to_string(), display);
+            assert_eq!(operation.size(), bytes.len() as u64);
+            assert_eq!(encoder, bytes);
+            assert!(decoder.is_empty());
         }
     }
 
