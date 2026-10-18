@@ -20,11 +20,6 @@ pub struct Rm32 {
 }
 
 impl Rm32 {
-    /// Gets the original ModR/M and optional SIB encoding.
-    pub const fn modifier(&self) -> Modifier32 {
-        self.modifier
-    }
-
     /// Gets the opcode extension in the ModR/M `reg` field.
     pub const fn opcode_extension(&self) -> u8 {
         self.modifier.reg_index()
@@ -52,22 +47,6 @@ impl Rm32 {
                 self.displacement.value() as i8,
             ))),
             Some(DisplacementSize::DWord) => Some(Displacement::DWord(self.displacement)),
-        }
-    }
-
-    /// Gets the displacement when it is encoded as a byte.
-    pub const fn displacement8(&self) -> Option<Displacement8> {
-        match self.displacement() {
-            Some(Displacement::Byte(value)) => Some(value),
-            _ => None,
-        }
-    }
-
-    /// Gets the displacement when it is encoded as a dword.
-    pub const fn displacement32(&self) -> Option<Displacement32> {
-        match self.displacement() {
-            Some(Displacement::DWord(value)) => Some(value),
-            _ => None,
         }
     }
 
@@ -289,18 +268,10 @@ mod tests {
 
             operands.encode(&mut encoder).unwrap();
 
-            assert_eq!(operands.modifier(), modifier);
+            assert_eq!(operands.modifier, modifier);
             assert_eq!(operands.register(), Register32::Eax);
             assert_eq!(operands.opcode_extension(), 0);
             assert_eq!(operands.displacement(), displacement);
-            assert_eq!(
-                operands.displacement8(),
-                displacement.and_then(Displacement::displacement8)
-            );
-            assert_eq!(
-                operands.displacement32(),
-                displacement.and_then(Displacement::displacement32)
-            );
             assert_eq!(
                 operands.rm_register(),
                 if memory.is_none() {
@@ -334,8 +305,15 @@ mod tests {
     fn extracts_sign_extended_byte_and_semantic_memory() {
         let operands = Rm32::decode(&mut &b"\x44\x8b\xf0"[..]).unwrap();
 
-        assert_eq!(operands.displacement8().unwrap().value(), -16);
-        assert_eq!(operands.displacement32(), None);
+        assert_eq!(
+            operands
+                .displacement()
+                .unwrap()
+                .displacement8()
+                .unwrap()
+                .value(),
+            -16
+        );
         assert_eq!(operands.memory().unwrap().to_string(), "[ebx+ecx*4-16]");
 
         let memory = operands.memory().unwrap();
@@ -379,8 +357,14 @@ mod tests {
         }
 
         assert_eq!(encodings[0].displacement(), None);
-        assert_eq!(encodings[1].displacement8(), Some(Displacement8::new(0)));
-        assert_eq!(encodings[2].displacement32(), Some(Displacement32::new(0)));
+        assert_eq!(
+            encodings[1].displacement(),
+            Some(Displacement::Byte(Displacement8::new(0)))
+        );
+        assert_eq!(
+            encodings[2].displacement(),
+            Some(Displacement::DWord(Displacement32::new(0)))
+        );
         assert_eq!(encodings[3].displacement(), None);
         assert_ne!(encodings[0], encodings[3]);
     }
@@ -391,13 +375,16 @@ mod tests {
             let bytes = [0x43, value as u8];
             let operands = Rm32::decode(&mut &bytes[..]).unwrap();
 
-            assert_eq!(operands.displacement8(), Some(Displacement8::new(value)));
+            assert_eq!(
+                operands.displacement(),
+                Some(Displacement::Byte(Displacement8::new(value)))
+            );
             assert_eq!(
                 operands.memory().unwrap().displacement().value(),
                 i32::from(value)
             );
             assert_eq!(
-                Rm32::new(operands.modifier(), Displacement32::new(i32::from(value))),
+                Rm32::new(operands.modifier, Displacement32::new(i32::from(value))),
                 operands,
             );
         }
@@ -478,14 +465,6 @@ mod tests {
             assert_eq!(operand.rm_register(), register);
             assert_eq!(operand.memory().is_some(), register.is_none());
             assert_eq!(operand.displacement(), displacement);
-            assert_eq!(
-                operand.displacement8(),
-                displacement.and_then(Displacement::displacement8)
-            );
-            assert_eq!(
-                operand.displacement32(),
-                displacement.and_then(Displacement::displacement32)
-            );
             assert_eq!(operand.to_string(), display);
             assert_eq!(operand.size(), bytes.len() as u64);
 

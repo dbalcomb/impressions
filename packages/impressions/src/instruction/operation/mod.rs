@@ -1,10 +1,10 @@
 //! The x86 instruction operation.
 
-pub mod encoding;
-pub mod modifier;
 pub mod types;
 
+mod encoding;
 mod error;
+mod modifier;
 
 use std::fmt::{self, Display};
 
