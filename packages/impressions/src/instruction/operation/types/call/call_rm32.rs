@@ -84,7 +84,7 @@ impl Display for CallRm32 {
 mod tests {
     use crate::instruction::Mnemonic;
     use crate::instruction::operand::register::Register32;
-    use crate::instruction::operation::Operation;
+    use crate::instruction::operation::{Error as OpError, Operation};
     use crate::instruction::prefix::Prefixes;
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
@@ -169,7 +169,7 @@ mod tests {
             for length in 1..bytes.len() {
                 assert!(matches!(
                     Operation::decode_with(&mut &bytes[..length], &Prefixes::new()),
-                    Err(crate::instruction::operation::Error::Decode(_)),
+                    Err(OpError::Decode(_)),
                 ));
             }
         }
@@ -179,12 +179,10 @@ mod tests {
 
             assert_eq!(
                 Operation::decode_with(&mut &bytes[..], &Prefixes::new()),
-                Err(
-                    crate::instruction::operation::Error::InvalidOpcodeExtension {
-                        opcode: 0xff,
-                        extension
-                    }
-                ),
+                Err(OpError::InvalidOpcodeExtension {
+                    opcode: 0xff,
+                    extension
+                }),
             );
         }
     }
