@@ -29,13 +29,18 @@ use self::types::or::OrRm32Imm8;
 use self::types::push::{PushImm8, PushImm32, PushR32};
 use self::types::sbb::SbbRm32Imm8;
 use self::types::sub::SubRm32Imm8;
-use self::types::xor::XorRm32Imm8;
+use self::types::xor::{XorR32Rm32, XorRm32Imm8};
 
 pub use self::error::Error;
 
 /// An x86 instruction operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Operation {
+    /// Bitwise XOR a 32-bit register with a 32-bit register or memory value.
+    ///
+    /// `33 /r => xor r32, r/m32`
+    XorR32Rm32(XorR32Rm32),
+
     /// Push a 32-bit register onto the stack.
     ///
     /// `50+rd => push r32`
@@ -116,6 +121,7 @@ impl Operation {
     /// Gets the mnemonic of the operation.
     pub const fn mnemonic(&self) -> Mnemonic {
         match self {
+            Self::XorR32Rm32(operation) => operation.mnemonic(),
             Self::PushR32(operation) => operation.mnemonic(),
             Self::PushImm32(operation) => operation.mnemonic(),
             Self::PushImm8(operation) => operation.mnemonic(),
@@ -142,6 +148,7 @@ impl Operation {
         prefixes: &Prefixes,
     ) -> fmt::Result {
         match self {
+            Self::XorR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::PushR32(operation) => Display::fmt(operation, f),
             Self::PushImm32(operation) => Display::fmt(operation, f),
             Self::PushImm8(operation) => Display::fmt(operation, f),
@@ -164,6 +171,7 @@ impl Operation {
 impl Extent for Operation {
     fn size(&self) -> Size {
         match self {
+            Self::XorR32Rm32(operation) => operation.size(),
             Self::PushR32(operation) => operation.size(),
             Self::PushImm32(operation) => operation.size(),
             Self::PushImm8(operation) => operation.size(),
@@ -186,6 +194,7 @@ impl Extent for Operation {
 impl Encode for Operation {
     fn encode(&self, encoder: &mut dyn Encoder) -> Result<(), EncodeError> {
         match self {
+            Self::XorR32Rm32(operation) => operation.encode(encoder),
             Self::PushR32(operation) => operation.encode(encoder),
             Self::PushImm32(operation) => operation.encode(encoder),
             Self::PushImm8(operation) => operation.encode(encoder),
@@ -211,6 +220,7 @@ impl Decode for Operation {
 
     fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         match decoder.read_u8()? {
+            0x33 => Ok(Self::XorR32Rm32(XorR32Rm32::new(Rm32::decode(decoder)?))),
             byte @ 0x50..0x58 => Ok(Self::PushR32(PushR32::new(Register32::from_index(
                 byte - 0x50,
             )))),

@@ -194,6 +194,16 @@ mod tests {
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
             (
+                &b"\x64\x33\x15\x38\x81\x5d\x00"[..],
+                &b"\x33\x15\x38\x81\x5d\x00"[..],
+                "xor edx, fs:[0x005d8138]",
+            ),
+            (
+                &b"\x64\x33\x54\x8b\xf0"[..],
+                &b"\x33\x54\x8b\xf0"[..],
+                "xor edx, fs:[ebx+ecx*4-16]",
+            ),
+            (
                 &b"\x64\xff\x15\x38\x81\x5d\x00"[..],
                 &b"\xff\x15\x38\x81\x5d\x00"[..],
                 "call dword ptr fs:[0x005d8138]",
@@ -248,6 +258,7 @@ mod tests {
     #[test]
     fn fs_override_does_not_change_register_or_stack_operands() {
         for (bytes, display) in [
+            (&b"\x64\x33\xd2"[..], "xor edx, edx"),
             (&b"\x64\xff\xd0"[..], "call eax"),
             (&b"\x64\x89\xc1"[..], "mov ecx, eax"),
             (&b"\x64\x8b\xc1"[..], "mov eax, ecx"),
@@ -339,6 +350,8 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[51,210]", "xor edx, edx"),
+            ("[51,84,139,240]", "xor edx, [ebx+ecx*4-16]"),
             ("[255,21,56,129,93,0]", "call dword ptr [0x005d8138]"),
             ("[255,208]", "call eax"),
             ("[131,236,88]", "sub esp, 88"),
@@ -372,6 +385,8 @@ mod tests {
     #[test]
     fn serde_rejects_invalid_or_incomplete_input() {
         for json in [
+            "[51]",
+            "[51,21,56,129,93]",
             "[255]",
             "[255,21,56,129,93]",
             "[255,192]",
