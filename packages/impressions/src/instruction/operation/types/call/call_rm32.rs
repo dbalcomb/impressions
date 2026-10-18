@@ -1,6 +1,8 @@
 use std::fmt::{self, Display};
 
 use crate::instruction::Mnemonic;
+use crate::instruction::operand::memory::Memory32;
+use crate::instruction::operand::register::Register32;
 use crate::instruction::prefix::Prefixes;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
@@ -23,9 +25,14 @@ impl CallRm32 {
 }
 
 impl CallRm32 {
-    /// Gets the shared ModR/M encoding.
-    pub const fn operand(&self) -> Rm32 {
-        self.operand
+    /// Gets the register containing the target offset, if the target is not memory.
+    pub const fn target_register(&self) -> Option<Register32> {
+        self.operand.rm_register()
+    }
+
+    /// Gets the address containing the target offset, if the target is memory.
+    pub const fn target_memory(&self) -> Option<Memory32> {
+        self.operand.memory()
     }
 
     /// Gets the mnemonic.
@@ -120,8 +127,11 @@ mod tests {
                 panic!("expected CALL");
             };
 
-            assert_eq!(operand.operand().opcode_extension(), 2);
-            assert!(operand.operand().memory().is_some());
+            assert_eq!(operand.target_register(), None);
+            assert_eq!(
+                operand.target_memory().unwrap().to_string(),
+                display.strip_prefix("call dword ptr ").unwrap(),
+            );
 
             let mut encoded = Vec::new();
 
@@ -142,7 +152,8 @@ mod tests {
                 panic!("expected CALL");
             };
 
-            assert_eq!(operand.operand().rm_register(), Some(register));
+            assert_eq!(operand.target_register(), Some(register));
+            assert_eq!(operand.target_memory(), None);
 
             let mut encoded = Vec::new();
 

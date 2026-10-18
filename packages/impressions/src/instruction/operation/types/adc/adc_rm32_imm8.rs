@@ -2,6 +2,8 @@ use std::fmt::{self, Display};
 
 use crate::instruction::Mnemonic;
 use crate::instruction::operand::immediate::Immediate8;
+use crate::instruction::operand::memory::Memory32;
+use crate::instruction::operand::register::Register32;
 use crate::instruction::prefix::Prefixes;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
@@ -28,9 +30,14 @@ impl AdcRm32Imm8 {
 }
 
 impl AdcRm32Imm8 {
-    /// Gets the register or memory operand.
-    pub const fn operand(&self) -> Rm32 {
-        self.operand
+    /// Gets the destination register, if the destination is not memory.
+    pub const fn destination_register(&self) -> Option<Register32> {
+        self.operand.rm_register()
+    }
+
+    /// Gets the destination address, if the destination is memory.
+    pub const fn destination_memory(&self) -> Option<Memory32> {
+        self.operand.memory()
     }
 
     /// Gets the signed byte immediate.
@@ -126,7 +133,16 @@ mod tests {
                 };
 
                 assert_eq!(operation.immediate(), Immediate8::new(value));
-                assert_eq!(operation.operand().opcode_extension(), 2);
+                if destination == "eax" {
+                    assert_eq!(operation.destination_register(), Some(Register32::Eax));
+                    assert_eq!(operation.destination_memory(), None);
+                } else {
+                    assert_eq!(operation.destination_register(), None);
+                    assert_eq!(
+                        operation.destination_memory().unwrap().to_string(),
+                        destination.strip_prefix("dword ptr ").unwrap(),
+                    );
+                }
                 assert_eq!(operation.mnemonic(), Mnemonic::Adc);
                 assert_eq!(operation.to_string(), format!("adc {destination}, {value}"));
                 assert_eq!(operation.size(), bytes.len() as u64);
@@ -151,7 +167,7 @@ mod tests {
                 };
 
                 assert_eq!(
-                    operation.operand().rm_register(),
+                    operation.destination_register(),
                     Some(Register32::from_index(register))
                 );
 

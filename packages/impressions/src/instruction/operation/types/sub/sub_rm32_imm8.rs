@@ -2,6 +2,8 @@ use std::fmt::{self, Display};
 
 use crate::instruction::Mnemonic;
 use crate::instruction::operand::immediate::Immediate8;
+use crate::instruction::operand::memory::Memory32;
+use crate::instruction::operand::register::Register32;
 use crate::instruction::prefix::Prefixes;
 use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
@@ -28,9 +30,14 @@ impl SubRm32Imm8 {
 }
 
 impl SubRm32Imm8 {
-    /// Gets the register or memory operand.
-    pub const fn operand(&self) -> Rm32 {
-        self.operand
+    /// Gets the destination register, if the destination is not memory.
+    pub const fn destination_register(&self) -> Option<Register32> {
+        self.operand.rm_register()
+    }
+
+    /// Gets the destination address, if the destination is memory.
+    pub const fn destination_memory(&self) -> Option<Memory32> {
+        self.operand.memory()
     }
 
     /// Gets the signed byte immediate.
@@ -94,6 +101,22 @@ mod tests {
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
     use crate::memory::region::ops::encode::Encode;
+
+    #[test]
+    fn exposes_destination_memory() {
+        for (bytes, memory) in [
+            (&b"\x83\x6c\x8b\xf0\xff"[..], "[ebx+ecx*4-16]"),
+            (&b"\x83\x2d\x38\x81\x5d\x00\xff"[..], "[0x005d8138]"),
+        ] {
+            let operation = Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+            let Operation::SubRm32Imm8(operation) = operation else {
+                panic!("expected SUB");
+            };
+            assert_eq!(operation.destination_register(), None);
+            assert_eq!(operation.destination_memory().unwrap().to_string(), memory);
+            assert_eq!(operation.immediate(), Immediate8::new(-1));
+        }
+    }
 
     #[test]
     fn rejects_truncation() {
@@ -163,7 +186,10 @@ mod tests {
                 panic!("expected SUB");
             };
 
-            assert_eq!(operation.operand().opcode_extension(), 5);
+            assert_ne!(
+                operation.destination_register().is_some(),
+                operation.destination_memory().is_some(),
+            );
             assert_eq!(operation.immediate().value(), *bytes.last().unwrap() as i8);
         }
 
@@ -176,7 +202,7 @@ mod tests {
                 };
 
                 assert_eq!(
-                    operation.operand().rm_register(),
+                    operation.destination_register(),
                     Some(Register32::from_index(register))
                 );
                 assert_eq!(operation.immediate(), Immediate8::new(immediate));

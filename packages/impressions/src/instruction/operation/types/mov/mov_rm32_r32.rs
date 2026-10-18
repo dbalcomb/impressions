@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 
 use crate::instruction::Mnemonic;
+use crate::instruction::operand::memory::Memory32;
 use crate::instruction::operand::register::Register32;
 use crate::instruction::prefix::Prefixes;
 use crate::memory::extent::{Extent, Size};
@@ -24,13 +25,18 @@ impl MovRm32R32 {
 }
 
 impl MovRm32R32 {
-    /// Gets the shared ModR/M encoding.
-    pub const fn operand(&self) -> Rm32 {
-        self.operand
+    /// Gets the destination register, if the destination is not memory.
+    pub const fn destination_register(&self) -> Option<Register32> {
+        self.operand.rm_register()
     }
 
-    /// Gets the explicit register operand in the ModR/M `reg` field.
-    pub const fn register(&self) -> Register32 {
+    /// Gets the destination address, if the destination is memory.
+    pub const fn destination_memory(&self) -> Option<Memory32> {
+        self.operand.memory()
+    }
+
+    /// Gets the source register.
+    pub const fn source_register(&self) -> Register32 {
         self.operand.register()
     }
 
@@ -52,7 +58,7 @@ impl MovRm32R32 {
             f.write_str("fs:")?;
         }
 
-        write!(f, "{}, {}", self.operand, self.register())
+        write!(f, "{}, {}", self.operand, self.source_register())
     }
 }
 
@@ -78,11 +84,50 @@ impl Display for MovRm32R32 {
 #[cfg(test)]
 mod tests {
     use crate::instruction::Mnemonic;
+    use crate::instruction::operand::register::Register32;
     use crate::instruction::operation::Operation;
     use crate::instruction::prefix::Prefixes;
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::Decode;
     use crate::memory::region::ops::encode::Encode;
+
+    #[test]
+    fn exposes_source_and_destination() {
+        for source in 0..8 {
+            for destination in 0..8 {
+                let bytes = [0x89, 0xc0 | source << 3 | destination];
+                let operation = Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+                let Operation::MovRm32R32(operation) = operation else {
+                    panic!("expected MOV");
+                };
+
+                assert_eq!(operation.source_register(), Register32::from_index(source));
+                assert_eq!(
+                    operation.destination_register(),
+                    Some(Register32::from_index(destination))
+                );
+                assert_eq!(operation.destination_memory(), None);
+            }
+        }
+
+        for (bytes, source, memory) in [
+            (&b"\x89\x54\x8b\xf0"[..], Register32::Edx, "[ebx+ecx*4-16]"),
+            (
+                &b"\x89\x25\x38\x81\x5d\x00"[..],
+                Register32::Esp,
+                "[0x005d8138]",
+            ),
+        ] {
+            let operation = Operation::decode_with(&mut &bytes[..], &Prefixes::new()).unwrap();
+            let Operation::MovRm32R32(operation) = operation else {
+                panic!("expected MOV");
+            };
+
+            assert_eq!(operation.source_register(), source);
+            assert_eq!(operation.destination_register(), None);
+            assert_eq!(operation.destination_memory().unwrap().to_string(), memory);
+        }
+    }
 
     #[test]
     fn supports_all_register_and_memory_forms() {
