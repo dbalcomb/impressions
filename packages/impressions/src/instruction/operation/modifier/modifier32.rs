@@ -13,11 +13,6 @@ pub struct Modifier32 {
 }
 
 impl Modifier32 {
-    /// Gets the raw ModR/M byte.
-    pub const fn modrm(self) -> u8 {
-        self.modrm
-    }
-
     /// Gets the ModR/M `mod` field.
     pub const fn mode(self) -> u8 {
         self.modrm >> 6
@@ -36,11 +31,6 @@ impl Modifier32 {
     /// Gets the ModR/M `r/m` field.
     pub const fn rm(self) -> Register32 {
         Register32::from_index(self.modrm & 0x07)
-    }
-
-    /// Gets the SIB byte, if this addressing form has one.
-    pub const fn sib(self) -> Option<u8> {
-        self.sib
     }
 
     /// Gets the SIB `scale` field, if this addressing form has a SIB byte.
@@ -165,11 +155,11 @@ mod tests {
                 assert!(decoder.is_empty());
                 assert_eq!(encoded, bytes);
                 assert_eq!(modifier.size(), bytes.len() as u64);
-                assert_eq!(modifier.modrm(), modrm);
+                assert_eq!(modifier.modrm, modrm);
                 assert_eq!(modifier.mode(), mode);
                 assert_eq!(modifier.reg().index(), (modrm >> 3) & 7);
                 assert_eq!(modifier.rm().index(), rm);
-                assert_eq!(modifier.sib(), if has_sib { Some(sib as u8) } else { None });
+                assert_eq!(modifier.sib, if has_sib { Some(sib as u8) } else { None });
             }
         }
     }
@@ -248,7 +238,7 @@ mod tests {
         let modifier = Modifier32::decode(&mut bytes).unwrap();
 
         assert_eq!(modifier.rm(), Register32::Esp);
-        assert_eq!(modifier.sib(), None);
+        assert_eq!(modifier.sib, None);
         assert_eq!(bytes, b"\xe3");
     }
 }
