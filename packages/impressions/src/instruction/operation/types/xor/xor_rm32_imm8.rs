@@ -127,12 +127,12 @@ mod tests {
 
                 let operation =
                     Operation::decode_with(&mut bytes.as_slice(), &Prefixes::new()).unwrap();
-
                 let Operation::XorRm32Imm8(operation) = operation else {
                     panic!("expected XOR");
                 };
 
                 assert_eq!(operation.immediate(), Immediate8::new(value));
+
                 if destination == "eax" {
                     assert_eq!(operation.destination_register(), Some(Register32::Eax));
                     assert_eq!(operation.destination_memory(), None);

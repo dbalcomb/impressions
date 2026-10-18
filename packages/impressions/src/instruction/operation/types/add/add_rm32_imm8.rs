@@ -131,6 +131,7 @@ mod tests {
                 };
 
                 assert_eq!(operation.immediate(), Immediate8::new(value));
+
                 if destination == "eax" {
                     assert_eq!(operation.destination_register(), Some(Register32::Eax));
                     assert_eq!(operation.destination_memory(), None);
