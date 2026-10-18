@@ -100,47 +100,7 @@ impl Decode for Instruction {
 
 impl Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.prefixes.has_fs_override() {
-            match &self.operation {
-                Operation::AddRm32Imm8(operands, immediate)
-                | Operation::OrRm32Imm8(operands, immediate)
-                | Operation::AdcRm32Imm8(operands, immediate)
-                | Operation::SbbRm32Imm8(operands, immediate)
-                | Operation::AndRm32Imm8(operands, immediate)
-                | Operation::SubRm32Imm8(operands, immediate)
-                | Operation::XorRm32Imm8(operands, immediate)
-                | Operation::CmpRm32Imm8(operands, immediate)
-                    if let Some(memory) = operands.memory() =>
-                {
-                    return write!(f, "{} dword ptr fs:{memory}, {immediate}", self.mnemonic(),);
-                }
-                Operation::MovRm32R32(operands) if let Some(memory) = operands.memory() => {
-                    return write!(
-                        f,
-                        "{} fs:{memory}, {}",
-                        self.mnemonic(),
-                        operands.register()
-                    );
-                }
-                Operation::MovR32Rm32(operands) if let Some(memory) = operands.memory() => {
-                    return write!(
-                        f,
-                        "{} {}, fs:{memory}",
-                        self.mnemonic(),
-                        operands.register()
-                    );
-                }
-                Operation::MovEaxMoffs32(offset) => {
-                    return write!(f, "{} eax, fs:[{offset}]", self.mnemonic());
-                }
-                Operation::CallRm32(operand) if let Some(memory) = operand.memory() => {
-                    return write!(f, "{} dword ptr fs:{memory}", self.mnemonic());
-                }
-                _ => {}
-            }
-        }
-
-        Display::fmt(&self.operation, f)
+        self.operation.fmt_with_prefixes(f, &self.prefixes)
     }
 }
 
