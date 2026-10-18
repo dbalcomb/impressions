@@ -16,10 +16,12 @@ pub struct MovEaxMoffs32 {
 
 impl MovEaxMoffs32 {
     /// Creates the operation from its encoded operands.
-    pub const fn new(offset: Address) -> Self {
+    pub(in crate::instruction::operation) const fn new(offset: Address) -> Self {
         Self { offset }
     }
+}
 
+impl MovEaxMoffs32 {
     /// Gets the offset operand.
     pub const fn offset(&self) -> Address {
         self.offset

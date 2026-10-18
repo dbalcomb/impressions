@@ -15,10 +15,12 @@ pub struct PushImm8 {
 
 impl PushImm8 {
     /// Creates the operation from its encoded operands.
-    pub const fn new(immediate: Immediate8) -> Self {
+    pub(in crate::instruction::operation) const fn new(immediate: Immediate8) -> Self {
         Self { immediate }
     }
+}
 
+impl PushImm8 {
     /// Gets the immediate operand.
     pub const fn immediate(&self) -> Immediate8 {
         self.immediate

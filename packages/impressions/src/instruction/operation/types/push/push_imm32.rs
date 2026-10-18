@@ -15,10 +15,12 @@ pub struct PushImm32 {
 
 impl PushImm32 {
     /// Creates the operation from its encoded operands.
-    pub const fn new(immediate: Immediate32) -> Self {
+    pub(in crate::instruction::operation) const fn new(immediate: Immediate32) -> Self {
         Self { immediate }
     }
+}
 
+impl PushImm32 {
     /// Gets the immediate operand.
     pub const fn immediate(&self) -> Immediate32 {
         self.immediate

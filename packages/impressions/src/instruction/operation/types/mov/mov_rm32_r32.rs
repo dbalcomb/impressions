@@ -18,10 +18,12 @@ pub struct MovRm32R32 {
 
 impl MovRm32R32 {
     /// Creates the operation from its encoded operands.
-    pub const fn new(operand: Rm32) -> Self {
+    pub(in crate::instruction::operation) const fn new(operand: Rm32) -> Self {
         Self { operand }
     }
+}
 
+impl MovRm32R32 {
     /// Gets the shared ModR/M encoding.
     pub const fn operand(&self) -> Rm32 {
         self.operand

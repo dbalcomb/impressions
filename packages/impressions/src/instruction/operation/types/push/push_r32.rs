@@ -15,10 +15,12 @@ pub struct PushR32 {
 
 impl PushR32 {
     /// Creates the operation from its encoded operands.
-    pub const fn new(register: Register32) -> Self {
+    pub(in crate::instruction::operation) const fn new(register: Register32) -> Self {
         Self { register }
     }
+}
 
+impl PushR32 {
     /// Gets the register operand.
     pub const fn register(&self) -> Register32 {
         self.register

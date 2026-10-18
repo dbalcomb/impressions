@@ -19,10 +19,15 @@ pub struct AddRm32Imm8 {
 
 impl AddRm32Imm8 {
     /// Creates the operation from its encoded operands.
-    pub const fn new(operand: Rm32, immediate: Immediate8) -> Self {
+    pub(in crate::instruction::operation) const fn new(
+        operand: Rm32,
+        immediate: Immediate8,
+    ) -> Self {
         Self { operand, immediate }
     }
+}
 
+impl AddRm32Imm8 {
     /// Gets the register or memory operand.
     pub const fn operand(&self) -> Rm32 {
         self.operand
