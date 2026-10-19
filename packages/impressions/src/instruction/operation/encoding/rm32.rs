@@ -10,7 +10,7 @@ use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
 
-/// A 32-bit ModR/M operand, retaining its modifier and displacement.
+/// A ModR/M operand with 32-bit addressing, retaining its modifier and displacement.
 ///
 /// The `reg` field can encode a register operand or an opcode extension.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
