@@ -155,7 +155,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn group83_preserves_prefixes_and_serializes_all_operations() {
+    fn immediate_groups_preserve_prefixes_and_serialize_all_operations() {
         for (extension, name) in [
             (0, "add"),
             (1, "or"),
@@ -166,26 +166,41 @@ mod tests {
             (6, "xor"),
             (7, "cmp"),
         ] {
-            for (operand_bytes, destination) in [
-                (&b"\xc0"[..], "eax"),
-                (&b"\x05\x00\x00\x00\x00"[..], "dword ptr fs:[0x00000000]"),
-            ] {
-                let mut bytes = vec![0x64, 0x83];
-                bytes.extend_from_slice(operand_bytes);
-                bytes[2] |= extension << 3;
-                bytes.push(0xff);
-                let instruction = Instruction::decode(&mut bytes.as_slice()).unwrap();
-                assert_eq!(instruction.to_string(), format!("{name} {destination}, -1"));
-                assert_eq!(instruction.size(), bytes.len() as u64);
-                let json = serde_json::to_string(&instruction).unwrap();
-                assert_eq!(json, serde_json::to_string(&bytes).unwrap());
-                assert_eq!(
-                    serde_json::from_str::<Instruction>(&json).unwrap(),
-                    instruction
-                );
-                let mut encoded = Vec::new();
-                instruction.encode(&mut encoded).unwrap();
-                assert_eq!(encoded, bytes);
+            for opcode in [0x81, 0x83] {
+                for (operand_bytes, destination) in [
+                    (&b"\xc0"[..], "eax"),
+                    (&b"\x05\x00\x00\x00\x00"[..], "dword ptr fs:[0x00000000]"),
+                ] {
+                    let mut bytes = vec![0x64, opcode];
+
+                    bytes.extend_from_slice(operand_bytes);
+                    bytes[2] |= extension << 3;
+
+                    if opcode == 0x81 {
+                        bytes.extend_from_slice(&(-1i32).to_le_bytes());
+                    } else {
+                        bytes.push(0xff);
+                    }
+
+                    let instruction = Instruction::decode(&mut bytes.as_slice()).unwrap();
+
+                    assert_eq!(instruction.to_string(), format!("{name} {destination}, -1"));
+                    assert_eq!(instruction.size(), bytes.len() as u64);
+
+                    let json = serde_json::to_string(&instruction).unwrap();
+
+                    assert_eq!(json, serde_json::to_string(&bytes).unwrap());
+                    assert_eq!(
+                        serde_json::from_str::<Instruction>(&json).unwrap(),
+                        instruction
+                    );
+
+                    let mut encoded = Vec::new();
+
+                    instruction.encode(&mut encoded).unwrap();
+
+                    assert_eq!(encoded, bytes);
+                }
             }
         }
     }
@@ -193,6 +208,11 @@ mod tests {
     #[test]
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
+            (
+                &b"\x64\x81\x25\x38\x81\x5d\x00\xff\x00\x00\x00"[..],
+                &b"\x81\x25\x38\x81\x5d\x00\xff\x00\x00\x00"[..],
+                "and dword ptr fs:[0x005d8138], 255",
+            ),
             (
                 &b"\x64\x8a\x25\x38\x81\x5d\x00"[..],
                 &b"\x8a\x25\x38\x81\x5d\x00"[..],
@@ -268,6 +288,7 @@ mod tests {
     #[test]
     fn fs_override_does_not_change_register_or_stack_operands() {
         for (bytes, display) in [
+            (&b"\x64\x81\xe1\xff\x00\x00\x00"[..], "and ecx, 255"),
             (&b"\x64\x8a\xd4"[..], "mov dl, ah"),
             (&b"\x64\x33\xd2"[..], "xor edx, edx"),
             (&b"\x64\xff\xd0"[..], "call eax"),
@@ -361,6 +382,8 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[129,225,255,0,0,0]", "and ecx, 255"),
+            ("[129,225,1,0,0,0]", "and ecx, 1"),
             ("[138,212]", "mov dl, ah"),
             ("[138,100,139,240]", "mov ah, [ebx+ecx*4-16]"),
             ("[51,210]", "xor edx, edx"),
@@ -398,6 +421,8 @@ mod tests {
     #[test]
     fn serde_rejects_invalid_or_incomplete_input() {
         for json in [
+            "[129]",
+            "[129,225,255,0,0]",
             "[138]",
             "[138,37,56,129,93]",
             "[51]",
