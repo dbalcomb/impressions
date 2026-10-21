@@ -260,6 +260,41 @@ mod tests {
     }
 
     #[test]
+    fn register_destination_arithmetic_preserves_prefixes_and_serialization() {
+        for (opcode, name) in [
+            (0x03, "add"),
+            (0x0b, "or"),
+            (0x13, "adc"),
+            (0x1b, "sbb"),
+            (0x23, "and"),
+            (0x2b, "sub"),
+            (0x33, "xor"),
+            (0x3b, "cmp"),
+        ] {
+            for (operand_bytes, operands) in [
+                (&b"\xca"[..], "ecx, edx"),
+                (&b"\x4c\x8b\xf0"[..], "ecx, fs:[ebx+ecx*4-16]"),
+                (&b"\x0d\x38\x81\x5d\x00"[..], "ecx, fs:[0x005d8138]"),
+            ] {
+                let mut bytes = vec![0x64, opcode];
+                bytes.extend_from_slice(operand_bytes);
+                let instruction = Instruction::decode(&mut bytes.as_slice()).unwrap();
+                assert_eq!(instruction.to_string(), format!("{name} {operands}"));
+                assert_eq!(instruction.size(), bytes.len() as u64);
+                let json = serde_json::to_string(&instruction).unwrap();
+                assert_eq!(json, serde_json::to_string(&bytes).unwrap());
+                assert_eq!(
+                    serde_json::from_str::<Instruction>(&json).unwrap(),
+                    instruction,
+                );
+                let mut encoded = Vec::new();
+                instruction.encode(&mut encoded).unwrap();
+                assert_eq!(encoded, bytes);
+            }
+        }
+    }
+
+    #[test]
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
             (
@@ -442,6 +477,7 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[3,202]", "add ecx, edx"),
             ("[193,225,8]", "shl ecx, 8"),
             ("[193,225,255]", "shl ecx, 255"),
             ("[129,225,255,0,0,0]", "and ecx, 255"),
