@@ -155,6 +155,60 @@ mod tests {
     use super::*;
 
     #[test]
+    fn shifts_and_rotates_preserve_prefixes_counts_and_serialization() {
+        for (extension, name) in [
+            (0, "rol"),
+            (1, "ror"),
+            (2, "rcl"),
+            (3, "rcr"),
+            (4, "shl"),
+            (5, "shr"),
+            (7, "sar"),
+        ] {
+            for (operand_bytes, destination) in [
+                (&b"\xc1"[..], "ecx"),
+                (&b"\x44\x8b\xf0"[..], "dword ptr fs:[ebx+ecx*4-16]"),
+            ] {
+                for count in [0, 1, 8, 31, 32, 33, 128, 255] {
+                    let mut bytes = vec![0x64, 0xc1];
+                    bytes.extend_from_slice(operand_bytes);
+                    bytes[2] |= extension << 3;
+                    bytes.push(count);
+                    let instruction = Instruction::decode(&mut bytes.as_slice()).unwrap();
+
+                    assert_eq!(
+                        instruction.to_string(),
+                        format!("{name} {destination}, {count}")
+                    );
+                    assert_eq!(instruction.size(), bytes.len() as u64);
+                    let json = serde_json::to_string(&instruction).unwrap();
+                    assert_eq!(json, serde_json::to_string(&bytes).unwrap());
+                    assert_eq!(
+                        serde_json::from_str::<Instruction>(&json).unwrap(),
+                        instruction,
+                    );
+                    let mut encoded = Vec::new();
+                    instruction.encode(&mut encoded).unwrap();
+                    assert_eq!(encoded, bytes);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn undocumented_shift_extension_remains_unsupported() {
+        for bytes in [&b"\xc1\xf0\x08"[..], &b"\x64\xc1\xf0\x08"[..]] {
+            assert_eq!(
+                Instruction::decode(&mut &bytes[..]),
+                Err(Error::Operation(operation::Error::InvalidOpcodeExtension {
+                    opcode: 0xc1,
+                    extension: 6,
+                })),
+            );
+        }
+    }
+
+    #[test]
     fn immediate_groups_preserve_prefixes_and_serialize_all_operations() {
         for (extension, name) in [
             (0, "add"),
@@ -208,6 +262,11 @@ mod tests {
     #[test]
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
+            (
+                &b"\x64\xc1\x64\x8b\xf0\x08"[..],
+                &b"\xc1\x64\x8b\xf0\x08"[..],
+                "shl dword ptr fs:[ebx+ecx*4-16], 8",
+            ),
             (
                 &b"\x64\x81\x25\x38\x81\x5d\x00\xff\x00\x00\x00"[..],
                 &b"\x81\x25\x38\x81\x5d\x00\xff\x00\x00\x00"[..],
@@ -288,6 +347,7 @@ mod tests {
     #[test]
     fn fs_override_does_not_change_register_or_stack_operands() {
         for (bytes, display) in [
+            (&b"\x64\xc1\xe1\x08"[..], "shl ecx, 8"),
             (&b"\x64\x81\xe1\xff\x00\x00\x00"[..], "and ecx, 255"),
             (&b"\x64\x8a\xd4"[..], "mov dl, ah"),
             (&b"\x64\x33\xd2"[..], "xor edx, edx"),
@@ -382,6 +442,8 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[193,225,8]", "shl ecx, 8"),
+            ("[193,225,255]", "shl ecx, 255"),
             ("[129,225,255,0,0,0]", "and ecx, 255"),
             ("[129,225,1,0,0,0]", "and ecx, 1"),
             ("[138,212]", "mov dl, ah"),

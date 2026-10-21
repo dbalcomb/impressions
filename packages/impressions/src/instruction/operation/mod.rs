@@ -27,7 +27,14 @@ use self::types::cmp::{CmpRm32Imm8, CmpRm32Imm32};
 use self::types::mov::{MovEaxMoffs32, MovR8Rm8, MovR32Rm32, MovRm32R32};
 use self::types::or::{OrRm32Imm8, OrRm32Imm32};
 use self::types::push::{PushImm8, PushImm32, PushR32};
+use self::types::rcl::RclRm32Imm8;
+use self::types::rcr::RcrRm32Imm8;
+use self::types::rol::RolRm32Imm8;
+use self::types::ror::RorRm32Imm8;
+use self::types::sar::SarRm32Imm8;
 use self::types::sbb::{SbbRm32Imm8, SbbRm32Imm32};
+use self::types::shl::ShlRm32Imm8;
+use self::types::shr::ShrRm32Imm8;
 use self::types::sub::{SubRm32Imm8, SubRm32Imm32};
 use self::types::xor::{XorR32Rm32, XorRm32Imm8, XorRm32Imm32};
 
@@ -156,6 +163,46 @@ pub enum Operation {
     /// `A1 moffs32 => mov eax, moffs32`
     MovEaxMoffs32(MovEaxMoffs32),
 
+    /// Rotate a 32-bit register or memory value left by an unsigned byte count.
+    ///
+    /// `C1 /0 ib => rol r/m32, imm8`
+    RolRm32Imm8(RolRm32Imm8),
+
+    /// Rotate a 32-bit register or memory value right by an unsigned byte
+    /// count.
+    ///
+    /// `C1 /1 ib => ror r/m32, imm8`
+    RorRm32Imm8(RorRm32Imm8),
+
+    /// Rotate a 32-bit register or memory value left through carry by an
+    /// unsigned byte count.
+    ///
+    /// `C1 /2 ib => rcl r/m32, imm8`
+    RclRm32Imm8(RclRm32Imm8),
+
+    /// Rotate a 32-bit register or memory value right through carry by an
+    /// unsigned byte count.
+    ///
+    /// `C1 /3 ib => rcr r/m32, imm8`
+    RcrRm32Imm8(RcrRm32Imm8),
+
+    /// Shift a 32-bit register or memory value left by an unsigned byte count.
+    ///
+    /// `C1 /4 ib => shl r/m32, imm8`
+    ShlRm32Imm8(ShlRm32Imm8),
+
+    /// Shift a 32-bit register or memory value right logically by an unsigned
+    /// byte count.
+    ///
+    /// `C1 /5 ib => shr r/m32, imm8`
+    ShrRm32Imm8(ShrRm32Imm8),
+
+    /// Shift a 32-bit register or memory value right arithmetically by an
+    /// unsigned byte count.
+    ///
+    /// `C1 /7 ib => sar r/m32, imm8`
+    SarRm32Imm8(SarRm32Imm8),
+
     /// Call a near procedure indirectly through r/m32.
     ///
     /// `FF /2 => call r/m32`
@@ -190,6 +237,13 @@ impl Operation {
             Self::MovR8Rm8(operation) => operation.mnemonic(),
             Self::MovR32Rm32(operation) => operation.mnemonic(),
             Self::MovEaxMoffs32(operation) => operation.mnemonic(),
+            Self::RolRm32Imm8(operation) => operation.mnemonic(),
+            Self::RorRm32Imm8(operation) => operation.mnemonic(),
+            Self::RclRm32Imm8(operation) => operation.mnemonic(),
+            Self::RcrRm32Imm8(operation) => operation.mnemonic(),
+            Self::ShlRm32Imm8(operation) => operation.mnemonic(),
+            Self::ShrRm32Imm8(operation) => operation.mnemonic(),
+            Self::SarRm32Imm8(operation) => operation.mnemonic(),
             Self::CallRm32(operation) => operation.mnemonic(),
         }
     }
@@ -226,6 +280,13 @@ impl Operation {
             Self::MovR8Rm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::MovR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::MovEaxMoffs32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::RolRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::RorRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::RclRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::RcrRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::ShlRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::ShrRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::SarRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::CallRm32(operation) => operation.fmt_with_prefixes(f, prefixes),
         }
     }
@@ -258,6 +319,13 @@ impl Extent for Operation {
             Self::MovR8Rm8(operation) => operation.size(),
             Self::MovR32Rm32(operation) => operation.size(),
             Self::MovEaxMoffs32(operation) => operation.size(),
+            Self::RolRm32Imm8(operation) => operation.size(),
+            Self::RorRm32Imm8(operation) => operation.size(),
+            Self::RclRm32Imm8(operation) => operation.size(),
+            Self::RcrRm32Imm8(operation) => operation.size(),
+            Self::ShlRm32Imm8(operation) => operation.size(),
+            Self::ShrRm32Imm8(operation) => operation.size(),
+            Self::SarRm32Imm8(operation) => operation.size(),
             Self::CallRm32(operation) => operation.size(),
         }
     }
@@ -290,6 +358,13 @@ impl Encode for Operation {
             Self::MovR8Rm8(operation) => operation.encode(encoder),
             Self::MovR32Rm32(operation) => operation.encode(encoder),
             Self::MovEaxMoffs32(operation) => operation.encode(encoder),
+            Self::RolRm32Imm8(operation) => operation.encode(encoder),
+            Self::RorRm32Imm8(operation) => operation.encode(encoder),
+            Self::RclRm32Imm8(operation) => operation.encode(encoder),
+            Self::RcrRm32Imm8(operation) => operation.encode(encoder),
+            Self::ShlRm32Imm8(operation) => operation.encode(encoder),
+            Self::ShrRm32Imm8(operation) => operation.encode(encoder),
+            Self::SarRm32Imm8(operation) => operation.encode(encoder),
             Self::CallRm32(operation) => operation.encode(encoder),
         }
     }
@@ -347,6 +422,24 @@ impl Decode for Operation {
             0xa1 => Ok(Self::MovEaxMoffs32(MovEaxMoffs32::new(Address::decode(
                 decoder,
             )?))),
+            0xc1 => {
+                let operand = Rm32::decode(decoder)?;
+                let count = decoder.read_u8()?;
+
+                match operand.opcode_extension() {
+                    0 => Ok(Self::RolRm32Imm8(RolRm32Imm8::new(operand, count))),
+                    1 => Ok(Self::RorRm32Imm8(RorRm32Imm8::new(operand, count))),
+                    2 => Ok(Self::RclRm32Imm8(RclRm32Imm8::new(operand, count))),
+                    3 => Ok(Self::RcrRm32Imm8(RcrRm32Imm8::new(operand, count))),
+                    4 => Ok(Self::ShlRm32Imm8(ShlRm32Imm8::new(operand, count))),
+                    5 => Ok(Self::ShrRm32Imm8(ShrRm32Imm8::new(operand, count))),
+                    7 => Ok(Self::SarRm32Imm8(SarRm32Imm8::new(operand, count))),
+                    extension => Err(Error::InvalidOpcodeExtension {
+                        opcode: 0xc1,
+                        extension,
+                    }),
+                }
+            }
             0xff => {
                 let operand = Rm32::decode(decoder)?;
 

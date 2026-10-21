@@ -27,8 +27,29 @@ pub enum Mnemonic {
     /// Push onto the stack.
     Push,
 
+    /// Rotate left through carry.
+    Rcl,
+
+    /// Rotate right through carry.
+    Rcr,
+
+    /// Rotate left.
+    Rol,
+
+    /// Rotate right.
+    Ror,
+
+    /// Shift right arithmetically.
+    Sar,
+
     /// Subtract with borrow.
     Sbb,
+
+    /// Shift left logically.
+    Shl,
+
+    /// Shift right logically.
+    Shr,
 
     /// Subtract.
     Sub,
@@ -48,7 +69,14 @@ impl Display for Mnemonic {
             Self::Mov => write!(f, "mov"),
             Self::Or => write!(f, "or"),
             Self::Push => write!(f, "push"),
+            Self::Rcl => write!(f, "rcl"),
+            Self::Rcr => write!(f, "rcr"),
+            Self::Rol => write!(f, "rol"),
+            Self::Ror => write!(f, "ror"),
+            Self::Sar => write!(f, "sar"),
             Self::Sbb => write!(f, "sbb"),
+            Self::Shl => write!(f, "shl"),
+            Self::Shr => write!(f, "shr"),
             Self::Sub => write!(f, "sub"),
             Self::Xor => write!(f, "xor"),
         }
