@@ -19,23 +19,23 @@ use super::operand::register::Register32;
 use super::prefix::Prefixes;
 
 use self::encoding::Rm32;
-use self::types::adc::{AdcRm32Imm8, AdcRm32Imm32};
-use self::types::add::{AddRm32Imm8, AddRm32Imm32};
-use self::types::and::{AndRm32Imm8, AndRm32Imm32};
+use self::types::adc::{AdcR32Rm32, AdcRm32Imm8, AdcRm32Imm32};
+use self::types::add::{AddR32Rm32, AddRm32Imm8, AddRm32Imm32};
+use self::types::and::{AndR32Rm32, AndRm32Imm8, AndRm32Imm32};
 use self::types::call::CallRm32;
-use self::types::cmp::{CmpRm32Imm8, CmpRm32Imm32};
+use self::types::cmp::{CmpR32Rm32, CmpRm32Imm8, CmpRm32Imm32};
 use self::types::mov::{MovEaxMoffs32, MovR8Rm8, MovR32Rm32, MovRm32R32};
-use self::types::or::{OrRm32Imm8, OrRm32Imm32};
+use self::types::or::{OrR32Rm32, OrRm32Imm8, OrRm32Imm32};
 use self::types::push::{PushImm8, PushImm32, PushR32};
 use self::types::rcl::RclRm32Imm8;
 use self::types::rcr::RcrRm32Imm8;
 use self::types::rol::RolRm32Imm8;
 use self::types::ror::RorRm32Imm8;
 use self::types::sar::SarRm32Imm8;
-use self::types::sbb::{SbbRm32Imm8, SbbRm32Imm32};
+use self::types::sbb::{SbbR32Rm32, SbbRm32Imm8, SbbRm32Imm32};
 use self::types::shl::ShlRm32Imm8;
 use self::types::shr::ShrRm32Imm8;
-use self::types::sub::{SubRm32Imm8, SubRm32Imm32};
+use self::types::sub::{SubR32Rm32, SubRm32Imm8, SubRm32Imm32};
 use self::types::xor::{XorR32Rm32, XorRm32Imm8, XorRm32Imm32};
 
 pub use self::error::Error;
@@ -43,10 +43,46 @@ pub use self::error::Error;
 /// An x86 instruction operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Operation {
+    /// Add a 32-bit register or memory value to a 32-bit register.
+    ///
+    /// `03 /r => add r32, r/m32`
+    AddR32Rm32(AddR32Rm32),
+
+    /// Bitwise OR a 32-bit register with a 32-bit register or memory value.
+    ///
+    /// `0B /r => or r32, r/m32`
+    OrR32Rm32(OrR32Rm32),
+
+    /// Add a 32-bit register or memory value and carry to a 32-bit register.
+    ///
+    /// `13 /r => adc r32, r/m32`
+    AdcR32Rm32(AdcR32Rm32),
+
+    /// Subtract a 32-bit register or memory value and borrow from a 32-bit
+    /// register.
+    ///
+    /// `1B /r => sbb r32, r/m32`
+    SbbR32Rm32(SbbR32Rm32),
+
+    /// Bitwise AND a 32-bit register with a 32-bit register or memory value.
+    ///
+    /// `23 /r => and r32, r/m32`
+    AndR32Rm32(AndR32Rm32),
+
+    /// Subtract a 32-bit register or memory value from a 32-bit register.
+    ///
+    /// `2B /r => sub r32, r/m32`
+    SubR32Rm32(SubR32Rm32),
+
     /// Bitwise XOR a 32-bit register with a 32-bit register or memory value.
     ///
     /// `33 /r => xor r32, r/m32`
     XorR32Rm32(XorR32Rm32),
+
+    /// Compare a 32-bit register with a 32-bit register or memory value.
+    ///
+    /// `3B /r => cmp r32, r/m32`
+    CmpR32Rm32(CmpR32Rm32),
 
     /// Push a 32-bit register onto the stack.
     ///
@@ -213,7 +249,14 @@ impl Operation {
     /// Gets the mnemonic of the operation.
     pub const fn mnemonic(&self) -> Mnemonic {
         match self {
+            Self::AddR32Rm32(operation) => operation.mnemonic(),
+            Self::OrR32Rm32(operation) => operation.mnemonic(),
+            Self::AdcR32Rm32(operation) => operation.mnemonic(),
+            Self::SbbR32Rm32(operation) => operation.mnemonic(),
+            Self::AndR32Rm32(operation) => operation.mnemonic(),
+            Self::SubR32Rm32(operation) => operation.mnemonic(),
             Self::XorR32Rm32(operation) => operation.mnemonic(),
+            Self::CmpR32Rm32(operation) => operation.mnemonic(),
             Self::PushR32(operation) => operation.mnemonic(),
             Self::PushImm32(operation) => operation.mnemonic(),
             Self::PushImm8(operation) => operation.mnemonic(),
@@ -256,7 +299,14 @@ impl Operation {
         prefixes: &Prefixes,
     ) -> fmt::Result {
         match self {
+            Self::AddR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::OrR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::AdcR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::SbbR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::AndR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::SubR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::XorR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::CmpR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::PushR32(operation) => Display::fmt(operation, f),
             Self::PushImm32(operation) => Display::fmt(operation, f),
             Self::PushImm8(operation) => Display::fmt(operation, f),
@@ -295,7 +345,14 @@ impl Operation {
 impl Extent for Operation {
     fn size(&self) -> Size {
         match self {
+            Self::AddR32Rm32(operation) => operation.size(),
+            Self::OrR32Rm32(operation) => operation.size(),
+            Self::AdcR32Rm32(operation) => operation.size(),
+            Self::SbbR32Rm32(operation) => operation.size(),
+            Self::AndR32Rm32(operation) => operation.size(),
+            Self::SubR32Rm32(operation) => operation.size(),
             Self::XorR32Rm32(operation) => operation.size(),
+            Self::CmpR32Rm32(operation) => operation.size(),
             Self::PushR32(operation) => operation.size(),
             Self::PushImm32(operation) => operation.size(),
             Self::PushImm8(operation) => operation.size(),
@@ -334,7 +391,14 @@ impl Extent for Operation {
 impl Encode for Operation {
     fn encode(&self, encoder: &mut dyn Encoder) -> Result<(), EncodeError> {
         match self {
+            Self::AddR32Rm32(operation) => operation.encode(encoder),
+            Self::OrR32Rm32(operation) => operation.encode(encoder),
+            Self::AdcR32Rm32(operation) => operation.encode(encoder),
+            Self::SbbR32Rm32(operation) => operation.encode(encoder),
+            Self::AndR32Rm32(operation) => operation.encode(encoder),
+            Self::SubR32Rm32(operation) => operation.encode(encoder),
             Self::XorR32Rm32(operation) => operation.encode(encoder),
+            Self::CmpR32Rm32(operation) => operation.encode(encoder),
             Self::PushR32(operation) => operation.encode(encoder),
             Self::PushImm32(operation) => operation.encode(encoder),
             Self::PushImm8(operation) => operation.encode(encoder),
@@ -376,7 +440,14 @@ impl Decode for Operation {
 
     fn decode_with(decoder: &mut dyn Decoder, _: Self::Context<'_>) -> Result<Self, Self::Error> {
         match decoder.read_u8()? {
+            0x03 => Ok(Self::AddR32Rm32(AddR32Rm32::new(Rm32::decode(decoder)?))),
+            0x0b => Ok(Self::OrR32Rm32(OrR32Rm32::new(Rm32::decode(decoder)?))),
+            0x13 => Ok(Self::AdcR32Rm32(AdcR32Rm32::new(Rm32::decode(decoder)?))),
+            0x1b => Ok(Self::SbbR32Rm32(SbbR32Rm32::new(Rm32::decode(decoder)?))),
+            0x23 => Ok(Self::AndR32Rm32(AndR32Rm32::new(Rm32::decode(decoder)?))),
+            0x2b => Ok(Self::SubR32Rm32(SubR32Rm32::new(Rm32::decode(decoder)?))),
             0x33 => Ok(Self::XorR32Rm32(XorR32Rm32::new(Rm32::decode(decoder)?))),
+            0x3b => Ok(Self::CmpR32Rm32(CmpR32Rm32::new(Rm32::decode(decoder)?))),
             byte @ 0x50..0x58 => Ok(Self::PushR32(PushR32::new(Register32::from_index(
                 byte - 0x50,
             )))),
