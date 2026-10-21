@@ -19,17 +19,17 @@ use super::operand::register::Register32;
 use super::prefix::Prefixes;
 
 use self::encoding::Rm32;
-use self::types::adc::AdcRm32Imm8;
-use self::types::add::AddRm32Imm8;
-use self::types::and::AndRm32Imm8;
+use self::types::adc::{AdcRm32Imm8, AdcRm32Imm32};
+use self::types::add::{AddRm32Imm8, AddRm32Imm32};
+use self::types::and::{AndRm32Imm8, AndRm32Imm32};
 use self::types::call::CallRm32;
-use self::types::cmp::CmpRm32Imm8;
+use self::types::cmp::{CmpRm32Imm8, CmpRm32Imm32};
 use self::types::mov::{MovEaxMoffs32, MovR8Rm8, MovR32Rm32, MovRm32R32};
-use self::types::or::OrRm32Imm8;
+use self::types::or::{OrRm32Imm8, OrRm32Imm32};
 use self::types::push::{PushImm8, PushImm32, PushR32};
-use self::types::sbb::SbbRm32Imm8;
-use self::types::sub::SubRm32Imm8;
-use self::types::xor::{XorR32Rm32, XorRm32Imm8};
+use self::types::sbb::{SbbRm32Imm8, SbbRm32Imm32};
+use self::types::sub::{SubRm32Imm8, SubRm32Imm32};
+use self::types::xor::{XorR32Rm32, XorRm32Imm8, XorRm32Imm32};
 
 pub use self::error::Error;
 
@@ -55,6 +55,46 @@ pub enum Operation {
     ///
     /// `6A ib => push imm8`
     PushImm8(PushImm8),
+
+    /// Add a 32-bit immediate to r/m32.
+    ///
+    /// `81 /0 id => add r/m32, imm32`
+    AddRm32Imm32(AddRm32Imm32),
+
+    /// Bitwise OR r/m32 with a 32-bit immediate.
+    ///
+    /// `81 /1 id => or r/m32, imm32`
+    OrRm32Imm32(OrRm32Imm32),
+
+    /// Add a 32-bit immediate and carry to r/m32.
+    ///
+    /// `81 /2 id => adc r/m32, imm32`
+    AdcRm32Imm32(AdcRm32Imm32),
+
+    /// Subtract a 32-bit immediate and borrow from r/m32.
+    ///
+    /// `81 /3 id => sbb r/m32, imm32`
+    SbbRm32Imm32(SbbRm32Imm32),
+
+    /// Bitwise AND r/m32 with a 32-bit immediate.
+    ///
+    /// `81 /4 id => and r/m32, imm32`
+    AndRm32Imm32(AndRm32Imm32),
+
+    /// Subtract a 32-bit immediate from r/m32.
+    ///
+    /// `81 /5 id => sub r/m32, imm32`
+    SubRm32Imm32(SubRm32Imm32),
+
+    /// Bitwise XOR r/m32 with a 32-bit immediate.
+    ///
+    /// `81 /6 id => xor r/m32, imm32`
+    XorRm32Imm32(XorRm32Imm32),
+
+    /// Compare r/m32 with a 32-bit immediate.
+    ///
+    /// `81 /7 id => cmp r/m32, imm32`
+    CmpRm32Imm32(CmpRm32Imm32),
 
     /// Add a sign-extended byte immediate to r/m32.
     ///
@@ -130,6 +170,14 @@ impl Operation {
             Self::PushR32(operation) => operation.mnemonic(),
             Self::PushImm32(operation) => operation.mnemonic(),
             Self::PushImm8(operation) => operation.mnemonic(),
+            Self::AddRm32Imm32(operation) => operation.mnemonic(),
+            Self::OrRm32Imm32(operation) => operation.mnemonic(),
+            Self::AdcRm32Imm32(operation) => operation.mnemonic(),
+            Self::SbbRm32Imm32(operation) => operation.mnemonic(),
+            Self::AndRm32Imm32(operation) => operation.mnemonic(),
+            Self::SubRm32Imm32(operation) => operation.mnemonic(),
+            Self::XorRm32Imm32(operation) => operation.mnemonic(),
+            Self::CmpRm32Imm32(operation) => operation.mnemonic(),
             Self::AddRm32Imm8(operation) => operation.mnemonic(),
             Self::OrRm32Imm8(operation) => operation.mnemonic(),
             Self::AdcRm32Imm8(operation) => operation.mnemonic(),
@@ -158,6 +206,14 @@ impl Operation {
             Self::PushR32(operation) => Display::fmt(operation, f),
             Self::PushImm32(operation) => Display::fmt(operation, f),
             Self::PushImm8(operation) => Display::fmt(operation, f),
+            Self::AddRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::OrRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::AdcRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::SbbRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::AndRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::SubRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::XorRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::CmpRm32Imm32(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::AddRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::OrRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::AdcRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
@@ -182,6 +238,14 @@ impl Extent for Operation {
             Self::PushR32(operation) => operation.size(),
             Self::PushImm32(operation) => operation.size(),
             Self::PushImm8(operation) => operation.size(),
+            Self::AddRm32Imm32(operation) => operation.size(),
+            Self::OrRm32Imm32(operation) => operation.size(),
+            Self::AdcRm32Imm32(operation) => operation.size(),
+            Self::SbbRm32Imm32(operation) => operation.size(),
+            Self::AndRm32Imm32(operation) => operation.size(),
+            Self::SubRm32Imm32(operation) => operation.size(),
+            Self::XorRm32Imm32(operation) => operation.size(),
+            Self::CmpRm32Imm32(operation) => operation.size(),
             Self::AddRm32Imm8(operation) => operation.size(),
             Self::OrRm32Imm8(operation) => operation.size(),
             Self::AdcRm32Imm8(operation) => operation.size(),
@@ -206,6 +270,14 @@ impl Encode for Operation {
             Self::PushR32(operation) => operation.encode(encoder),
             Self::PushImm32(operation) => operation.encode(encoder),
             Self::PushImm8(operation) => operation.encode(encoder),
+            Self::AddRm32Imm32(operation) => operation.encode(encoder),
+            Self::OrRm32Imm32(operation) => operation.encode(encoder),
+            Self::AdcRm32Imm32(operation) => operation.encode(encoder),
+            Self::SbbRm32Imm32(operation) => operation.encode(encoder),
+            Self::AndRm32Imm32(operation) => operation.encode(encoder),
+            Self::SubRm32Imm32(operation) => operation.encode(encoder),
+            Self::XorRm32Imm32(operation) => operation.encode(encoder),
+            Self::CmpRm32Imm32(operation) => operation.encode(encoder),
             Self::AddRm32Imm8(operation) => operation.encode(encoder),
             Self::OrRm32Imm8(operation) => operation.encode(encoder),
             Self::AdcRm32Imm8(operation) => operation.encode(encoder),
@@ -237,6 +309,22 @@ impl Decode for Operation {
                 decoder,
             )?))),
             0x6a => Ok(Self::PushImm8(PushImm8::new(Immediate8::decode(decoder)?))),
+            0x81 => {
+                let operand = Rm32::decode(decoder)?;
+                let immediate = Immediate32::decode(decoder)?;
+
+                match operand.opcode_extension() {
+                    0 => Ok(Self::AddRm32Imm32(AddRm32Imm32::new(operand, immediate))),
+                    1 => Ok(Self::OrRm32Imm32(OrRm32Imm32::new(operand, immediate))),
+                    2 => Ok(Self::AdcRm32Imm32(AdcRm32Imm32::new(operand, immediate))),
+                    3 => Ok(Self::SbbRm32Imm32(SbbRm32Imm32::new(operand, immediate))),
+                    4 => Ok(Self::AndRm32Imm32(AndRm32Imm32::new(operand, immediate))),
+                    5 => Ok(Self::SubRm32Imm32(SubRm32Imm32::new(operand, immediate))),
+                    6 => Ok(Self::XorRm32Imm32(XorRm32Imm32::new(operand, immediate))),
+                    7 => Ok(Self::CmpRm32Imm32(CmpRm32Imm32::new(operand, immediate))),
+                    _ => unreachable!("ModR/M opcode extension is three bits"),
+                }
+            }
             0x83 => {
                 let operand = Rm32::decode(decoder)?;
                 let immediate = Immediate8::decode(decoder)?;
