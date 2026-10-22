@@ -298,6 +298,11 @@ mod tests {
     fn fs_override_supports_explicit_memory_operands() {
         for (bytes, operation, display) in [
             (
+                &b"\x64\xa3\x34\xbf\x60\x01"[..],
+                &b"\xa3\x34\xbf\x60\x01"[..],
+                "mov fs:[0x0160bf34], eax",
+            ),
+            (
                 &b"\x64\xc1\x64\x8b\xf0\x08"[..],
                 &b"\xc1\x64\x8b\xf0\x08"[..],
                 "shl dword ptr fs:[ebx+ecx*4-16], 8",
@@ -477,6 +482,7 @@ mod tests {
     #[test]
     fn serde_includes_opcode_and_operand_bytes() {
         for (json, display) in [
+            ("[163,52,191,96,1]", "mov [0x0160bf34], eax"),
             ("[3,202]", "add ecx, edx"),
             ("[193,225,8]", "shl ecx, 8"),
             ("[193,225,255]", "shl ecx, 255"),
