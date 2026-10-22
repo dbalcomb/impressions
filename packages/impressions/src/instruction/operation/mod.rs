@@ -24,7 +24,7 @@ use self::types::add::{AddR32Rm32, AddRm32Imm8, AddRm32Imm32};
 use self::types::and::{AndR32Rm32, AndRm32Imm8, AndRm32Imm32};
 use self::types::call::CallRm32;
 use self::types::cmp::{CmpR32Rm32, CmpRm32Imm8, CmpRm32Imm32};
-use self::types::mov::{MovEaxMoffs32, MovR8Rm8, MovR32Rm32, MovRm32R32};
+use self::types::mov::{MovEaxMoffs32, MovMoffs32Eax, MovR8Rm8, MovR32Rm32, MovRm32R32};
 use self::types::or::{OrR32Rm32, OrRm32Imm8, OrRm32Imm32};
 use self::types::push::{PushImm8, PushImm32, PushR32};
 use self::types::rcl::RclRm32Imm8;
@@ -199,6 +199,11 @@ pub enum Operation {
     /// `A1 moffs32 => mov eax, moffs32`
     MovEaxMoffs32(MovEaxMoffs32),
 
+    /// Move EAX to a dword at a direct 32-bit memory offset.
+    ///
+    /// `A3 moffs32 => mov moffs32, eax`
+    MovMoffs32Eax(MovMoffs32Eax),
+
     /// Rotate a 32-bit register or memory value left by an unsigned byte count.
     ///
     /// `C1 /0 ib => rol r/m32, imm8`
@@ -280,6 +285,7 @@ impl Operation {
             Self::MovR8Rm8(operation) => operation.mnemonic(),
             Self::MovR32Rm32(operation) => operation.mnemonic(),
             Self::MovEaxMoffs32(operation) => operation.mnemonic(),
+            Self::MovMoffs32Eax(operation) => operation.mnemonic(),
             Self::RolRm32Imm8(operation) => operation.mnemonic(),
             Self::RorRm32Imm8(operation) => operation.mnemonic(),
             Self::RclRm32Imm8(operation) => operation.mnemonic(),
@@ -330,6 +336,7 @@ impl Operation {
             Self::MovR8Rm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::MovR32Rm32(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::MovEaxMoffs32(operation) => operation.fmt_with_prefixes(f, prefixes),
+            Self::MovMoffs32Eax(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::RolRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::RorRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
             Self::RclRm32Imm8(operation) => operation.fmt_with_prefixes(f, prefixes),
@@ -376,6 +383,7 @@ impl Extent for Operation {
             Self::MovR8Rm8(operation) => operation.size(),
             Self::MovR32Rm32(operation) => operation.size(),
             Self::MovEaxMoffs32(operation) => operation.size(),
+            Self::MovMoffs32Eax(operation) => operation.size(),
             Self::RolRm32Imm8(operation) => operation.size(),
             Self::RorRm32Imm8(operation) => operation.size(),
             Self::RclRm32Imm8(operation) => operation.size(),
@@ -422,6 +430,7 @@ impl Encode for Operation {
             Self::MovR8Rm8(operation) => operation.encode(encoder),
             Self::MovR32Rm32(operation) => operation.encode(encoder),
             Self::MovEaxMoffs32(operation) => operation.encode(encoder),
+            Self::MovMoffs32Eax(operation) => operation.encode(encoder),
             Self::RolRm32Imm8(operation) => operation.encode(encoder),
             Self::RorRm32Imm8(operation) => operation.encode(encoder),
             Self::RclRm32Imm8(operation) => operation.encode(encoder),
@@ -491,6 +500,9 @@ impl Decode for Operation {
             0x8a => Ok(Self::MovR8Rm8(MovR8Rm8::new(Rm32::decode(decoder)?))),
             0x8b => Ok(Self::MovR32Rm32(MovR32Rm32::new(Rm32::decode(decoder)?))),
             0xa1 => Ok(Self::MovEaxMoffs32(MovEaxMoffs32::new(Address::decode(
+                decoder,
+            )?))),
+            0xa3 => Ok(Self::MovMoffs32Eax(MovMoffs32Eax::new(Address::decode(
                 decoder,
             )?))),
             0xc1 => {
