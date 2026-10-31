@@ -5,6 +5,8 @@ use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
 
+use super::RegField;
+
 /// The ModR/M and SIB byte modifiers for x86 instructions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Modifier32 {
@@ -19,13 +21,13 @@ impl Modifier32 {
     }
 
     /// Gets the ModR/M `reg` field.
-    pub const fn reg_index(self) -> u8 {
-        (self.modrm >> 3) & 0x07
+    pub const fn reg_field(self) -> RegField {
+        RegField::from_bits(self.modrm >> 3)
     }
 
     /// Gets the ModR/M `reg` field as a 32-bit register.
     pub const fn reg(self) -> Register32 {
-        Register32::from_index(self.reg_index())
+        Register32::from_index(self.reg_field().bits())
     }
 
     /// Gets the ModR/M `r/m` field.
@@ -130,7 +132,7 @@ mod tests {
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::encode::Encode;
 
-    use super::Modifier32;
+    use super::{Modifier32, RegField};
 
     #[test]
     fn round_trips_every_modrm_and_sib_encoding() {
@@ -157,6 +159,7 @@ mod tests {
                 assert_eq!(modifier.size(), bytes.len() as u64);
                 assert_eq!(modifier.modrm, modrm);
                 assert_eq!(modifier.mode(), mode);
+                assert_eq!(modifier.reg_field(), RegField::from_bits(modrm >> 3));
                 assert_eq!(modifier.reg().index(), (modrm >> 3) & 7);
                 assert_eq!(modifier.rm().index(), rm);
                 assert_eq!(modifier.sib, if has_sib { Some(sib as u8) } else { None });
