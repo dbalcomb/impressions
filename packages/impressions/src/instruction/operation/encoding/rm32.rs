@@ -5,7 +5,7 @@ use crate::instruction::operand::displacement::{
 };
 use crate::instruction::operand::memory::{Memory32, ScaledIndex};
 use crate::instruction::operand::register::Register32;
-use crate::instruction::operation::modifier::Modifier32;
+use crate::instruction::operation::modifier::{Modifier32, RegField};
 use crate::memory::extent::{Extent, Size};
 use crate::memory::region::ops::decode::{Decode, Decoder, Error as DecodeError};
 use crate::memory::region::ops::encode::{Encode, Encoder, Error as EncodeError};
@@ -21,8 +21,8 @@ pub struct Rm32 {
 
 impl Rm32 {
     /// Gets the opcode extension in the ModR/M `reg` field.
-    pub const fn opcode_extension(&self) -> u8 {
-        self.modifier.reg_index()
+    pub const fn opcode_extension(&self) -> RegField {
+        self.modifier.reg_field()
     }
 
     /// Gets the register in the ModR/M `reg` field.
@@ -127,7 +127,7 @@ mod tests {
     };
     use crate::instruction::operand::memory::{Scale, ScaledIndex};
     use crate::instruction::operand::register::Register32;
-    use crate::instruction::operation::modifier::Modifier32;
+    use crate::instruction::operation::modifier::{Modifier32, RegField};
     use crate::memory::extent::Extent;
     use crate::memory::region::ops::decode::{Decode, Error as DecodeError};
     use crate::memory::region::ops::encode::Encode;
@@ -270,7 +270,7 @@ mod tests {
 
             assert_eq!(operands.modifier, modifier);
             assert_eq!(operands.register(), Register32::Eax);
-            assert_eq!(operands.opcode_extension(), 0);
+            assert_eq!(operands.opcode_extension(), RegField::Zero);
             assert_eq!(operands.displacement(), displacement);
             assert_eq!(
                 operands.rm_register(),
@@ -461,7 +461,7 @@ mod tests {
         ] {
             let operand = Rm32::decode(&mut &bytes[..]).unwrap();
 
-            assert_eq!(operand.opcode_extension(), 5);
+            assert_eq!(operand.opcode_extension(), RegField::Five);
             assert_eq!(operand.rm_register(), register);
             assert_eq!(operand.memory().is_some(), register.is_none());
             assert_eq!(operand.displacement(), displacement);

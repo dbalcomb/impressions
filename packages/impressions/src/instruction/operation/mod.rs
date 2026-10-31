@@ -19,6 +19,7 @@ use super::operand::register::Register32;
 use super::prefix::Prefixes;
 
 use self::encoding::Rm32;
+use self::modifier::RegField;
 use self::types::adc::{AdcR32Rm32, AdcRm32Imm8, AdcRm32Imm32};
 use self::types::add::{AddR32Rm32, AddRm32Imm8, AddRm32Imm32};
 use self::types::and::{AndR32Rm32, AndRm32Imm8, AndRm32Imm32};
@@ -469,15 +470,18 @@ impl Decode for Operation {
                 let immediate = Immediate32::decode(decoder)?;
 
                 match operand.opcode_extension() {
-                    0 => Ok(Self::AddRm32Imm32(AddRm32Imm32::new(operand, immediate))),
-                    1 => Ok(Self::OrRm32Imm32(OrRm32Imm32::new(operand, immediate))),
-                    2 => Ok(Self::AdcRm32Imm32(AdcRm32Imm32::new(operand, immediate))),
-                    3 => Ok(Self::SbbRm32Imm32(SbbRm32Imm32::new(operand, immediate))),
-                    4 => Ok(Self::AndRm32Imm32(AndRm32Imm32::new(operand, immediate))),
-                    5 => Ok(Self::SubRm32Imm32(SubRm32Imm32::new(operand, immediate))),
-                    6 => Ok(Self::XorRm32Imm32(XorRm32Imm32::new(operand, immediate))),
-                    7 => Ok(Self::CmpRm32Imm32(CmpRm32Imm32::new(operand, immediate))),
-                    _ => unreachable!("ModR/M opcode extension is three bits"),
+                    RegField::Zero => Ok(Self::AddRm32Imm32(AddRm32Imm32::new(operand, immediate))),
+                    RegField::One => Ok(Self::OrRm32Imm32(OrRm32Imm32::new(operand, immediate))),
+                    RegField::Two => Ok(Self::AdcRm32Imm32(AdcRm32Imm32::new(operand, immediate))),
+                    RegField::Three => {
+                        Ok(Self::SbbRm32Imm32(SbbRm32Imm32::new(operand, immediate)))
+                    }
+                    RegField::Four => Ok(Self::AndRm32Imm32(AndRm32Imm32::new(operand, immediate))),
+                    RegField::Five => Ok(Self::SubRm32Imm32(SubRm32Imm32::new(operand, immediate))),
+                    RegField::Six => Ok(Self::XorRm32Imm32(XorRm32Imm32::new(operand, immediate))),
+                    RegField::Seven => {
+                        Ok(Self::CmpRm32Imm32(CmpRm32Imm32::new(operand, immediate)))
+                    }
                 }
             }
             0x83 => {
@@ -485,15 +489,14 @@ impl Decode for Operation {
                 let immediate = Immediate8::decode(decoder)?;
 
                 match operand.opcode_extension() {
-                    0 => Ok(Self::AddRm32Imm8(AddRm32Imm8::new(operand, immediate))),
-                    1 => Ok(Self::OrRm32Imm8(OrRm32Imm8::new(operand, immediate))),
-                    2 => Ok(Self::AdcRm32Imm8(AdcRm32Imm8::new(operand, immediate))),
-                    3 => Ok(Self::SbbRm32Imm8(SbbRm32Imm8::new(operand, immediate))),
-                    4 => Ok(Self::AndRm32Imm8(AndRm32Imm8::new(operand, immediate))),
-                    5 => Ok(Self::SubRm32Imm8(SubRm32Imm8::new(operand, immediate))),
-                    6 => Ok(Self::XorRm32Imm8(XorRm32Imm8::new(operand, immediate))),
-                    7 => Ok(Self::CmpRm32Imm8(CmpRm32Imm8::new(operand, immediate))),
-                    _ => unreachable!("ModR/M opcode extension is three bits"),
+                    RegField::Zero => Ok(Self::AddRm32Imm8(AddRm32Imm8::new(operand, immediate))),
+                    RegField::One => Ok(Self::OrRm32Imm8(OrRm32Imm8::new(operand, immediate))),
+                    RegField::Two => Ok(Self::AdcRm32Imm8(AdcRm32Imm8::new(operand, immediate))),
+                    RegField::Three => Ok(Self::SbbRm32Imm8(SbbRm32Imm8::new(operand, immediate))),
+                    RegField::Four => Ok(Self::AndRm32Imm8(AndRm32Imm8::new(operand, immediate))),
+                    RegField::Five => Ok(Self::SubRm32Imm8(SubRm32Imm8::new(operand, immediate))),
+                    RegField::Six => Ok(Self::XorRm32Imm8(XorRm32Imm8::new(operand, immediate))),
+                    RegField::Seven => Ok(Self::CmpRm32Imm8(CmpRm32Imm8::new(operand, immediate))),
                 }
             }
             0x89 => Ok(Self::MovRm32R32(MovRm32R32::new(Rm32::decode(decoder)?))),
@@ -510,16 +513,16 @@ impl Decode for Operation {
                 let count = decoder.read_u8()?;
 
                 match operand.opcode_extension() {
-                    0 => Ok(Self::RolRm32Imm8(RolRm32Imm8::new(operand, count))),
-                    1 => Ok(Self::RorRm32Imm8(RorRm32Imm8::new(operand, count))),
-                    2 => Ok(Self::RclRm32Imm8(RclRm32Imm8::new(operand, count))),
-                    3 => Ok(Self::RcrRm32Imm8(RcrRm32Imm8::new(operand, count))),
-                    4 => Ok(Self::ShlRm32Imm8(ShlRm32Imm8::new(operand, count))),
-                    5 => Ok(Self::ShrRm32Imm8(ShrRm32Imm8::new(operand, count))),
-                    7 => Ok(Self::SarRm32Imm8(SarRm32Imm8::new(operand, count))),
-                    extension => Err(Error::InvalidOpcodeExtension {
+                    RegField::Zero => Ok(Self::RolRm32Imm8(RolRm32Imm8::new(operand, count))),
+                    RegField::One => Ok(Self::RorRm32Imm8(RorRm32Imm8::new(operand, count))),
+                    RegField::Two => Ok(Self::RclRm32Imm8(RclRm32Imm8::new(operand, count))),
+                    RegField::Three => Ok(Self::RcrRm32Imm8(RcrRm32Imm8::new(operand, count))),
+                    RegField::Four => Ok(Self::ShlRm32Imm8(ShlRm32Imm8::new(operand, count))),
+                    RegField::Five => Ok(Self::ShrRm32Imm8(ShrRm32Imm8::new(operand, count))),
+                    RegField::Seven => Ok(Self::SarRm32Imm8(SarRm32Imm8::new(operand, count))),
+                    RegField::Six => Err(Error::InvalidOpcodeExtension {
                         opcode: 0xc1,
-                        extension,
+                        extension: RegField::Six.bits(),
                     }),
                 }
             }
@@ -527,10 +530,10 @@ impl Decode for Operation {
                 let operand = Rm32::decode(decoder)?;
 
                 match operand.opcode_extension() {
-                    2 => Ok(Self::CallRm32(CallRm32::new(operand))),
+                    RegField::Two => Ok(Self::CallRm32(CallRm32::new(operand))),
                     extension => Err(Error::InvalidOpcodeExtension {
                         opcode: 0xff,
-                        extension,
+                        extension: extension.bits(),
                     }),
                 }
             }
