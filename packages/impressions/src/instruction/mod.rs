@@ -7,6 +7,7 @@ pub mod prefix;
 mod error;
 mod inspect;
 mod mnemonic;
+mod opcode;
 
 use std::fmt::{self, Display};
 
@@ -25,6 +26,7 @@ use self::prefix::{Prefix, Prefixes};
 
 pub use self::error::Error;
 pub use self::mnemonic::Mnemonic;
+pub use self::opcode::Opcode;
 
 /// A 32-bit x86 instruction.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,6 +49,52 @@ impl Instruction {
     /// Gets the mnemonic.
     pub const fn mnemonic(&self) -> Mnemonic {
         self.operation.mnemonic()
+    }
+
+    /// Gets the opcode.
+    pub const fn opcode(&self) -> Opcode {
+        match self.operation() {
+            Operation::AddR32Rm32(_) => Opcode::AddR32Rm32,
+            Operation::OrR32Rm32(_) => Opcode::OrR32Rm32,
+            Operation::AdcR32Rm32(_) => Opcode::AdcR32Rm32,
+            Operation::SbbR32Rm32(_) => Opcode::SbbR32Rm32,
+            Operation::AndR32Rm32(_) => Opcode::AndR32Rm32,
+            Operation::SubR32Rm32(_) => Opcode::SubR32Rm32,
+            Operation::XorR32Rm32(_) => Opcode::XorR32Rm32,
+            Operation::CmpR32Rm32(_) => Opcode::CmpR32Rm32,
+            Operation::PushR32(op) => Opcode::PushR32(op.register()),
+            Operation::PushImm32(_) => Opcode::PushImm32,
+            Operation::PushImm8(_) => Opcode::PushImm8,
+            Operation::AddRm32Imm32(_) => Opcode::AddRm32Imm32,
+            Operation::OrRm32Imm32(_) => Opcode::OrRm32Imm32,
+            Operation::AdcRm32Imm32(_) => Opcode::AdcRm32Imm32,
+            Operation::SbbRm32Imm32(_) => Opcode::SbbRm32Imm32,
+            Operation::AndRm32Imm32(_) => Opcode::AndRm32Imm32,
+            Operation::SubRm32Imm32(_) => Opcode::SubRm32Imm32,
+            Operation::XorRm32Imm32(_) => Opcode::XorRm32Imm32,
+            Operation::CmpRm32Imm32(_) => Opcode::CmpRm32Imm32,
+            Operation::AddRm32Imm8(_) => Opcode::AddRm32Imm8,
+            Operation::OrRm32Imm8(_) => Opcode::OrRm32Imm8,
+            Operation::AdcRm32Imm8(_) => Opcode::AdcRm32Imm8,
+            Operation::SbbRm32Imm8(_) => Opcode::SbbRm32Imm8,
+            Operation::AndRm32Imm8(_) => Opcode::AndRm32Imm8,
+            Operation::SubRm32Imm8(_) => Opcode::SubRm32Imm8,
+            Operation::XorRm32Imm8(_) => Opcode::XorRm32Imm8,
+            Operation::CmpRm32Imm8(_) => Opcode::CmpRm32Imm8,
+            Operation::MovRm32R32(_) => Opcode::MovRm32R32,
+            Operation::MovR8Rm8(_) => Opcode::MovR8Rm8,
+            Operation::MovR32Rm32(_) => Opcode::MovR32Rm32,
+            Operation::MovEaxMoffs32(_) => Opcode::MovEaxMoffs32,
+            Operation::MovMoffs32Eax(_) => Opcode::MovMoffs32Eax,
+            Operation::RolRm32Imm8(_) => Opcode::RolRm32Imm8,
+            Operation::RorRm32Imm8(_) => Opcode::RorRm32Imm8,
+            Operation::RclRm32Imm8(_) => Opcode::RclRm32Imm8,
+            Operation::RcrRm32Imm8(_) => Opcode::RcrRm32Imm8,
+            Operation::ShlRm32Imm8(_) => Opcode::ShlRm32Imm8,
+            Operation::ShrRm32Imm8(_) => Opcode::ShrRm32Imm8,
+            Operation::SarRm32Imm8(_) => Opcode::SarRm32Imm8,
+            Operation::CallRm32(_) => Opcode::CallRm32,
+        }
     }
 }
 
